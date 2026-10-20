@@ -19,7 +19,7 @@ Fora do escopo: firmware do ESP32, infraestrutura do dispositivo e a lógica fin
 
 ## Estado atual
 
-O projeto está no início. Ainda não existem dados, código de ML nem modelos.
+O pipeline de dados está pronto e testado: validação, separação treino/teste por sessão, estimativa do gerador sintético, geração e montagem dos conjuntos finais. Ainda não existem dados reais nem modelos treinados.
 
 | Item | Situação |
 | --- | --- |
@@ -30,7 +30,7 @@ O projeto está no início. Ainda não existem dados, código de ML nem modelos.
 | Primeiras leituras reais | Não coletadas |
 | Procedimento experimental e fonte dos rótulos | Não definidos |
 | Dataset público relevante | Não pesquisado |
-| Dataset sintético | Não criado |
+| Dataset sintético | Gerador pronto; parâmetros reais dependem das primeiras leituras |
 | Modelo treinado ou validado com dados reais | Não existe |
 
 Nenhuma especificação de hardware, calibração, limite de detecção ou valor típico do sensor está assumida neste repositório.
@@ -46,20 +46,35 @@ Nenhuma especificação de hardware, calibração, limite de detecção ou valor
 
 ```text
 ml/
+├── config/
+│   ├── synthetic_didactic.json   # Parâmetros INVENTADOS, só para testar o código
+│   ├── synthetic_estimated.json  # Criado pelo 'estimate' a partir do treino real
+│   └── split_sessions.json       # Criado pelo 'split': quais sessões são de teste
 ├── data/
-│   ├── raw/          # Leituras reais originais (nunca sobrescritas)
+│   ├── raw/          # Leituras reais originais (nunca alteradas pelo código)
 │   ├── synthetic/    # Dados simulados, identificados como sintéticos
-│   └── processed/    # Dados preparados a partir de raw/ ou synthetic/
+│   └── processed/    # real_train, real_test, train e test
 ├── notebooks/        # Análise exploratória e experimentos
-├── src/              # Código reutilizável (geração, validação, preparação, treino, inferência)
+├── src/
+│   ├── cli.py                   # Linha de comando que executa as etapas
+│   ├── data_validation.py       # Esquema e validação das leituras
+│   ├── data_io.py               # Leitura e gravação de CSVs
+│   ├── splitting.py             # Separação treino/teste por sessão
+│   ├── parameter_estimation.py  # Estima o gerador a partir do treino real
+│   ├── data_generation.py       # Gerador sintético
+│   ├── preprocessing.py         # Conjuntos finais e features (X, y, groups)
+│   └── paths.py                 # Caminhos padrão
+├── templates/
+│   └── leituras_template.csv    # Cabeçalho do CSV de leituras reais
 ├── models/           # Artefatos treinados
-├── tests/            # Testes automatizados
+├── tests/            # Testes automatizados (pytest)
 ├── requirements.txt
+├── pytest.ini
 ├── .gitignore
 └── README.md
 ```
 
-Por padrão, o conteúdo de `data/` e `models/` não é versionado no Git (veja `.gitignore`). Se a equipe decidir versionar leituras reais, ajuste o `.gitignore` explicitamente.
+Por padrão, o conteúdo de `data/` e `models/` não é versionado no Git (veja `.gitignore`). Se a equipe decidir versionar leituras reais, ajuste o `.gitignore` explicitamente. A pasta `config/` é versionada: assim toda a equipe usa as mesmas sessões de teste.
 
 ## Esquema inicial do dataset (proposto)
 
@@ -74,6 +89,13 @@ Por padrão, o conteúdo de `data/` e `models/` não é versionado no Git (veja 
 | `humidity_pct` | Opcional, somente se medida |
 | `notes` | Condições experimentais e observações |
 
+Regras de formato:
+
+- `timestamp` precisa ter fuso horário, por exemplo `2026-10-20T14:00:00-03:00`. Horários sem fuso são rejeitados porque são ambíguos. Internamente tudo é convertido para UTC.
+- Em `data/raw/`, `source` deve ser sempre `real`.
+- `label` vazio é permitido (leitura sem rótulo confiável); essas linhas não entram no treino nem no teste.
+- Não pode haver duas leituras com a mesma `session_id` e o mesmo `timestamp`.
+
 ## Ambiente
 
 ```bash
@@ -81,7 +103,47 @@ cd ml
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+python -m pytest        # roda os testes
 ```
+
+## Como usar quando os dados chegarem
+
+1. Salve cada coleta como CSV em `data/raw/`, com as colunas de `templates/leituras_template.csv`. Pode ser um arquivo por sessão ou vários por arquivo.
+2. Rode, de dentro de `ml/`:
+
+   ```bash
+   python -m src.cli all
+   ```
+
+Isso executa cinco etapas, que também podem ser rodadas separadamente:
+
+| Comando | O que faz | Gera |
+| --- | --- | --- |
+| `validate` | Confere todos os CSVs de `data/raw/` e lista todos os problemas de uma vez | nada |
+| `split` | Sorteia sessões de teste por classe (padrão: 25%) | `config/split_sessions.json`, `data/processed/real_train.csv`, `real_test.csv` |
+| `estimate` | Mede nível, variação entre sessões, ruído e intervalo nas sessões de **treino** | `config/synthetic_estimated.json` |
+| `generate` | Sorteia leituras sintéticas com esses parâmetros | `data/synthetic/synthetic_estimated.csv` |
+| `prepare` | Junta treino real + sintético; o teste fica só com dados reais | `data/processed/train.csv`, `test.csv` |
+
+Opções úteis: `--test-size 0.3`, `--seed 7`, `--n-sessions 10` (sessões sintéticas por classe; `0` = mesmo número das reais). Veja todas com `python -m src.cli --help`.
+
+Quando chegarem dados novos, basta rodar `all` de novo. As sessões que já estavam no manifesto continuam do mesmo lado (treino ou teste); só as novas são sorteadas. Para refazer o sorteio do zero, apague `config/split_sessions.json`.
+
+### Antes dos dados reais
+
+Para testar o gerador sem dados reais, use os parâmetros didáticos:
+
+```bash
+python -m src.cli generate --config config/synthetic_didactic.json
+```
+
+Esses valores são inventados e não representam o MQ-3.
+
+### Como funciona o gerador
+
+Cada leitura sintética é `nível da sessão + ruído`. O nível é sorteado uma vez por sessão; o ruído, a cada leitura. Os parâmetros vêm das sessões de treino: a média e o desvio-padrão das medianas de cada sessão, e a mediana dos desvios-padrão dentro das sessões. Os valores gerados ficam limitados à faixa observada.
+
+Limitações: o gerador não reproduz a dinâmica temporal do sensor (aquecimento, subida e descida da resposta) e gera cada sessão com um único rótulo. Ele deve ser revisto depois da análise exploratória das leituras reais. Um modelo treinado só com dados sintéticos aprende a regra do simulador; o desempenho que vale é o medido em `test.csv`, que só tem dados reais.
 
 ## Plano
 
