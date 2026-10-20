@@ -1,0 +1,35 @@
+# Ambiente virtual
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# MLflow (execuções locais)
+mlruns/
+mlartifacts/
+
+# Credenciais e variáveis de ambiente
+.env
+.env.*
+
+# Dados e modelos não são versionados sem autorização explícita da equipe.
+# Os .gitkeep mantêm as pastas no repositório.
+data/raw/*
+!data/raw/.gitkeep
+data/synthetic/*
+!data/synthetic/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+models/*
+!models/.gitkeep
+
+# Sistema operacional / editores
+.DS_Store
+.vscode/
+.idea/
