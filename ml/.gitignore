@@ -21,9 +21,9 @@ mlartifacts/
 # Dados e modelos não são versionados sem autorização explícita da equipe.
 # Os .gitkeep mantêm as pastas no repositório.
 data/raw/*
-!data/raw/.gitkeep
-data/synthetic/*
-!data/synthetic/.gitkeep
+!data/raw/readings/
+data/raw/readings/*
+!data/raw/readings/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
 models/*

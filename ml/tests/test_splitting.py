@@ -1,82 +1,67 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
-from src.splitting import (
-    SessionSplit,
-    apply_split,
-    load_split,
-    save_split,
-    session_classes,
-    split_sessions,
-    update_split,
-)
-from tests.conftest import make_fake_real
+from src.features import build_dataset, compute_features
+from src.splitting import GroupSplit, apply_split, load_split, save_split, update_split
+from tests.conftest import make_dataset
 
 
-def test_split_has_no_session_in_both_sides_and_covers_all():
-    df = make_fake_real(n_sessions=8)
-    split, _ = update_split(df, existing=None)
-
-    assert not set(split.train_sessions) & set(split.test_sessions)
-    assert set(split.train_sessions) | set(split.test_sessions) == set(df["session_id"])
+def _dataset(n_participants: int = 8) -> pd.DataFrame:
+    readings, attempts = make_dataset(n_participants=n_participants, repetitions=1)
+    features, _ = compute_features(readings)
+    return build_dataset(features, attempts)
 
 
-def test_split_is_stratified_by_session_class():
-    df = make_fake_real(n_sessions=8)
-    classes = session_classes(df)
-    _, test, _ = split_sessions(classes, test_size=0.25)
+def test_no_participant_in_both_sides():
+    dataset = _dataset()
+    split, warnings = update_split(dataset, existing=None)
+    train, test = apply_split(dataset, split)
 
-    assert sorted(classes[test].unique()) == [0, 1]
-    assert len(test) == 4
-
-
-def test_split_is_deterministic():
-    classes = session_classes(make_fake_real(n_sessions=8))
-    assert split_sessions(classes, seed=7) == split_sessions(classes, seed=7)
+    assert not set(train["participant_id"]) & set(test["participant_id"])
+    assert len(train) + len(test) == len(dataset)
+    assert len(split.test_groups) == 2
+    assert warnings == []
 
 
-def test_single_session_class_goes_to_train_with_warning():
-    classes = pd.Series({"a": 0, "b": 0, "c": 0, "d": 1})
-    train, test, warnings = split_sessions(classes)
+def test_split_by_session():
+    dataset = _dataset(n_participants=4)
+    split, _ = update_split(dataset, existing=None, group_by="session_id")
+    train, test = apply_split(dataset, split)
+    assert not set(train["session_id"]) & set(test["session_id"])
 
-    assert "d" in train
-    assert any("classe 1" in w for w in warnings)
 
-
-def test_update_keeps_existing_assignment_and_adds_new_sessions():
-    old = make_fake_real(n_sessions=4, seed=1)
+def test_existing_assignment_is_kept_when_new_participants_arrive():
+    old = _dataset(n_participants=4)
     first, _ = update_split(old, existing=None)
 
-    new = make_fake_real(n_sessions=4, seed=2)
-    new["session_id"] = new["session_id"].str.replace("real-", "new-", regex=False)
-    second, _ = update_split(pd.concat([old, new]), existing=first)
+    new = _dataset(n_participants=8)
+    second, warnings = update_split(new, existing=first, seed=99)
 
-    assert set(first.test_sessions) <= set(second.test_sessions)
-    assert set(first.train_sessions) <= set(second.train_sessions)
-    assert any(s.startswith("new-") for s in second.test_sessions)
+    assert set(first.test_groups) <= set(second.test_groups)
+    assert set(first.train_groups) <= set(second.train_groups)
+    assert len(second.train_groups) + len(second.test_groups) == 8
+    assert any("manifesto existente" in w for w in warnings)
 
 
-def test_unlabeled_sessions_are_left_out():
-    df = make_fake_real(n_sessions=4)
-    df.loc[df["session_id"] == "real-0001", "label"] = pd.NA
-    split, warnings = update_split(df, existing=None)
+def test_warns_when_a_class_is_missing_from_test():
+    dataset = _dataset(n_participants=4)
+    split, _ = update_split(dataset, existing=None)
+    only_clean_in_test = dataset[
+        ~dataset["participant_id"].isin(split.test_groups) | (dataset["target"] == "sem_alcool")
+    ]
+    _, warnings = update_split(only_clean_in_test, existing=split)
+    assert any("classes ausentes no teste" in w for w in warnings)
 
-    assert "real-0001" not in split.train_sessions + split.test_sessions
-    assert any("sem rótulo" in w for w in warnings)
+
+def test_invalid_group_column():
+    with pytest.raises(ValueError, match="group_by"):
+        update_split(_dataset(4), existing=None, group_by="condition")
 
 
 def test_manifest_round_trip(tmp_path):
-    split = SessionSplit(["a", "b"], ["c"], test_size=0.3, seed=1)
+    split = GroupSplit("participant_id", ["a", "b"], ["c"], test_size=0.3, seed=1)
     save_split(split, tmp_path / "split.json")
     assert load_split(tmp_path / "split.json") == split
     assert load_split(tmp_path / "missing.json") is None
-
-
-def test_apply_split():
-    df = make_fake_real(n_sessions=4)
-    split, _ = update_split(df, existing=None)
-    train, test = apply_split(df, split)
-
-    assert len(train) + len(test) == len(df)
-    assert set(test["session_id"]) == set(split.test_sessions)

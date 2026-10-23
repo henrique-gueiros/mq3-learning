@@ -1,8 +1,17 @@
-"""Esquema do dataset e validação das leituras.
+"""Esquema dos dados e validação.
 
-Toda leitura (real ou sintética) passa por ``validate_readings`` antes de ser usada.
-A validação reúne todos os problemas encontrados e os mostra de uma vez, para que
-a equipe consiga corrigir o arquivo sem precisar rodar várias vezes.
+Os dados reais chegam em dois tipos de arquivo:
+
+- **leituras** (``data/raw/readings/*.csv``): uma linha por leitura dos sensores,
+  gravada pelo sistema de aquisição durante cada tentativa de sopro;
+- **tentativas** (``data/raw/attempts.csv``): uma linha por tentativa, preenchida
+  por quem conduz o experimento, com participante, sessão e condição.
+
+O rótulo de cada tentativa vem da **condição experimental** (o que foi feito
+antes do sopro), nunca do valor dos sensores.
+
+A validação reúne todos os problemas encontrados e os mostra de uma vez. Os
+números de linha nas mensagens contam o cabeçalho do CSV como linha 1.
 """
 
 from __future__ import annotations
@@ -10,10 +19,24 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-REQUIRED_COLUMNS = ["timestamp", "session_id", "sensor_raw", "label", "source"]
-OPTIONAL_NUMERIC_COLUMNS = ["temperature_c", "humidity_pct"]
-OPTIONAL_TEXT_COLUMNS = ["notes"]
-VALID_LABELS = (0, 1)
+PHASES = ("before", "blow", "after")
+SENSOR_COLUMNS = ["mq3_raw", "mq135_raw", "temperature_c", "humidity_pct"]
+READING_COLUMNS = ["timestamp", "attempt_id", "phase", *SENSOR_COLUMNS]
+
+ATTEMPT_COLUMNS = ["attempt_id", "participant_id", "session_id", "condition"]
+OPTIONAL_ATTEMPT_COLUMNS = ["reference_mg_l", "notes"]
+
+CLASSES = ("sem_alcool", "externo", "bebida")
+CONDITIONS = {
+    "clean": "sem_alcool",
+    "perfume": "externo",
+    "alcohol70_spray": "externo",
+    "alcohol70_hands": "externo",
+    "mouthwash": "externo",
+    "alcohol_cup": "externo",
+    "drink": "bebida",
+    "drink_perfume": "bebida",
+}
 
 _TZ_SUFFIX = r"(?:Z|[+-]\d{2}:?\d{2})$"
 
@@ -26,29 +49,21 @@ class DataValidationError(ValueError):
         super().__init__("dados inválidos:\n" + "\n".join(f"  - {p}" for p in problems))
 
 
-def validate_readings(df: pd.DataFrame, expected_source: str | None = None) -> pd.DataFrame:
+def validate_readings(df: pd.DataFrame) -> pd.DataFrame:
     """Valida e converte os tipos de uma tabela de leituras.
 
-    Args:
-        df: tabela com as colunas de ``REQUIRED_COLUMNS`` (e, opcionalmente,
-            ``temperature_c``, ``humidity_pct`` e ``notes``). Colunas extras são mantidas.
-        expected_source: se informado, todas as linhas precisam ter esse ``source``
-            (por exemplo ``"real"`` para os arquivos de ``data/raw/``).
+    ``mq3_raw`` é obrigatório em toda linha. ``mq135_raw``, ``temperature_c`` e
+    ``humidity_pct`` podem ficar vazios (por exemplo, quando o DHT11 falha ou é
+    lido com frequência menor que os MQ). Colunas extras são mantidas.
 
     Returns:
-        Uma cópia com ``timestamp`` em UTC, ``sensor_raw`` como float, ``label`` como
-        inteiro anulável (``Int64``) e as linhas ordenadas por sessão e horário.
+        Uma cópia com ``timestamp`` em UTC, sensores como float e linhas
+        ordenadas por tentativa e horário.
 
     Raises:
-        DataValidationError: com todos os problemas encontrados. Os números de linha
-            citados nas mensagens contam o cabeçalho do CSV como linha 1.
+        DataValidationError: com todos os problemas encontrados.
     """
-    missing = [col for col in REQUIRED_COLUMNS if col not in df.columns]
-    if missing:
-        raise DataValidationError([f"colunas obrigatórias ausentes: {', '.join(missing)}"])
-    if df.empty:
-        raise DataValidationError(["nenhuma leitura encontrada"])
-
+    _require_columns(df, READING_COLUMNS)
     out = df.copy()
     problems: list[str] = []
 
@@ -56,55 +71,113 @@ def validate_readings(df: pd.DataFrame, expected_source: str | None = None) -> p
     if timestamps is not None:
         out["timestamp"] = timestamps
 
-    for column in ("session_id", "source"):
-        text = out[column].astype("string").str.strip()
-        empty = _as_bool(text.isna() | (text == ""))
-        if empty.any():
-            problems.append(_describe(f"{column} vazio", empty))
-        out[column] = text
+    out["attempt_id"] = _required_text(out["attempt_id"], "attempt_id", problems)
 
-    if expected_source is not None:
-        wrong = _as_bool(out["source"] != expected_source)
-        if wrong.any():
-            found = sorted(out.loc[wrong, "source"].dropna().unique())
-            problems.append(
-                _describe(f"source deveria ser '{expected_source}', mas há {found}", wrong)
-            )
+    phase = out["phase"].astype("string").str.strip().str.lower()
+    bad_phase = _as_bool(~phase.isin(PHASES))
+    if bad_phase.any():
+        problems.append(_describe(f"phase deve ser um de {list(PHASES)}", bad_phase))
+    out["phase"] = phase
 
-    sensor = pd.to_numeric(out["sensor_raw"], errors="coerce")
-    bad_sensor = sensor.isna() | ~np.isfinite(sensor)
-    if bad_sensor.any():
-        problems.append(_describe("sensor_raw vazio ou não numérico", bad_sensor))
-    out["sensor_raw"] = sensor.astype(float)
-
-    label = pd.to_numeric(out["label"], errors="coerce")
-    bad_label = (out["label"].notna() & label.isna()) | (label.notna() & ~label.isin(VALID_LABELS))
-    if bad_label.any():
-        problems.append(_describe("label deve ser 0, 1 ou vazio", bad_label))
-    else:
-        out["label"] = label.astype("Int64")
-
-    for column in OPTIONAL_NUMERIC_COLUMNS:
-        if column in out.columns:
-            values = pd.to_numeric(out[column], errors="coerce")
-            bad = out[column].notna() & values.isna()
-            if bad.any():
-                problems.append(_describe(f"{column} não numérico", bad))
-            out[column] = values.astype(float)
-
-    for column in OPTIONAL_TEXT_COLUMNS:
-        if column in out.columns:
-            out[column] = out[column].astype("string")
+    for column in SENSOR_COLUMNS:
+        values = pd.to_numeric(out[column], errors="coerce")
+        not_numeric = out[column].notna() & values.isna()
+        if not_numeric.any():
+            problems.append(_describe(f"{column} não numérico", not_numeric))
+        out[column] = values.astype(float)
+    if out["mq3_raw"].isna().any():
+        problems.append(_describe("mq3_raw vazio", out["mq3_raw"].isna()))
 
     if not problems:
-        duplicated = out.duplicated(subset=["session_id", "timestamp"], keep=False)
+        duplicated = out.duplicated(subset=["attempt_id", "timestamp"], keep=False)
         if duplicated.any():
-            problems.append(_describe("leituras repetidas (mesma session_id e timestamp)", duplicated))
+            problems.append(_describe("leituras repetidas (mesmo attempt_id e timestamp)", duplicated))
 
     if problems:
         raise DataValidationError(problems)
+    return out.sort_values(["attempt_id", "timestamp"], kind="stable").reset_index(drop=True)
 
-    return out.sort_values(["session_id", "timestamp"], kind="stable").reset_index(drop=True)
+
+def validate_attempts(df: pd.DataFrame) -> pd.DataFrame:
+    """Valida a tabela de tentativas e acrescenta a coluna ``target``.
+
+    ``target`` é a classe derivada de ``condition`` pelo dicionário ``CONDITIONS``.
+    ``reference_mg_l`` (leitura de um etilômetro de referência) é opcional.
+
+    Raises:
+        DataValidationError: com todos os problemas encontrados.
+    """
+    _require_columns(df, ATTEMPT_COLUMNS)
+    out = df.copy()
+    problems: list[str] = []
+
+    for column in ("attempt_id", "participant_id", "session_id"):
+        out[column] = _required_text(out[column], column, problems)
+
+    condition = out["condition"].astype("string").str.strip().str.lower()
+    bad_condition = _as_bool(~condition.isin(list(CONDITIONS)))
+    if bad_condition.any():
+        found = sorted(condition[bad_condition].dropna().unique())
+        problems.append(
+            _describe(f"condition desconhecida {found}; use uma de {sorted(CONDITIONS)}", bad_condition)
+        )
+    out["condition"] = condition
+
+    if "reference_mg_l" in out.columns:
+        reference = pd.to_numeric(out["reference_mg_l"], errors="coerce")
+        bad = (out["reference_mg_l"].notna() & reference.isna()) | _as_bool(reference < 0)
+        if bad.any():
+            problems.append(_describe("reference_mg_l deve ser um número >= 0 ou vazio", bad))
+        out["reference_mg_l"] = reference.astype(float)
+    if "notes" in out.columns:
+        out["notes"] = out["notes"].astype("string")
+
+    duplicated = _as_bool(out["attempt_id"].duplicated(keep=False))
+    if duplicated.any():
+        problems.append(_describe("attempt_id repetido", duplicated))
+
+    if problems:
+        raise DataValidationError(problems)
+    out["target"] = out["condition"].map(CONDITIONS).astype("string")
+    return out.sort_values("attempt_id", kind="stable").reset_index(drop=True)
+
+
+def check_consistency(readings: pd.DataFrame, attempts: pd.DataFrame) -> list[str]:
+    """Confere se leituras e tentativas se correspondem.
+
+    Leituras de uma tentativa não cadastrada são erro, porque ficariam sem rótulo.
+    Tentativas cadastradas sem leituras viram aviso.
+
+    Returns:
+        Lista de avisos.
+    """
+    reading_ids = set(readings["attempt_id"])
+    attempt_ids = set(attempts["attempt_id"])
+    unregistered = sorted(reading_ids - attempt_ids)
+    if unregistered:
+        raise DataValidationError(
+            [f"leituras de tentativas que não estão em attempts.csv: {unregistered[:10]}"]
+        )
+    without_readings = sorted(attempt_ids - reading_ids)
+    if without_readings:
+        return [f"tentativas sem leituras (ignoradas): {without_readings[:10]}"]
+    return []
+
+
+def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
+    missing = [col for col in columns if col not in df.columns]
+    if missing:
+        raise DataValidationError([f"colunas obrigatórias ausentes: {', '.join(missing)}"])
+    if df.empty:
+        raise DataValidationError(["nenhuma linha encontrada"])
+
+
+def _required_text(values: pd.Series, name: str, problems: list[str]) -> pd.Series:
+    text = values.astype("string").str.strip()
+    empty = _as_bool(text.isna() | (text == ""))
+    if empty.any():
+        problems.append(_describe(f"{name} vazio", empty))
+    return text
 
 
 def _parse_timestamps(values: pd.Series, problems: list[str]) -> pd.Series | None:

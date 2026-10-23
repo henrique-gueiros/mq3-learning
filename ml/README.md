@@ -1,100 +1,125 @@
 # Detector de Álcool com MQ-3 — Machine Learning
 
-Parte de Machine Learning e dados de um projeto acadêmico de detector de álcool para carro, usando o sensor MQ-3.
+Parte de Machine Learning e dados de um projeto acadêmico de detector de álcool para carro, combinando os sensores **MQ-3**, **MQ-135** e **DHT11**.
 
-## Objetivo
+As decisões do projeto (o que o modelo prevê, a tabela de casos, as regras e o caminho) estão resumidas em `../decisoes_projeto_ml.pdf`.
 
-Classificar uma observação do sensor como:
+## O que o modelo prevê
 
-- `0`: álcool não detectado nas condições do experimento;
-- `1`: álcool detectado nas condições do experimento.
+Para cada **tentativa de sopro**, o modelo responde de onde vem o álcool:
 
-Essa classificação indica **detecção de álcool nas condições avaliadas**. Ela não comprova que o motorista consumiu álcool, está intoxicado ou está inapto a dirigir.
+| Classe | Significado |
+| --- | --- |
+| `sem_alcool` | Nada detectado |
+| `externo` | Há álcool no ar, mas não vindo do hálito (perfume, álcool 70%, enxaguante) |
+| `bebida` | O ar que veio dos pulmões tem álcool |
+
+Isso pode ser treinado de três formas (tarefas):
+
+- `3classes`: as três classes de uma vez;
+- `etapa1`: há álcool? (`alcool` ou `sem_alcool`);
+- `etapa2`: de onde vem o álcool? (`bebida` ou `externo`), só com tentativas que têm álcool.
+
+O modelo **não** prevê embriaguez, quanto a pessoa bebeu, nem a concentração em mg/L. O MQ-3 não é um etilômetro calibrado. A classe `bebida` significa "álcool no hálito nas condições do experimento".
 
 ## Escopo
 
-Este repositório cobre apenas ML e dados: aquisição e armazenamento do dataset, análise exploratória, preparação, treino, avaliação, registro de experimentos e interface de inferência.
-
-Fora do escopo: firmware do ESP32, infraestrutura do dispositivo e a lógica final do veículo após uma detecção (que ainda não foi decidida).
+Este repositório cobre apenas ML e dados. Fora do escopo: firmware do ESP32, infraestrutura do dispositivo e o que o carro faz com cada resposta.
 
 ## Estado atual
 
-O pipeline de dados está pronto e testado: validação, separação treino/teste por sessão, estimativa do gerador sintético, geração e montagem dos conjuntos finais. Ainda não existem dados reais nem modelos treinados.
+O pipeline está pronto e testado: validação, features por sopro, separação treino/teste por participante, comparação de modelos, experimento por conjunto de sensores, modelo final e previsão. **Não há dados reais ainda**, e o projeto não usa dados sintéticos.
 
 | Item | Situação |
 | --- | --- |
-| Modelo exato do ESP32 | Não confirmado |
-| Tipo de saída do módulo MQ-3 (analógica/digital) | Não confirmado |
-| Tensão de saída e compatibilidade com o ADC do ESP32 | Não verificada |
-| Método e frequência de aquisição | Não definidos |
+| Sensores (MQ-3, MQ-135, DHT11) e ligação no ESP32 | A confirmar com a equipe de hardware |
+| Tensão de saída dos MQ e compatibilidade com o ADC do ESP32 | Não verificada |
+| Protocolo de sopro (tempos das fases) | Proposta inicial; ajustar após os primeiros testes |
 | Primeiras leituras reais | Não coletadas |
-| Procedimento experimental e fonte dos rótulos | Não definidos |
-| Dataset público relevante | Não pesquisado |
-| Dataset sintético | Gerador pronto; parâmetros reais dependem das primeiras leituras |
-| Modelo treinado ou validado com dados reais | Não existe |
+| Classe `bebida` (simulador de hálito ou coleta aprovada pelo Comitê de Ética) | A definir com o professor |
+| Modelo treinado com dados reais | Não existe |
 
-Nenhuma especificação de hardware, calibração, limite de detecção ou valor típico do sensor está assumida neste repositório.
+Nenhuma especificação de hardware, calibração ou valor típico dos sensores está assumida neste repositório.
 
-## Limitações
+## Formato dos dados
 
-- Sem leituras reais, qualquer resultado obtido aqui serve apenas para testar o código.
-- Dados sintéticos, quando existirem, serão identificados com `source="synthetic"`. Métricas obtidas só com eles não indicam desempenho real.
-- `sensor_raw` é a leitura bruta do sistema de aquisição. Ela não é concentração de álcool, porque não há calibração.
-- Os rótulos nunca serão derivados do próprio valor do MQ-3; eles devem vir de um procedimento experimental de referência.
+Os dados reais ficam em dois tipos de arquivo, com modelos em `templates/`.
+
+### Leituras — `data/raw/readings/*.csv`
+
+Uma linha por leitura dos sensores, gravada pelo sistema de aquisição. Pode haver vários arquivos (por exemplo, um por dia de coleta).
+
+| Coluna | Descrição |
+| --- | --- |
+| `timestamp` | ISO 8601 **com fuso**, ex.: `2026-10-20T14:00:00-03:00` |
+| `attempt_id` | Identificador da tentativa de sopro |
+| `phase` | `before` (ambiente), `blow` (sopro) ou `after` (recuperação) |
+| `mq3_raw` | Leitura bruta do MQ-3 (obrigatória) |
+| `mq135_raw` | Leitura bruta do MQ-135 (pode ficar vazia) |
+| `temperature_c` | Temperatura do DHT11 (pode ficar vazia) |
+| `humidity_pct` | Umidade do DHT11 (pode ficar vazia) |
+
+A fase é marcada pelo sistema de aquisição seguindo o protocolo (por exemplo, um LED ou som indica "sopre agora"). As leituras são brutas: nenhuma conversão para concentração é feita.
+
+### Tentativas — `data/raw/attempts.csv`
+
+Uma linha por tentativa, preenchida por quem conduz o experimento.
+
+| Coluna | Descrição |
+| --- | --- |
+| `attempt_id` | O mesmo das leituras |
+| `participant_id` | Identificador anônimo da pessoa (ex.: `p01`) |
+| `session_id` | Identificador da sessão (ex.: `2026-10-25-manha`) |
+| `condition` | O que foi feito antes do sopro (tabela abaixo) |
+| `reference_mg_l` | Opcional: leitura de um etilômetro de referência |
+| `notes` | Opcional: observações |
+
+| `condition` | Classe |
+| --- | --- |
+| `clean` | `sem_alcool` |
+| `perfume` | `externo` |
+| `alcohol70_spray` | `externo` |
+| `alcohol70_hands` | `externo` |
+| `mouthwash` | `externo` |
+| `alcohol_cup` | `externo` |
+| `drink` | `bebida` |
+| `drink_perfume` | `bebida` |
+
+O rótulo vem **da condição experimental**, nunca do valor dos sensores. Para acrescentar condições, edite `CONDITIONS` em `src/data_validation.py`.
+
+## Features por sopro
+
+Para cada sensor (MQ-3, MQ-135, umidade e temperatura): valor antes do sopro, pico, subida, tempo até o pico e tempo de recuperação. Também há a proporção entre as subidas do MQ-135 e do MQ-3 e o atraso entre o pico do MQ-3 e o de umidade. Os detalhes estão em `src/features.py`. Essas features são o ponto de partida e devem ser revistas na análise exploratória.
 
 ## Estrutura
 
 ```text
 ml/
-├── config/
-│   ├── synthetic_didactic.json   # Parâmetros INVENTADOS, só para testar o código
-│   ├── synthetic_estimated.json  # Criado pelo 'estimate' a partir do treino real
-│   └── split_sessions.json       # Criado pelo 'split': quais sessões são de teste
+├── config/split.json         # Criado pelo 'prepare': quem é de treino e quem é de teste
 ├── data/
-│   ├── raw/          # Leituras reais originais (nunca alteradas pelo código)
-│   ├── synthetic/    # Dados simulados, identificados como sintéticos
-│   └── processed/    # real_train, real_test, train e test
-├── notebooks/        # Análise exploratória e experimentos
+│   ├── raw/                  # Dados reais originais (nunca alterados pelo código)
+│   │   ├── readings/*.csv
+│   │   └── attempts.csv
+│   └── processed/            # features_all.csv, train.csv, test.csv
+├── models/                   # Modelos treinados (.joblib + .json)
+├── reports/                  # Resultados do experimento e do teste final
+├── notebooks/                # Análise exploratória
 ├── src/
-│   ├── cli.py                   # Linha de comando que executa as etapas
-│   ├── data_validation.py       # Esquema e validação das leituras
-│   ├── data_io.py               # Leitura e gravação de CSVs
-│   ├── splitting.py             # Separação treino/teste por sessão
-│   ├── parameter_estimation.py  # Estima o gerador a partir do treino real
-│   ├── data_generation.py       # Gerador sintético
-│   ├── preprocessing.py         # Conjuntos finais e features (X, y, groups)
-│   └── paths.py                 # Caminhos padrão
-├── templates/
-│   └── leituras_template.csv    # Cabeçalho do CSV de leituras reais
-├── models/           # Artefatos treinados
-├── tests/            # Testes automatizados (pytest)
+│   ├── cli.py                # Linha de comando
+│   ├── data_validation.py    # Esquema, condições e validação
+│   ├── data_io.py            # Leitura e gravação de CSVs
+│   ├── features.py           # Features por sopro, conjuntos de sensores e tarefas
+│   ├── splitting.py          # Separação treino/teste por participante ou sessão
+│   ├── train.py              # Modelos, validação cruzada aninhada e modelo final
+│   ├── inference.py          # Previsão para tentativas novas
+│   └── paths.py              # Caminhos padrão
+├── templates/                # Cabeçalhos dos CSVs de leituras e tentativas
+├── tests/                    # Testes automatizados (pytest)
 ├── requirements.txt
-├── pytest.ini
-├── .gitignore
-└── README.md
+└── pytest.ini
 ```
 
-Por padrão, o conteúdo de `data/` e `models/` não é versionado no Git (veja `.gitignore`). Se a equipe decidir versionar leituras reais, ajuste o `.gitignore` explicitamente. A pasta `config/` é versionada: assim toda a equipe usa as mesmas sessões de teste.
-
-## Esquema inicial do dataset (proposto)
-
-| Campo | Descrição |
-| --- | --- |
-| `timestamp` | Data/hora da observação em ISO 8601, com fuso |
-| `session_id` | Identificador da sessão experimental |
-| `sensor_raw` | Leitura bruta, sem unidade física assumida |
-| `label` | `0`/`1` experimental; vazio se não houver rótulo confiável |
-| `source` | `real`, `synthetic` ou identificador de dataset público |
-| `temperature_c` | Opcional, somente se medida |
-| `humidity_pct` | Opcional, somente se medida |
-| `notes` | Condições experimentais e observações |
-
-Regras de formato:
-
-- `timestamp` precisa ter fuso horário, por exemplo `2026-10-20T14:00:00-03:00`. Horários sem fuso são rejeitados porque são ambíguos. Internamente tudo é convertido para UTC.
-- Em `data/raw/`, `source` deve ser sempre `real`.
-- `label` vazio é permitido (leitura sem rótulo confiável); essas linhas não entram no treino nem no teste.
-- Não pode haver duas leituras com a mesma `session_id` e o mesmo `timestamp`.
+O conteúdo de `data/` e `models/` não é versionado no Git (veja `.gitignore`). `config/` e `reports/` são versionados, para que toda a equipe use a mesma separação e veja os mesmos resultados.
 
 ## Ambiente
 
@@ -106,52 +131,56 @@ pip install -r requirements.txt
 python -m pytest        # roda os testes
 ```
 
-## Como usar quando os dados chegarem
+## Como usar
 
-1. Salve cada coleta como CSV em `data/raw/`, com as colunas de `templates/leituras_template.csv`. Pode ser um arquivo por sessão ou vários por arquivo.
+1. Salve as leituras em `data/raw/readings/` e cadastre as tentativas em `data/raw/attempts.csv`.
 2. Rode, de dentro de `ml/`:
 
    ```bash
-   python -m src.cli all
+   python -m src.cli validate   # confere os arquivos e mostra quantas tentativas há por condição
+   python -m src.cli all        # prepare + train
    ```
-
-Isso executa cinco etapas, que também podem ser rodadas separadamente:
 
 | Comando | O que faz | Gera |
 | --- | --- | --- |
-| `validate` | Confere todos os CSVs de `data/raw/` e lista todos os problemas de uma vez | nada |
-| `split` | Sorteia sessões de teste por classe (padrão: 25%) | `config/split_sessions.json`, `data/processed/real_train.csv`, `real_test.csv` |
-| `estimate` | Mede nível, variação entre sessões, ruído e intervalo nas sessões de **treino** | `config/synthetic_estimated.json` |
-| `generate` | Sorteia leituras sintéticas com esses parâmetros | `data/synthetic/synthetic_estimated.csv` |
-| `prepare` | Junta treino real + sintético; o teste fica só com dados reais | `data/processed/train.csv`, `test.csv` |
+| `validate` | Confere leituras e tentativas e lista todos os problemas de uma vez | nada |
+| `prepare` | Calcula as features de cada sopro e separa treino/teste por participante | `data/processed/*.csv`, `config/split.json` |
+| `train` | Para cada tarefa: compara 4 modelos em 4 conjuntos de sensores e treina o melhor | `reports/experiment_<tarefa>.csv`, `reports/final_<tarefa>.json`, `models/<tarefa>.joblib` |
+| `predict` | Classifica tentativas novas | previsões na tela ou em `--output` |
 
-Opções úteis: `--test-size 0.3`, `--seed 7`, `--n-sessions 10` (sessões sintéticas por classe; `0` = mesmo número das reais). Veja todas com `python -m src.cli --help`.
+Opções úteis:
 
-Quando chegarem dados novos, basta rodar `all` de novo. As sessões que já estavam no manifesto continuam do mesmo lado (treino ou teste); só as novas são sorteadas. Para refazer o sorteio do zero, apague `config/split_sessions.json`.
+- `--group-by session_id`: separa por sessão quando há poucos participantes (são precisos pelo menos 3 grupos no treino);
+- `--task etapa2`: treina só uma tarefa;
+- `--select-by recall_bebida`: escolhe o modelo final pela métrica de validação cruzada desejada;
+- `python -m src.cli predict --readings novas.csv --model models/3classes.joblib`.
 
-### Antes dos dados reais
+Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste continua no teste. Para refazer o sorteio do zero, apague `config/split.json`.
 
-Para testar o gerador sem dados reais, use os parâmetros didáticos:
+### Como o treino avalia
 
-```bash
-python -m src.cli generate --config config/synthetic_didactic.json
-```
+- **Modelos:** `baseline` (sempre a classe mais comum), regressão logística, árvore de decisão e Random Forest.
+- **Conjuntos de sensores:** `mq3`, `mq3+mq135`, `mq3+dht11`, `mq3+mq135+dht11`. Comparar os conjuntos mostra o quanto cada sensor ajuda.
+- **Validação cruzada aninhada por grupo:** o laço externo avalia com participantes que o modelo não viu; o laço interno escolhe os hiperparâmetros (Grid Search) só com os demais.
+- **Teste final:** usado uma única vez, para o modelo escolhido de cada tarefa.
+- **Métricas:** F1 macro, acurácia balanceada, precisão e recall por classe. O **recall de `bebida`** é a métrica mais importante: deixar passar quem bebeu é o erro mais grave.
 
-Esses valores são inventados e não representam o MQ-3.
+## Limitações
 
-### Como funciona o gerador
+- Com poucos participantes, as métricas variam muito; não exagere as conclusões.
+- A classe `bebida` depende de um simulador de hálito ou de coleta com pessoas que beberam (aprovação do Comitê de Ética). Um simulador não reproduz CO₂ nem a variação entre pessoas.
+- `mouthwash` (enxaguante) produz álcool real na boca e tende a ser confundido com `bebida`.
+- O DHT11 é lento e pouco preciso; a subida de umidade pode demorar alguns segundos depois do sopro.
+- Os sensores MQ variam com temperatura, umidade e tempo de aquecimento; registre o aquecimento nas notas.
 
-Cada leitura sintética é `nível da sessão + ruído`. O nível é sorteado uma vez por sessão; o ruído, a cada leitura. Os parâmetros vêm das sessões de treino: a média e o desvio-padrão das medianas de cada sessão, e a mediana dos desvios-padrão dentro das sessões. Os valores gerados ficam limitados à faixa observada.
+## Próximos passos
 
-Limitações: o gerador não reproduz a dinâmica temporal do sensor (aquecimento, subida e descida da resposta) e gera cada sessão com um único rótulo. Ele deve ser revisto depois da análise exploratória das leituras reais. Um modelo treinado só com dados sintéticos aprende a regra do simulador; o desempenho que vale é o medido em `test.csv`, que só tem dados reais.
-
-## Plano
-
-1. **Base do projeto:** estrutura, README, dependências, esquema e validação de dados.
-2. **Aquisição e EDA:** importar leituras reais sem alterar os originais; analisar qualidade, distribuição e equilíbrio das classes.
-3. **Modelagem:** separação treino/teste por sessão, baseline, comparação de pelo menos três modelos, validação cruzada, otimização de hiperparâmetros e registro no MLflow.
-4. **Inferência e integração:** interface que recebe leituras e devolve classe/probabilidade, usando o mesmo `Pipeline` do treino.
+1. Confirmar o hardware e o protocolo de sopro com a equipe.
+2. Coletar as condições seguras (`clean`, `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash`, `alcohol_cup`) com vários participantes.
+3. Definir com o professor como obter a classe `bebida`.
+4. Análise exploratória em `notebooks/01_eda.ipynb` e revisão das features.
+5. Registrar os experimentos no MLflow.
 
 ## Segurança
 
-Testes com álcool devem ser controlados, seguros e supervisionados. Não fazer testes com chama, vapores concentrados, pessoas ou dentro de um veículo. A equipe de hardware deve confirmar a segurança elétrica antes de ligar o MQ-3 ao ESP32.
+Testes com álcool devem ser controlados, seguros e supervisionados, em local ventilado e longe de chama. Nada de testes com pessoas dirigindo. A equipe de hardware deve confirmar a segurança elétrica antes de ligar os sensores ao ESP32.

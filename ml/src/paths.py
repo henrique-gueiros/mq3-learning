@@ -19,36 +19,20 @@ class ProjectPaths:
         return self.root / "data" / "raw"
 
     @property
-    def synthetic_dir(self) -> Path:
-        return self.root / "data" / "synthetic"
+    def raw_readings_dir(self) -> Path:
+        return self.raw_dir / "readings"
+
+    @property
+    def raw_attempts(self) -> Path:
+        return self.raw_dir / "attempts.csv"
 
     @property
     def processed_dir(self) -> Path:
         return self.root / "data" / "processed"
 
     @property
-    def config_dir(self) -> Path:
-        return self.root / "config"
-
-    @property
-    def split_manifest(self) -> Path:
-        return self.config_dir / "split_sessions.json"
-
-    @property
-    def didactic_params(self) -> Path:
-        return self.config_dir / "synthetic_didactic.json"
-
-    @property
-    def estimated_params(self) -> Path:
-        return self.config_dir / "synthetic_estimated.json"
-
-    @property
-    def real_train(self) -> Path:
-        return self.processed_dir / "real_train.csv"
-
-    @property
-    def real_test(self) -> Path:
-        return self.processed_dir / "real_test.csv"
+    def features_all(self) -> Path:
+        return self.processed_dir / "features_all.csv"
 
     @property
     def train(self) -> Path:
@@ -57,3 +41,19 @@ class ProjectPaths:
     @property
     def test(self) -> Path:
         return self.processed_dir / "test.csv"
+
+    @property
+    def config_dir(self) -> Path:
+        return self.root / "config"
+
+    @property
+    def split_manifest(self) -> Path:
+        return self.config_dir / "split.json"
+
+    @property
+    def models_dir(self) -> Path:
+        return self.root / "models"
+
+    @property
+    def reports_dir(self) -> Path:
+        return self.root / "reports"
