@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <math.h>
 #include <DHT.h>
+#include <LittleFS.h>
 
 // Detector de alcool: modulo MQ-3 na ESP32.
 // No Wokwi a peca disponivel e o sensor de gas (mesmos pinos do MQ-3:
@@ -17,11 +18,17 @@
 
 const int PINO_SENSOR = 34;
 const int PINO_LED = 2;
+// MQ-135 (qualidade do ar): VCC no 5 V, GND no GND, AOUT no GPIO 35.
+// DOUT fica solto. O aquecedor pede 5 V. O ADC satura perto de 3,1 V,
+// como no MQ-3, se a saida analogica passar disso.
+const int PINO_MQ135 = 35;
 // DHT11: VCC no 3V3, DATA no GPIO 4, GND no GND.
 // No sensor de 4 pinos a ordem e VCC, DATA, NC, GND; o NC fica solto.
 // Sensor solto precisa de 10 k entre DATA e 3V3. Modulo de 3 pinos ja tem.
 const int PINO_DHT = 4;
 const unsigned long INTERVALO_DHT_MS = 2000;
+const unsigned long INTERVALO_LEITURA_MS = 1000;
+const char *ARQUIVO_CSV = "/leituras.csv";
 const int MARGEM = 80;
 
 const float TENSAO_CIRCUITO_MV = 5000.0f;
@@ -30,13 +37,111 @@ const float CURVA_A = 0.3934f;
 const float CURVA_B = -1.504f;
 const float PPM_POR_MG_L = 200.0f / 0.4f;
 
+struct Leitura {
+  unsigned long tMs;
+  int mq3;
+  float ppm;
+  int mq135;
+  int mq135Mv;
+  float temperatura;
+  float umidade;
+  bool alcool;
+};
+
 int referencia = 0;
 float tensaoArLimpoMv = 0.0f;
 float temperaturaC = NAN;
 float umidadePct = NAN;
 unsigned long ultimaLeituraDhtMs = 0;
+unsigned long proximaAmostra = 1;
+bool sistemaArquivosOk = false;
 
 DHT dht(PINO_DHT, DHT11);
+
+void escreverCampoFloat(Print &saida, float valor) {
+  if (isnan(valor)) {
+    return;
+  }
+  saida.print(valor, 1);
+}
+
+void escreverCabecalho(Print &saida) {
+  saida.println(
+      "amostra,t_ms,mq3_raw,ppm,mq135_raw,mq135_mv,temperature_c,humidity_pct,alcool");
+}
+
+void escreverLinha(Print &saida, unsigned long numero, const Leitura &amostra) {
+  saida.print(numero);
+  saida.print(',');
+  saida.print(amostra.tMs);
+  saida.print(',');
+  saida.print(amostra.mq3);
+  saida.print(',');
+  saida.print(amostra.ppm, 1);
+  saida.print(',');
+  saida.print(amostra.mq135);
+  saida.print(',');
+  saida.print(amostra.mq135Mv);
+  saida.print(',');
+  escreverCampoFloat(saida, amostra.temperatura);
+  saida.print(',');
+  escreverCampoFloat(saida, amostra.umidade);
+  saida.print(',');
+  saida.println(amostra.alcool ? 1 : 0);
+}
+
+void criarCsvVazio() {
+  File arquivo = LittleFS.open(ARQUIVO_CSV, "w");
+  if (!arquivo) {
+    sistemaArquivosOk = false;
+    Serial.println("Falha ao criar /leituras.csv");
+    return;
+  }
+  escreverCabecalho(arquivo);
+  arquivo.close();
+  proximaAmostra = 1;
+}
+
+void iniciarCsv() {
+  if (!sistemaArquivosOk) {
+    return;
+  }
+  if (!LittleFS.exists(ARQUIVO_CSV)) {
+    criarCsvVazio();
+    return;
+  }
+  File arquivo = LittleFS.open(ARQUIVO_CSV, "r");
+  if (!arquivo) {
+    sistemaArquivosOk = false;
+    Serial.println("Falha ao abrir /leituras.csv");
+    return;
+  }
+  unsigned long linhas = 0;
+  while (arquivo.available()) {
+    if (arquivo.read() == '\n') {
+      linhas++;
+    }
+  }
+  arquivo.close();
+  if (linhas == 0) {
+    criarCsvVazio();
+    return;
+  }
+  proximaAmostra = linhas;
+}
+
+void acrescentarCsv(unsigned long numero, const Leitura &amostra) {
+  if (!sistemaArquivosOk) {
+    return;
+  }
+  File arquivo = LittleFS.open(ARQUIVO_CSV, "a");
+  if (!arquivo) {
+    Serial.println("Falha ao acrescentar leitura no CSV");
+    return;
+  }
+  escreverLinha(arquivo, numero, amostra);
+  arquivo.close();
+}
 
 float estimarPpm(float tensaoMv, float tensaoReferenciaMv) {
   if (tensaoMv <= 0.0f || tensaoReferenciaMv <= 0.0f ||
@@ -60,6 +165,10 @@ float estimarPpm(float tensaoMv, float tensaoReferenciaMv) {
 
 void setup() {
   Serial.begin(115200);
+  sistemaArquivosOk = LittleFS.begin(true);
+  if (!sistemaArquivosOk) {
+    Serial.println("Sem sistema de arquivos: o CSV sai so no monitor");
+  }
   dht.begin();
   pinMode(PINO_LED, OUTPUT);
   digitalWrite(PINO_LED, LOW);
@@ -74,6 +183,7 @@ void setup() {
   }
   referencia = soma / 10;
   tensaoArLimpoMv = somaMv / 10.0f;
+  iniciarCsv();
 }
 
 void loop() {
@@ -90,7 +200,23 @@ void loop() {
 
   int leitura = analogRead(PINO_SENSOR);
   float ppm = estimarPpm(analogReadMilliVolts(PINO_SENSOR), tensaoArLimpoMv);
+  int leituraMq135 = analogRead(PINO_MQ135);
+  int mq135Mv = analogReadMilliVolts(PINO_MQ135);
   bool alcool = leitura > (referencia + MARGEM);
+
+  Leitura amostra;
+  amostra.tMs = agora;
+  amostra.mq3 = leitura;
+  amostra.ppm = ppm;
+  amostra.mq135 = leituraMq135;
+  amostra.mq135Mv = mq135Mv;
+  amostra.temperatura = temperaturaC;
+  amostra.umidade = umidadePct;
+  amostra.alcool = alcool;
+  acrescentarCsv(proximaAmostra, amostra);
+  Serial.print("CSV_LINHA,");
+  escreverLinha(Serial, proximaAmostra, amostra);
+  proximaAmostra++;
 
   digitalWrite(PINO_LED, alcool ? HIGH : LOW);
 
@@ -98,6 +224,11 @@ void loop() {
   Serial.print(leitura);
   Serial.print("  ppm: ");
   Serial.print(ppm, 1);
+  Serial.print("  mq135: ");
+  Serial.print(leituraMq135);
+  Serial.print(" (");
+  Serial.print(mq135Mv);
+  Serial.print(" mV)");
   Serial.print("  temp: ");
   if (isnan(temperaturaC)) {
     Serial.print("--");
@@ -118,5 +249,5 @@ void loop() {
     Serial.println("  ar limpo - LED apagado");
   }
 
-  delay(400);
+  delay(INTERVALO_LEITURA_MS);
 }
