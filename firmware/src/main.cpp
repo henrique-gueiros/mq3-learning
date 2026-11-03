@@ -28,7 +28,6 @@ const int PINO_MQ135 = 35;
 const int PINO_DHT = 4;
 const unsigned long INTERVALO_DHT_MS = 2000;
 const unsigned long INTERVALO_LEITURA_MS = 1000;
-const char *ARQUIVO_CSV = "/leituras.csv";
 const int MARGEM = 80;
 
 const float TENSAO_CIRCUITO_MV = 5000.0f;
@@ -55,6 +54,8 @@ float umidadePct = NAN;
 unsigned long ultimaLeituraDhtMs = 0;
 unsigned long proximaAmostra = 1;
 bool sistemaArquivosOk = false;
+char nomeCsv[24] = "leituras_1.csv";
+char arquivoCsv[28] = "/leituras_1.csv";
 
 DHT dht(PINO_DHT, DHT11);
 
@@ -90,51 +91,44 @@ void escreverLinha(Print &saida, unsigned long numero, const Leitura &amostra) {
   saida.println(amostra.alcool ? 1 : 0);
 }
 
-void criarCsvVazio() {
-  File arquivo = LittleFS.open(ARQUIVO_CSV, "w");
+void escolherCsvNovo() {
+  int numero = 1;
+  if (!sistemaArquivosOk) {
+    snprintf(nomeCsv, sizeof(nomeCsv), "leituras_1.csv");
+    snprintf(arquivoCsv, sizeof(arquivoCsv), "/leituras_1.csv");
+    return;
+  }
+  while (numero < 10000) {
+    snprintf(nomeCsv, sizeof(nomeCsv), "leituras_%d.csv", numero);
+    snprintf(arquivoCsv, sizeof(arquivoCsv), "/%s", nomeCsv);
+    if (!LittleFS.exists(arquivoCsv)) {
+      break;
+    }
+    numero++;
+  }
+}
+
+void iniciarCsv() {
+  proximaAmostra = 1;
+  escolherCsvNovo();
+  if (!sistemaArquivosOk) {
+    return;
+  }
+  File arquivo = LittleFS.open(arquivoCsv, "w");
   if (!arquivo) {
     sistemaArquivosOk = false;
-    Serial.println("Falha ao criar /leituras.csv");
+    Serial.println("Falha ao criar o CSV");
     return;
   }
   escreverCabecalho(arquivo);
   arquivo.close();
-  proximaAmostra = 1;
-}
-
-void iniciarCsv() {
-  if (!sistemaArquivosOk) {
-    return;
-  }
-  if (!LittleFS.exists(ARQUIVO_CSV)) {
-    criarCsvVazio();
-    return;
-  }
-  File arquivo = LittleFS.open(ARQUIVO_CSV, "r");
-  if (!arquivo) {
-    sistemaArquivosOk = false;
-    Serial.println("Falha ao abrir /leituras.csv");
-    return;
-  }
-  unsigned long linhas = 0;
-  while (arquivo.available()) {
-    if (arquivo.read() == '\n') {
-      linhas++;
-    }
-  }
-  arquivo.close();
-  if (linhas == 0) {
-    criarCsvVazio();
-    return;
-  }
-  proximaAmostra = linhas;
 }
 
 void acrescentarCsv(unsigned long numero, const Leitura &amostra) {
   if (!sistemaArquivosOk) {
     return;
   }
-  File arquivo = LittleFS.open(ARQUIVO_CSV, "a");
+  File arquivo = LittleFS.open(arquivoCsv, "a");
   if (!arquivo) {
     Serial.println("Falha ao acrescentar leitura no CSV");
     return;
@@ -184,6 +178,10 @@ void setup() {
   referencia = soma / 10;
   tensaoArLimpoMv = somaMv / 10.0f;
   iniciarCsv();
+  Serial.print("Arquivo CSV: ");
+  Serial.println(nomeCsv);
+  Serial.print("CSV_ARQUIVO,");
+  Serial.println(nomeCsv);
 }
 
 void loop() {
@@ -215,6 +213,8 @@ void loop() {
   amostra.alcool = alcool;
   acrescentarCsv(proximaAmostra, amostra);
   Serial.print("CSV_LINHA,");
+  Serial.print(nomeCsv);
+  Serial.print(',');
   escreverLinha(Serial, proximaAmostra, amostra);
   proximaAmostra++;
 
