@@ -3,15 +3,12 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from src.features import build_dataset, compute_features
 from src.splitting import GroupSplit, apply_split, load_split, save_split, update_split
-from tests.conftest import make_dataset
+from tests.conftest import make_feature_dataset
 
 
 def _dataset(n_participants: int = 8) -> pd.DataFrame:
-    readings, attempts = make_dataset(n_participants=n_participants, repetitions=1)
-    features, _ = compute_features(readings)
-    return build_dataset(features, attempts)
+    return make_feature_dataset(n_participants=n_participants, repetitions=1)
 
 
 def test_no_participant_in_both_sides():
@@ -27,9 +24,9 @@ def test_no_participant_in_both_sides():
 
 def test_split_by_session():
     dataset = _dataset(n_participants=4)
-    split, _ = update_split(dataset, existing=None, group_by="session_id")
+    split, _ = update_split(dataset, existing=None, group_by="session_file")
     train, test = apply_split(dataset, split)
-    assert not set(train["session_id"]) & set(test["session_id"])
+    assert not set(train["session_file"]) & set(test["session_file"])
 
 
 def test_existing_assignment_is_kept_when_new_participants_arrive():

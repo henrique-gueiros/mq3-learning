@@ -1,1 +1,1 @@
-attempt_id,participant_id,session_id,condition,reference_mg_l,notes
+attempt_id,session_file,participant_id,condition,blow_start_s,blow_end_s,reference_mg_l,notes

@@ -2,10 +2,10 @@
 
 Rode de dentro da pasta ``ml/``::
 
-    python -m src.cli validate   # confere leituras e tentativas de data/raw/
+    python -m src.cli validate   # confere sessões e tentativas de data/raw/
     python -m src.cli prepare    # features por sopro + separação treino/teste
     python -m src.cli train      # experimento por sensores e modelo final
-    python -m src.cli predict --readings novas.csv
+    python -m src.cli predict --session leituras_7.csv --blow-start-s 60
     python -m src.cli all        # prepare + train
 """
 
@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.data_io import load_raw_data, read_dataset_csv, read_readings_csv, write_csv
-from src.features import SENSOR_SETS, TASKS, build_dataset, compute_features
+from src.data_io import load_raw_data, read_dataset_csv, read_session_csv, write_csv
+from src.features import SENSOR_SETS, TASKS, assign_phases, build_dataset, compute_features
 from src.inference import predict_attempts
 from src.paths import ML_ROOT, ProjectPaths
 from src.splitting import GROUP_COLUMNS, apply_split, load_split, save_split, update_split
@@ -27,13 +27,12 @@ from src.train import choose_best, run_experiment, save_model, train_final_model
 
 
 def run_validate(paths: ProjectPaths) -> None:
-    """Valida leituras e tentativas reais e mostra um resumo."""
-    readings, attempts, warnings = load_raw_data(paths.raw_readings_dir, paths.raw_attempts)
+    """Valida sessões e tentativas reais e mostra um resumo."""
+    readings, attempts, warnings = load_raw_data(paths.raw_sessions_dir, paths.raw_attempts)
     _print_warnings(warnings)
     print(
-        f"OK: {readings['source_file'].nunique()} arquivo(s) de leituras, {len(readings)} leituras, "
-        f"{len(attempts)} tentativas, {attempts['participant_id'].nunique()} participantes, "
-        f"{attempts['session_id'].nunique()} sessões"
+        f"OK: {readings['session_file'].nunique()} sessão(ões), {len(readings)} leituras, "
+        f"{len(attempts)} tentativas, {attempts['participant_id'].nunique()} participantes"
     )
     print("Tentativas por condição: " + _counts(attempts["condition"]))
     print("Tentativas por classe:   " + _counts(attempts["target"]))
@@ -41,15 +40,16 @@ def run_validate(paths: ProjectPaths) -> None:
 
 def run_prepare(paths: ProjectPaths, group_by: str, test_size: float, seed: int) -> None:
     """Calcula as features de cada sopro e separa treino e teste por grupo."""
-    readings, attempts, warnings = load_raw_data(paths.raw_readings_dir, paths.raw_attempts)
-    features, feature_warnings = compute_features(readings)
+    readings, attempts, warnings = load_raw_data(paths.raw_sessions_dir, paths.raw_attempts)
+    phased, phase_warnings = assign_phases(readings, attempts)
+    features, feature_warnings = compute_features(phased)
     dataset = build_dataset(features, attempts)
     if dataset.empty:
         raise ValueError("nenhuma tentativa com features válidas")
     write_csv(dataset, paths.features_all)
 
     split, split_warnings = update_split(dataset, load_split(paths.split_manifest), group_by, test_size, seed)
-    _print_warnings(warnings + feature_warnings + split_warnings)
+    _print_warnings(warnings + phase_warnings + feature_warnings + split_warnings)
     save_split(split, paths.split_manifest)
     train, test = apply_split(dataset, split)
     write_csv(train, paths.train)
@@ -102,10 +102,25 @@ def run_train(paths: ProjectPaths, tasks: list[str], select_by: str, seed: int) 
         print(f"Modelo: {_rel(paths, model_path)} | Relatório: {_rel(paths, final_report)}")
 
 
-def run_predict(paths: ProjectPaths, readings_path: Path, model_path: Path, output: Path | None) -> None:
-    """Classifica tentativas novas de um CSV de leituras."""
-    readings = read_readings_csv(readings_path)
-    predictions, warnings = predict_attempts(readings, model_path)
+def run_predict(
+    paths: ProjectPaths,
+    session_path: Path,
+    blow_start_s: float,
+    blow_end_s: float | None,
+    model_path: Path,
+    output: Path | None,
+) -> None:
+    """Classifica um sopro de um CSV de sessão do firmware."""
+    readings = read_session_csv(session_path)
+    attempt = pd.DataFrame(
+        {
+            "attempt_id": [f"{Path(session_path).stem}@{blow_start_s:g}s"],
+            "session_file": [Path(session_path).name],
+            "blow_start_s": [blow_start_s],
+            "blow_end_s": [blow_end_s],
+        }
+    )
+    predictions, warnings = predict_attempts(readings, attempt, model_path)
     _print_warnings(warnings)
     with pd.option_context("display.float_format", "{:.2f}".format, "display.width", 120):
         print(predictions.to_string(index=False))
@@ -121,7 +136,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--root", type=Path, default=ML_ROOT, help="pasta ml/ (padrão: a deste repositório)")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("validate", help="confere leituras e tentativas de data/raw/")
+    sub.add_parser("validate", help="confere sessões e tentativas de data/raw/")
 
     prepare = sub.add_parser("prepare", help="features por sopro e separação treino/teste")
     _add_prepare_args(prepare)
@@ -129,8 +144,10 @@ def build_parser() -> argparse.ArgumentParser:
     train = sub.add_parser("train", help="experimento por conjunto de sensores e modelo final")
     _add_train_args(train)
 
-    predict = sub.add_parser("predict", help="classifica tentativas novas")
-    predict.add_argument("--readings", type=Path, required=True, help="CSV de leituras no formato do template")
+    predict = sub.add_parser("predict", help="classifica um sopro de uma sessão nova")
+    predict.add_argument("--session", type=Path, required=True, help="CSV de sessão gravado pelo firmware")
+    predict.add_argument("--blow-start-s", type=float, required=True, help="segundo da sessão em que o sopro começou")
+    predict.add_argument("--blow-end-s", type=float, help="segundo em que o sopro terminou (opcional)")
     predict.add_argument("--model", type=Path, help="modelo .joblib (padrão: models/3classes.joblib)")
     predict.add_argument("--output", type=Path, help="CSV para salvar as previsões (opcional)")
 
@@ -152,7 +169,7 @@ def main(argv: list[str] | None = None) -> int:
             run_train(paths, _tasks(args.task), args.select_by, args.seed)
         elif args.command == "predict":
             model = args.model or paths.models_dir / "3classes.joblib"
-            run_predict(paths, args.readings, model, args.output)
+            run_predict(paths, args.session, args.blow_start_s, args.blow_end_s, model, args.output)
         elif args.command == "all":
             print("== Preparação ==")
             run_prepare(paths, args.group_by, args.test_size, args.seed)
@@ -166,7 +183,7 @@ def main(argv: list[str] | None = None) -> int:
 def _add_prepare_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--group-by", choices=GROUP_COLUMNS, default="participant_id",
-        help="separar treino/teste por participante (padrão) ou por sessão",
+        help="separar treino/teste por participante (padrão) ou por arquivo de sessão",
     )
     parser.add_argument("--test-size", type=float, default=0.25, help="fração de grupos no teste (padrão: 0.25)")
     parser.add_argument("--seed", type=int, default=42, help="semente (padrão: 42)")

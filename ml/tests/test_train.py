@@ -3,17 +3,16 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from src.features import SENSOR_SETS, build_dataset, compute_features
+from src.data_validation import validate_readings
+from src.features import SENSOR_SETS
 from src.inference import predict_attempts
 from src.splitting import apply_split, update_split
 from src.train import choose_best, compute_metrics, model_specs, run_experiment, save_model, train_final_model
-from tests.conftest import make_attempt, make_dataset
+from tests.conftest import BLOW_START_S, make_feature_dataset, make_session
 
 
 def _train_test() -> tuple[pd.DataFrame, pd.DataFrame]:
-    readings, attempts = make_dataset(n_participants=8, repetitions=2)
-    features, _ = compute_features(readings)
-    dataset = build_dataset(features, attempts)
+    dataset = make_feature_dataset(n_participants=8, repetitions=2)
     split, _ = update_split(dataset, existing=None)
     return apply_split(dataset, split)
 
@@ -63,13 +62,19 @@ def test_final_model_is_evaluated_on_test_and_used_for_inference(tmp_path):
     assert set(metadata["confusion_matrix"]["labels"]) == {"bebida", "externo"}
 
     save_model(model, metadata, tmp_path / "etapa2.joblib")
-    readings = pd.concat(
-        [
-            make_attempt("novo-bebida", "drink", "2026-10-21T14:00:00Z", seed=100),
-            make_attempt("novo-perfume", "perfume", "2026-10-21T15:00:00Z", seed=101),
-        ]
+    frames = []
+    for session_file, condition, seed in (("nova_bebida.csv", "drink", 100), ("nova_perfume.csv", "perfume", 101)):
+        session = validate_readings(make_session(condition, seed))
+        session.insert(0, "session_file", session_file)
+        frames.append(session)
+    attempts = pd.DataFrame(
+        {
+            "attempt_id": ["novo-bebida", "novo-perfume"],
+            "session_file": ["nova_bebida.csv", "nova_perfume.csv"],
+            "blow_start_s": [BLOW_START_S, BLOW_START_S],
+        }
     )
-    predictions, _ = predict_attempts(readings, tmp_path / "etapa2.joblib")
+    predictions, _ = predict_attempts(pd.concat(frames), attempts, tmp_path / "etapa2.joblib")
     assert dict(zip(predictions["attempt_id"], predictions["prediction"])) == {
         "novo-bebida": "bebida",
         "novo-perfume": "externo",

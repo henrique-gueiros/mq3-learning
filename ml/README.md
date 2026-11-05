@@ -24,55 +24,57 @@ O modelo **não** prevê embriaguez, quanto a pessoa bebeu, nem a concentração
 
 ## Escopo
 
-Este repositório cobre apenas ML e dados. Fora do escopo: firmware do ESP32, infraestrutura do dispositivo e o que o carro faz com cada resposta.
+Este repositório cobre apenas ML e dados. O firmware da ESP32 fica em `../firmware/`. Fora do escopo: o que o carro faz com cada resposta.
 
 ## Estado atual
 
-O pipeline está pronto e testado: validação, features por sopro, separação treino/teste por participante, comparação de modelos, experimento por conjunto de sensores, modelo final e previsão. **Não há dados reais ainda**, e o projeto não usa dados sintéticos.
+O pipeline está pronto e testado e lê diretamente os CSVs gravados pelo firmware: validação, recorte de cada sopro, features, separação treino/teste por participante, comparação de modelos, experimento por conjunto de sensores, modelo final e previsão. **Os dados de treino e teste são coletados pela própria equipe**; o projeto não usa datasets da internet nem dados sintéticos.
 
 | Item | Situação |
 | --- | --- |
-| Sensores (MQ-3, MQ-135, DHT11) e ligação no ESP32 | A confirmar com a equipe de hardware |
-| Tensão de saída dos MQ e compatibilidade com o ADC do ESP32 | Não verificada |
-| Protocolo de sopro (tempos das fases) | Proposta inicial; ajustar após os primeiros testes |
-| Primeiras leituras reais | Não coletadas |
+| Leitura de MQ-3, MQ-135 e DHT11 no firmware, com CSV por sessão | Funcionando |
+| Tensão de saída dos MQ e compatibilidade com o ADC do ESP32 | O ADC satura perto de 3,1 V (ver `firmware/README.md`) |
+| Protocolo de sopro (tempos das fases) | Proposta inicial; ajustar com os dados reais |
+| Coleta rotulada (sessões + `attempts.csv`) | Em andamento |
 | Classe `bebida` (simulador de hálito ou coleta aprovada pelo Comitê de Ética) | A definir com o professor |
 | Modelo treinado com dados reais | Não existe |
 
-Nenhuma especificação de hardware, calibração ou valor típico dos sensores está assumida neste repositório.
+Nenhuma calibração ou valor típico dos sensores está assumido neste repositório.
 
 ## Formato dos dados
 
-Os dados reais ficam em dois tipos de arquivo, com modelos em `templates/`.
+Os dados reais ficam em dois tipos de arquivo.
 
-### Leituras — `data/raw/readings/*.csv`
+### Sessões — `data/raw/sessions/*.csv`
 
-Uma linha por leitura dos sensores, gravada pelo sistema de aquisição. Pode haver vários arquivos (por exemplo, um por dia de coleta).
+Os CSVs gravados pelo firmware (`leituras_<n>.csv`), copiados **sem alteração**. Cada arquivo é uma sessão: do ligar ao desligar (ou reiniciar) da placa, com uma leitura a cada ~1 s.
 
-| Coluna | Descrição |
+| Coluna | Uso no ML |
 | --- | --- |
-| `timestamp` | ISO 8601 **com fuso**, ex.: `2026-10-20T14:00:00-03:00` |
-| `attempt_id` | Identificador da tentativa de sopro |
-| `phase` | `before` (ambiente), `blow` (sopro) ou `after` (recuperação) |
+| `t_ms` | Tempo desde a partida da placa (obrigatório) |
 | `mq3_raw` | Leitura bruta do MQ-3 (obrigatória) |
-| `mq135_raw` | Leitura bruta do MQ-135 (pode ficar vazia) |
-| `temperature_c` | Temperatura do DHT11 (pode ficar vazia) |
-| `humidity_pct` | Umidade do DHT11 (pode ficar vazia) |
+| `mq135_raw` | Leitura bruta do MQ-135 |
+| `temperature_c`, `humidity_pct` | DHT11 (vazios nos primeiros segundos) |
+| `amostra`, `ppm`, `mq135_mv`, `alcool` | **Não usadas.** `ppm` e `alcool` são calculados pelo firmware a partir do próprio MQ-3, com o ar da partida como referência; usá-los como rótulo ou feature misturaria a regra do firmware com o modelo. |
 
-A fase é marcada pelo sistema de aquisição seguindo o protocolo (por exemplo, um LED ou som indica "sopre agora"). As leituras são brutas: nenhuma conversão para concentração é feita.
+Como o firmware reinicia a numeração em cada placa, **renomeie o arquivo ao copiar**, para que o nome seja único: por exemplo `2026-11-04_henrique_leituras_3.csv`.
 
 ### Tentativas — `data/raw/attempts.csv`
 
-Uma linha por tentativa, preenchida por quem conduz o experimento.
+Uma linha por sopro, preenchida por quem conduz o experimento (modelo em `templates/attempts_template.csv`). Uma sessão pode ter vários sopros.
 
 | Coluna | Descrição |
 | --- | --- |
-| `attempt_id` | O mesmo das leituras |
+| `attempt_id` | Identificador único do sopro (ex.: `p01-perfume-1`) |
+| `session_file` | Nome do CSV da sessão em `data/raw/sessions/` |
 | `participant_id` | Identificador anônimo da pessoa (ex.: `p01`) |
-| `session_id` | Identificador da sessão (ex.: `2026-10-25-manha`) |
 | `condition` | O que foi feito antes do sopro (tabela abaixo) |
+| `blow_start_s` | Segundo da sessão em que o sopro começou (`t_ms / 1000`, visto no monitor serial) |
+| `blow_end_s` | Opcional: segundo em que o sopro terminou (padrão: início + 5 s) |
 | `reference_mg_l` | Opcional: leitura de um etilômetro de referência |
 | `notes` | Opcional: observações |
+
+O ML recorta de cada sessão os **15 s antes** do sopro (ambiente), o **sopro** e os **30 s depois** (pico e recuperação). Deixe pelo menos ~50 s entre dois sopros da mesma sessão; senão o `prepare` avisa que o "antes" de um pega o sopro do outro. Esses tempos ficam em `src/features.py`.
 
 | `condition` | Classe |
 | --- | --- |
@@ -98,8 +100,8 @@ ml/
 ├── config/split.json         # Criado pelo 'prepare': quem é de treino e quem é de teste
 ├── data/
 │   ├── raw/                  # Dados reais originais (nunca alterados pelo código)
-│   │   ├── readings/*.csv
-│   │   └── attempts.csv
+│   │   ├── sessions/*.csv    # CSVs do firmware
+│   │   └── attempts.csv      # Um sopro por linha
 │   └── processed/            # features_all.csv, train.csv, test.csv
 ├── models/                   # Modelos treinados (.joblib + .json)
 ├── reports/                  # Resultados do experimento e do teste final
@@ -113,7 +115,7 @@ ml/
 │   ├── train.py              # Modelos, validação cruzada aninhada e modelo final
 │   ├── inference.py          # Previsão para tentativas novas
 │   └── paths.py              # Caminhos padrão
-├── templates/                # Cabeçalhos dos CSVs de leituras e tentativas
+├── templates/                # Cabeçalho do attempts.csv
 ├── tests/                    # Testes automatizados (pytest)
 ├── requirements.txt
 └── pytest.ini
@@ -133,7 +135,7 @@ python -m pytest        # roda os testes
 
 ## Como usar
 
-1. Salve as leituras em `data/raw/readings/` e cadastre as tentativas em `data/raw/attempts.csv`.
+1. Copie os CSVs do firmware para `data/raw/sessions/` (com nome único) e cadastre cada sopro em `data/raw/attempts.csv`.
 2. Rode, de dentro de `ml/`:
 
    ```bash
@@ -143,17 +145,17 @@ python -m pytest        # roda os testes
 
 | Comando | O que faz | Gera |
 | --- | --- | --- |
-| `validate` | Confere leituras e tentativas e lista todos os problemas de uma vez | nada |
-| `prepare` | Calcula as features de cada sopro e separa treino/teste por participante | `data/processed/*.csv`, `config/split.json` |
+| `validate` | Confere sessões e tentativas e lista todos os problemas de uma vez | nada |
+| `prepare` | Recorta cada sopro, calcula as features e separa treino/teste por participante | `data/processed/*.csv`, `config/split.json` |
 | `train` | Para cada tarefa: compara 4 modelos em 4 conjuntos de sensores e treina o melhor | `reports/experiment_<tarefa>.csv`, `reports/final_<tarefa>.json`, `models/<tarefa>.joblib` |
-| `predict` | Classifica tentativas novas | previsões na tela ou em `--output` |
+| `predict` | Classifica um sopro de uma sessão nova | previsões na tela ou em `--output` |
 
 Opções úteis:
 
-- `--group-by session_id`: separa por sessão quando há poucos participantes (são precisos pelo menos 3 grupos no treino);
+- `--group-by session_file`: separa por arquivo de sessão quando há poucos participantes (são precisos pelo menos 3 grupos no treino);
 - `--task etapa2`: treina só uma tarefa;
 - `--select-by recall_bebida`: escolhe o modelo final pela métrica de validação cruzada desejada;
-- `python -m src.cli predict --readings novas.csv --model models/3classes.joblib`.
+- `python -m src.cli predict --session leituras_7.csv --blow-start-s 60 --model models/3classes.joblib`.
 
 Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste continua no teste. Para refazer o sorteio do zero, apague `config/split.json`.
 
@@ -175,11 +177,11 @@ Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste
 
 ## Próximos passos
 
-1. Confirmar o hardware e o protocolo de sopro com a equipe.
-2. Coletar as condições seguras (`clean`, `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash`, `alcohol_cup`) com vários participantes.
-3. Definir com o professor como obter a classe `bebida`.
-4. Análise exploratória em `notebooks/01_eda.ipynb` e revisão das features.
-5. Registrar os experimentos no MLflow.
+1. Coletar as condições seguras (`clean`, `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash`, `alcohol_cup`) com vários participantes, cadastrando cada sopro em `attempts.csv`.
+2. Definir com o professor como obter a classe `bebida`.
+3. Análise exploratória em `notebooks/01_eda.ipynb` e revisão das features e dos tempos do protocolo.
+4. Registrar os experimentos no MLflow.
+5. Quando as leituras chegarem por MQTT e forem gravadas no banco, ler as sessões de lá (no lugar dos CSVs) e orquestrar `prepare` e `train` no Airflow. O formato das leituras continua o mesmo do firmware.
 
 ## Segurança
 

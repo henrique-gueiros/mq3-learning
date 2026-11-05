@@ -2,13 +2,16 @@
 
 Os dados reais chegam em dois tipos de arquivo:
 
-- **leituras** (``data/raw/readings/*.csv``): uma linha por leitura dos sensores,
-  gravada pelo sistema de aquisição durante cada tentativa de sopro;
-- **tentativas** (``data/raw/attempts.csv``): uma linha por tentativa, preenchida
-  por quem conduz o experimento, com participante, sessão e condição.
+- **sessões** (``data/raw/sessions/*.csv``): os CSVs gravados pelo firmware da
+  ESP32, sem alteração. Cada arquivo é uma sessão (do ligar ao desligar da placa),
+  com uma leitura por linha e o tempo em ``t_ms`` (milissegundos desde a partida).
+- **tentativas** (``data/raw/attempts.csv``): uma linha por tentativa de sopro,
+  preenchida por quem conduz o experimento: em qual sessão, em que segundo o
+  sopro começou, quem soprou e qual era a condição.
 
-O rótulo de cada tentativa vem da **condição experimental** (o que foi feito
-antes do sopro), nunca do valor dos sensores.
+O rótulo de cada tentativa vem da **condição experimental**, nunca do valor dos
+sensores. Por isso as colunas ``alcool`` e ``ppm`` do firmware (derivadas do
+próprio MQ-3) nunca são usadas como rótulo nem como feature.
 
 A validação reúne todos os problemas encontrados e os mostra de uma vez. Os
 números de linha nas mensagens contam o cabeçalho do CSV como linha 1.
@@ -19,12 +22,12 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-PHASES = ("before", "blow", "after")
 SENSOR_COLUMNS = ["mq3_raw", "mq135_raw", "temperature_c", "humidity_pct"]
-READING_COLUMNS = ["timestamp", "attempt_id", "phase", *SENSOR_COLUMNS]
+READING_COLUMNS = ["t_ms", *SENSOR_COLUMNS]
+UNUSED_FIRMWARE_COLUMNS = ["amostra", "ppm", "mq135_mv", "alcool"]
 
-ATTEMPT_COLUMNS = ["attempt_id", "participant_id", "session_id", "condition"]
-OPTIONAL_ATTEMPT_COLUMNS = ["reference_mg_l", "notes"]
+ATTEMPT_COLUMNS = ["attempt_id", "session_file", "participant_id", "condition", "blow_start_s"]
+OPTIONAL_ATTEMPT_COLUMNS = ["blow_end_s", "reference_mg_l", "notes"]
 
 CLASSES = ("sem_alcool", "externo", "bebida")
 CONDITIONS = {
@@ -38,8 +41,6 @@ CONDITIONS = {
     "drink_perfume": "bebida",
 }
 
-_TZ_SUFFIX = r"(?:Z|[+-]\d{2}:?\d{2})$"
-
 
 class DataValidationError(ValueError):
     """Erro com a lista de problemas encontrados nos dados."""
@@ -50,15 +51,15 @@ class DataValidationError(ValueError):
 
 
 def validate_readings(df: pd.DataFrame) -> pd.DataFrame:
-    """Valida e converte os tipos de uma tabela de leituras.
+    """Valida e converte os tipos de um CSV de sessão do firmware.
 
-    ``mq3_raw`` é obrigatório em toda linha. ``mq135_raw``, ``temperature_c`` e
-    ``humidity_pct`` podem ficar vazios (por exemplo, quando o DHT11 falha ou é
-    lido com frequência menor que os MQ). Colunas extras são mantidas.
+    ``t_ms`` e ``mq3_raw`` são obrigatórios em toda linha. ``mq135_raw``,
+    ``temperature_c`` e ``humidity_pct`` podem ficar vazios (o DHT11 só responde
+    alguns segundos depois da partida). Colunas extras são mantidas.
 
     Returns:
-        Uma cópia com ``timestamp`` em UTC, sensores como float e linhas
-        ordenadas por tentativa e horário.
+        Uma cópia com os sensores como float, ``t_ms`` como inteiro e as linhas
+        ordenadas por ``t_ms``.
 
     Raises:
         DataValidationError: com todos os problemas encontrados.
@@ -67,17 +68,10 @@ def validate_readings(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     problems: list[str] = []
 
-    timestamps = _parse_timestamps(out["timestamp"], problems)
-    if timestamps is not None:
-        out["timestamp"] = timestamps
-
-    out["attempt_id"] = _required_text(out["attempt_id"], "attempt_id", problems)
-
-    phase = out["phase"].astype("string").str.strip().str.lower()
-    bad_phase = _as_bool(~phase.isin(PHASES))
-    if bad_phase.any():
-        problems.append(_describe(f"phase deve ser um de {list(PHASES)}", bad_phase))
-    out["phase"] = phase
+    t_ms = pd.to_numeric(out["t_ms"], errors="coerce")
+    bad_time = t_ms.isna() | _as_bool(t_ms < 0)
+    if bad_time.any():
+        problems.append(_describe("t_ms vazio, negativo ou não numérico", bad_time))
 
     for column in SENSOR_COLUMNS:
         values = pd.to_numeric(out[column], errors="coerce")
@@ -88,21 +82,24 @@ def validate_readings(df: pd.DataFrame) -> pd.DataFrame:
     if out["mq3_raw"].isna().any():
         problems.append(_describe("mq3_raw vazio", out["mq3_raw"].isna()))
 
-    if not problems:
-        duplicated = out.duplicated(subset=["attempt_id", "timestamp"], keep=False)
+    if not bad_time.any():
+        out["t_ms"] = t_ms.astype("int64")
+        duplicated = out["t_ms"].duplicated(keep=False)
         if duplicated.any():
-            problems.append(_describe("leituras repetidas (mesmo attempt_id e timestamp)", duplicated))
+            problems.append(_describe("t_ms repetido", duplicated))
 
     if problems:
         raise DataValidationError(problems)
-    return out.sort_values(["attempt_id", "timestamp"], kind="stable").reset_index(drop=True)
+    return out.sort_values("t_ms", kind="stable").reset_index(drop=True)
 
 
 def validate_attempts(df: pd.DataFrame) -> pd.DataFrame:
     """Valida a tabela de tentativas e acrescenta a coluna ``target``.
 
-    ``target`` é a classe derivada de ``condition`` pelo dicionário ``CONDITIONS``.
-    ``reference_mg_l`` (leitura de um etilômetro de referência) é opcional.
+    ``blow_start_s`` é o segundo da sessão (``t_ms / 1000``) em que o sopro
+    começou. ``blow_end_s`` é opcional; sem ele, o sopro dura
+    ``features.DEFAULT_BLOW_SECONDS``. ``target`` é a classe derivada de
+    ``condition`` pelo dicionário ``CONDITIONS``.
 
     Raises:
         DataValidationError: com todos os problemas encontrados.
@@ -111,8 +108,10 @@ def validate_attempts(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     problems: list[str] = []
 
-    for column in ("attempt_id", "participant_id", "session_id"):
+    for column in ("attempt_id", "session_file", "participant_id"):
         out[column] = _required_text(out[column], column, problems)
+    without_extension = _as_bool(~out["session_file"].str.lower().str.endswith(".csv"))
+    out.loc[without_extension, "session_file"] = out.loc[without_extension, "session_file"] + ".csv"
 
     condition = out["condition"].astype("string").str.strip().str.lower()
     bad_condition = _as_bool(~condition.isin(list(CONDITIONS)))
@@ -122,6 +121,19 @@ def validate_attempts(df: pd.DataFrame) -> pd.DataFrame:
             _describe(f"condition desconhecida {found}; use uma de {sorted(CONDITIONS)}", bad_condition)
         )
     out["condition"] = condition
+
+    start = pd.to_numeric(out["blow_start_s"], errors="coerce")
+    bad_start = start.isna() | _as_bool(start < 0)
+    if bad_start.any():
+        problems.append(_describe("blow_start_s vazio, negativo ou não numérico", bad_start))
+    out["blow_start_s"] = start.astype(float)
+
+    if "blow_end_s" in out.columns:
+        end = pd.to_numeric(out["blow_end_s"], errors="coerce")
+        bad_end = (out["blow_end_s"].notna() & end.isna()) | _as_bool(end <= start)
+        if bad_end.any():
+            problems.append(_describe("blow_end_s deve ser maior que blow_start_s ou vazio", bad_end))
+        out["blow_end_s"] = end.astype(float)
 
     if "reference_mg_l" in out.columns:
         reference = pd.to_numeric(out["reference_mg_l"], errors="coerce")
@@ -143,24 +155,23 @@ def validate_attempts(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def check_consistency(readings: pd.DataFrame, attempts: pd.DataFrame) -> list[str]:
-    """Confere se leituras e tentativas se correspondem.
+    """Confere se tentativas e sessões se correspondem.
 
-    Leituras de uma tentativa não cadastrada são erro, porque ficariam sem rótulo.
-    Tentativas cadastradas sem leituras viram aviso.
+    Uma tentativa que aponta para um arquivo de sessão inexistente é erro.
+    Sessões sem nenhuma tentativa cadastrada viram aviso (ficam de fora).
 
     Returns:
         Lista de avisos.
     """
-    reading_ids = set(readings["attempt_id"])
-    attempt_ids = set(attempts["attempt_id"])
-    unregistered = sorted(reading_ids - attempt_ids)
-    if unregistered:
+    sessions = set(readings["session_file"])
+    missing = sorted(set(attempts["session_file"]) - sessions)
+    if missing:
         raise DataValidationError(
-            [f"leituras de tentativas que não estão em attempts.csv: {unregistered[:10]}"]
+            [f"attempts.csv cita sessões que não estão em data/raw/sessions/: {missing[:10]}"]
         )
-    without_readings = sorted(attempt_ids - reading_ids)
-    if without_readings:
-        return [f"tentativas sem leituras (ignoradas): {without_readings[:10]}"]
+    unused = sorted(sessions - set(attempts["session_file"]))
+    if unused:
+        return [f"sessões sem tentativas cadastradas em attempts.csv (ignoradas): {unused[:10]}"]
     return []
 
 
@@ -178,30 +189,6 @@ def _required_text(values: pd.Series, name: str, problems: list[str]) -> pd.Seri
     if empty.any():
         problems.append(_describe(f"{name} vazio", empty))
     return text
-
-
-def _parse_timestamps(values: pd.Series, problems: list[str]) -> pd.Series | None:
-    """Converte para UTC exigindo fuso explícito; horários sem fuso são ambíguos."""
-    if isinstance(values.dtype, pd.DatetimeTZDtype):
-        return values.dt.tz_convert("UTC")
-
-    text = values.astype("string").str.strip()
-    has_tz = _as_bool(text.str.contains(_TZ_SUFFIX, regex=True))
-    if not has_tz.all():
-        problems.append(
-            _describe(
-                "timestamp vazio ou sem fuso horário "
-                "(use ISO 8601 com offset, ex.: 2026-10-20T14:00:00-03:00)",
-                ~has_tz,
-            )
-        )
-        return None
-
-    parsed = pd.to_datetime(text, utc=True, format="ISO8601", errors="coerce")
-    if parsed.isna().any():
-        problems.append(_describe("timestamp em formato inválido", parsed.isna()))
-        return None
-    return parsed
 
 
 def _as_bool(mask: pd.Series) -> pd.Series:

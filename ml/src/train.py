@@ -155,7 +155,7 @@ def run_experiment(
     if groups.nunique() < MIN_GROUPS:
         raise ValueError(
             f"a tarefa {task} precisa de pelo menos {MIN_GROUPS} valores de {group_by} no treino "
-            f"(há {groups.nunique()}); colete mais ou use --group-by session_id"
+            f"(há {groups.nunique()}); colete mais ou use --group-by session_file"
         )
     if y.nunique() < 2:
         raise ValueError(f"a tarefa {task} precisa de pelo menos 2 classes no treino (há {sorted(y.unique())})")

@@ -3,7 +3,8 @@
 Tentativas da mesma pessoa se parecem entre si. Se uma pessoa aparecesse no
 treino e no teste, o modelo poderia aprender a reconhecer a pessoa, e não o
 álcool (vazamento de dados). Por isso a separação é feita por grupo:
-``participant_id`` por padrão, ou ``session_id`` quando há poucos participantes.
+``participant_id`` por padrão, ou ``session_file`` (o CSV do firmware) quando há
+poucos participantes.
 
 A separação fica gravada em ``config/split.json``, versionado no Git. Quando
 chegam grupos novos, os antigos continuam do mesmo lado e só os novos são sorteados.
@@ -18,7 +19,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-GROUP_COLUMNS = ("participant_id", "session_id")
+GROUP_COLUMNS = ("participant_id", "session_file")
 
 
 @dataclass

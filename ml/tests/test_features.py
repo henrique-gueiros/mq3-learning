@@ -8,36 +8,50 @@ from src.data_validation import validate_readings
 from src.features import (
     SENSOR_SETS,
     all_feature_columns,
+    assign_phases,
     build_dataset,
     compute_features,
     feature_columns,
     task_target,
 )
-from tests.conftest import make_attempt, make_dataset
+from tests.conftest import make_dataset, make_session
 
 
-def _simple_attempt() -> pd.DataFrame:
-    """MQ-3: 100 antes, pico 300 no 2º segundo do sopro, volta a 150 depois."""
-    mq3 = [100, 100, 100, 200, 300, 250, 150, 120]
-    humidity = [50, 50, 50, 70, 90, 80, 60, 55]
-    phases = ["before"] * 3 + ["blow"] * 3 + ["after"] * 2
-    return validate_readings(
+def _simple_session() -> pd.DataFrame:
+    """MQ-3: 100 antes, pico 300 um segundo depois do início do sopro (t = 20 s)."""
+    t_s = [17, 18, 19, 20, 21, 22, 23, 24]
+    df = validate_readings(
         pd.DataFrame(
             {
-                "timestamp": pd.date_range("2026-10-20T14:00:00-03:00", periods=8, freq="1s"),
-                "attempt_id": "a1",
-                "phase": phases,
-                "mq3_raw": mq3,
+                "t_ms": [t * 1000 for t in t_s],
+                "mq3_raw": [100, 100, 100, 200, 300, 250, 150, 120],
                 "mq135_raw": [200, 200, 200, 210, 250, 240, 220, 210],
                 "temperature_c": [25.0] * 8,
-                "humidity_pct": humidity,
+                "humidity_pct": [50, 50, 50, 70, 90, 80, 60, 55],
             }
         )
     )
+    df.insert(0, "session_file", "s1.csv")
+    return df
+
+
+def _attempt(start_s: float = 20, end_s: float = 22, attempt_id: str = "a1") -> pd.DataFrame:
+    return pd.DataFrame(
+        {"attempt_id": [attempt_id], "session_file": ["s1.csv"], "blow_start_s": [start_s], "blow_end_s": [end_s]}
+    )
+
+
+def test_phases_follow_blow_start():
+    phased, warnings = assign_phases(_simple_session(), _attempt())
+
+    assert warnings == []
+    assert list(phased["phase"]) == ["before"] * 3 + ["blow"] * 3 + ["after"] * 2
+    assert set(phased["attempt_id"]) == {"a1"}
 
 
 def test_features_of_a_simple_attempt():
-    features, warnings = compute_features(_simple_attempt())
+    phased, _ = assign_phases(_simple_session(), _attempt())
+    features, warnings = compute_features(phased)
     row = features.iloc[0]
 
     assert warnings == []
@@ -52,19 +66,27 @@ def test_features_of_a_simple_attempt():
     assert np.isnan(row["temperature_recovery_s"])
 
 
-def test_attempt_without_blow_is_skipped():
-    readings = _simple_attempt()
-    readings = readings[readings["phase"] != "blow"]
-    features, warnings = compute_features(readings)
+def test_blow_start_outside_the_session_is_skipped():
+    phased, warnings = assign_phases(_simple_session(), _attempt(start_s=500, end_s=505))
+    features, _ = compute_features(phased)
 
     assert features.empty
-    assert "a1" in warnings[0]
+    assert "blow_start_s" in warnings[0]
+
+
+def test_attempts_too_close_in_the_same_session_warn():
+    session = validate_readings(make_session("clean"))
+    session.insert(0, "session_file", "s1.csv")
+    attempts = pd.concat([_attempt(10, 12, "a1"), _attempt(30, 32, "a2")])
+    _, warnings = assign_phases(session, attempts)
+    assert "a2" in warnings[0]
 
 
 def test_missing_dht11_readings_do_not_break_features():
-    readings = _simple_attempt()
+    readings = _simple_session()
     readings["humidity_pct"] = np.nan
-    features, _ = compute_features(readings)
+    phased, _ = assign_phases(readings, _attempt())
+    features, _ = compute_features(phased)
 
     assert features["humidity_rise"].isna().all()
     assert features["mq3_humidity_peak_lag_s"].isna().all()
@@ -80,9 +102,14 @@ def test_every_sensor_set_uses_mq3_and_the_full_set_uses_everything():
         feature_columns("mq7")
 
 
+def test_firmware_columns_derived_from_mq3_are_never_features():
+    assert not {"ppm", "alcool", "amostra", "mq135_mv"} & set(all_feature_columns())
+
+
 def test_tasks_select_rows_and_labels():
     readings, attempts = make_dataset(n_participants=2, repetitions=1)
-    features, _ = compute_features(readings)
+    phased, _ = assign_phases(readings, attempts)
+    features, _ = compute_features(phased)
     dataset = build_dataset(features, attempts)
 
     _, y3 = task_target(dataset, "3classes")
@@ -93,10 +120,3 @@ def test_tasks_select_rows_and_labels():
     assert set(y1) == {"sem_alcool", "alcool"}
     assert set(y2) == {"externo", "bebida"}
     assert (subset2["target"] != "sem_alcool").all()
-
-
-def test_drink_rises_more_than_perfume_in_fixture():
-    features, _ = compute_features(make_attempt("d", "drink", "2026-10-20T14:00:00Z"))
-    perfume, _ = compute_features(make_attempt("p", "perfume", "2026-10-20T14:00:00Z"))
-    assert features["mq3_rise"].iloc[0] > perfume["mq3_rise"].iloc[0]
-    assert perfume["mq3_before"].iloc[0] > features["mq3_before"].iloc[0]

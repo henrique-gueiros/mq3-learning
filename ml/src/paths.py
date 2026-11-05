@@ -19,8 +19,8 @@ class ProjectPaths:
         return self.root / "data" / "raw"
 
     @property
-    def raw_readings_dir(self) -> Path:
-        return self.raw_dir / "readings"
+    def raw_sessions_dir(self) -> Path:
+        return self.raw_dir / "sessions"
 
     @property
     def raw_attempts(self) -> Path:

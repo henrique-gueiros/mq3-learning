@@ -8,7 +8,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from src.features import compute_features
+from src.features import assign_phases, compute_features
 
 
 def load_model(path: Path):
@@ -20,18 +20,23 @@ def load_model(path: Path):
     return joblib.load(path), metadata
 
 
-def predict_attempts(readings: pd.DataFrame, model_path: Path) -> tuple[pd.DataFrame, list[str]]:
-    """Classifica cada tentativa das leituras (já validadas).
+def predict_attempts(
+    readings: pd.DataFrame, attempts: pd.DataFrame, model_path: Path
+) -> tuple[pd.DataFrame, list[str]]:
+    """Classifica tentativas a partir das leituras de sessão já validadas.
 
-    O cálculo de features é o mesmo do treino, e o pré-processamento fica
-    dentro do ``Pipeline`` salvo.
+    ``attempts`` precisa de ``attempt_id``, ``session_file`` e ``blow_start_s``
+    (``blow_end_s`` é opcional); não precisa de condição. O cálculo de features é
+    o mesmo do treino, e o pré-processamento fica dentro do ``Pipeline`` salvo.
 
     Returns:
         ``(previsões, avisos)``: uma linha por tentativa com ``prediction`` e,
         quando o modelo permite, ``prob_<classe>``.
     """
     model, metadata = load_model(model_path)
-    features, warnings = compute_features(readings)
+    phased, warnings = assign_phases(readings, attempts)
+    features, feature_warnings = compute_features(phased)
+    warnings += feature_warnings
     if features.empty:
         return pd.DataFrame(columns=["attempt_id", "prediction"]), warnings
 

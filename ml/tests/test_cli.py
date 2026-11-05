@@ -7,12 +7,13 @@ import pandas as pd
 from src.cli import main
 from src.data_io import write_csv
 from src.paths import ProjectPaths
-from tests.conftest import make_attempt, make_dataset
+from tests.conftest import BLOW_START_S, make_dataset, make_session
 
 
 def _write_raw(paths: ProjectPaths, n_participants: int = 6) -> None:
     readings, attempts = make_dataset(n_participants=n_participants, repetitions=1)
-    write_csv(readings, paths.raw_readings_dir / "coleta.csv")
+    for session_file, session in readings.groupby("session_file"):
+        write_csv(session.drop(columns="session_file"), paths.raw_sessions_dir / session_file)
     write_csv(attempts.drop(columns="target"), paths.raw_attempts)
 
 
@@ -31,17 +32,20 @@ def test_full_pipeline_and_prediction(tmp_path, capsys):
     final = json.loads((paths.reports_dir / "final_etapa2.json").read_text(encoding="utf-8"))
     assert "test_metrics" in final
 
-    write_csv(make_attempt("novo", "drink", "2026-10-22T10:00:00Z"), tmp_path / "novo.csv")
+    write_csv(make_session("drink", seed=500), tmp_path / "leituras_99.csv")
     capsys.readouterr()
     code = main(
         [
             "--root", str(tmp_path), "predict",
-            "--readings", str(tmp_path / "novo.csv"),
+            "--session", str(tmp_path / "leituras_99.csv"),
+            "--blow-start-s", str(BLOW_START_S),
             "--model", str(paths.models_dir / "etapa2.joblib"),
         ]
     )
     assert code == 0
-    assert "bebida" in capsys.readouterr().out
+    output = capsys.readouterr().out
+    assert "leituras_99@20s" in output
+    assert " bebida " in output
 
 
 def test_prepare_keeps_split_stable(tmp_path):
@@ -56,4 +60,4 @@ def test_prepare_keeps_split_stable(tmp_path):
 
 def test_errors_return_exit_code_1(tmp_path, capsys):
     assert main(["--root", str(tmp_path), "validate"]) == 1
-    assert "readings_template" in capsys.readouterr().err
+    assert "firmware" in capsys.readouterr().err

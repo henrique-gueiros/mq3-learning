@@ -13,23 +13,26 @@ from src.data_validation import (
     validate_readings,
 )
 
-_READING_DTYPES = {"timestamp": "string", "attempt_id": "string", "phase": "string"}
 _ATTEMPT_DTYPES = {
     "attempt_id": "string",
+    "session_file": "string",
     "participant_id": "string",
-    "session_id": "string",
     "condition": "string",
     "notes": "string",
 }
 
 
-def read_readings_csv(path: Path) -> pd.DataFrame:
-    """Lê e valida um CSV de leituras; os erros citam o nome do arquivo."""
-    df = _read_csv(path, _READING_DTYPES)
+def read_session_csv(path: Path) -> pd.DataFrame:
+    """Lê e valida um CSV de sessão do firmware; acrescenta ``session_file``."""
+    path = Path(path)
+    df = _read_csv(path, {})
     try:
-        return validate_readings(df)
+        df = validate_readings(df)
     except DataValidationError as exc:
-        raise DataValidationError([f"{Path(path).name}: {p}" for p in exc.problems]) from exc
+        raise DataValidationError([f"{path.name}: {p}" for p in exc.problems]) from exc
+    df.insert(0, "session_file", path.name)
+    df["session_file"] = df["session_file"].astype("string")
+    return df
 
 
 def read_attempts_csv(path: Path) -> pd.DataFrame:
@@ -41,21 +44,19 @@ def read_attempts_csv(path: Path) -> pd.DataFrame:
         raise DataValidationError([f"{Path(path).name}: {p}" for p in exc.problems]) from exc
 
 
-def load_raw_data(readings_dir: Path, attempts_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
-    """Carrega e valida todas as leituras e tentativas reais.
+def load_raw_data(sessions_dir: Path, attempts_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
+    """Carrega e valida todas as sessões e tentativas reais.
 
-    Os arquivos originais nunca são alterados. Cada leitura ganha a coluna
-    ``source_file`` para rastrear de qual arquivo veio.
+    Os arquivos originais nunca são alterados.
 
     Returns:
-        ``(leituras, tentativas, avisos)``.
+        ``(leituras de todas as sessões, tentativas, avisos)``.
     """
-    readings_dir = Path(readings_dir)
-    files = sorted(readings_dir.glob("*.csv"))
+    sessions_dir = Path(sessions_dir)
+    files = sorted(sessions_dir.glob("*.csv"))
     if not files:
         raise FileNotFoundError(
-            f"nenhum CSV em {readings_dir}. Coloque lá as leituras no formato de "
-            "templates/readings_template.csv"
+            f"nenhum CSV em {sessions_dir}. Copie para lá os CSVs de sessão gravados pelo firmware"
         )
     if not Path(attempts_path).exists():
         raise FileNotFoundError(
@@ -67,12 +68,9 @@ def load_raw_data(readings_dir: Path, attempts_path: Path) -> tuple[pd.DataFrame
     problems: list[str] = []
     for file in files:
         try:
-            df = read_readings_csv(file)
+            frames.append(read_session_csv(file))
         except DataValidationError as exc:
             problems.extend(exc.problems)
-            continue
-        df["source_file"] = file.name
-        frames.append(df)
     try:
         attempts = read_attempts_csv(attempts_path)
     except DataValidationError as exc:
@@ -81,15 +79,7 @@ def load_raw_data(readings_dir: Path, attempts_path: Path) -> tuple[pd.DataFrame
         raise DataValidationError(problems)
 
     readings = pd.concat(frames, ignore_index=True)
-    duplicated = readings.duplicated(subset=["attempt_id", "timestamp"], keep=False)
-    if duplicated.any():
-        names = ", ".join(sorted(readings.loc[duplicated, "source_file"].unique()))
-        raise DataValidationError(
-            [f"{int(duplicated.sum())} leituras repetidas (mesmo attempt_id e timestamp) entre: {names}"]
-        )
-
     warnings = check_consistency(readings, attempts)
-    readings = readings.sort_values(["attempt_id", "timestamp"], kind="stable").reset_index(drop=True)
     return readings, attempts, warnings
 
 
@@ -102,13 +92,9 @@ def read_dataset_csv(path: Path) -> pd.DataFrame:
 
 
 def write_csv(df: pd.DataFrame, path: Path) -> None:
-    """Grava um CSV, com timestamps em ISO 8601 quando houver a coluna."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    out = df.copy()
-    if "timestamp" in out.columns:
-        out["timestamp"] = out["timestamp"].map(lambda ts: ts.isoformat())
-    out.to_csv(path, index=False)
+    df.to_csv(path, index=False)
 
 
 def _read_csv(path: Path, dtypes: dict[str, str]) -> pd.DataFrame:
