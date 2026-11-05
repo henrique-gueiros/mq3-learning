@@ -1,5 +1,7 @@
 # MQTT e servidor do modelo
 
+O fluxo completo, da coleta ao resultado, está no [README do repositório](../README.md). Aqui ficam o Compose, os tópicos e os comandos.
+
 A ESP32 publica no broker. O servidor do modelo é outro processo, no mesmo Docker Compose, no computador que estiver na mesma rede da placa. Hoje esse computador é o de vocês. A placa não abre conexão com ele.
 
 ```text
