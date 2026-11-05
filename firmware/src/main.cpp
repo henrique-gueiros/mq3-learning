@@ -149,6 +149,18 @@ float estimarPpm(float tensaoMv, float tensaoReferenciaMv) {
     return 0.0f;
   }
 
+  Serial.print("Tensao atual: ");
+  Serial.println(tensaoMv);
+
+  Serial.print("Tensao referencia: ");
+  Serial.println(tensaoReferenciaMv);
+
+  Serial.print("Rs: ");
+  Serial.println(rs);
+
+  Serial.print("Rs/RsAr: ");
+  Serial.println(rs / rsAr);
+
   float razao = RAZAO_AR_LIMPO * (rs / rsAr);
   float mgPorL = CURVA_A * powf(razao, CURVA_B);
   if (isnan(mgPorL) || isinf(mgPorL) || mgPorL < 0.0f) {
