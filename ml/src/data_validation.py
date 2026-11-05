@@ -29,16 +29,16 @@ UNUSED_FIRMWARE_COLUMNS = ["amostra", "ppm", "mq135_mv", "alcool"]
 ATTEMPT_COLUMNS = ["attempt_id", "session_file", "participant_id", "condition", "blow_start_s"]
 OPTIONAL_ATTEMPT_COLUMNS = ["blow_end_s", "reference_mg_l", "notes"]
 
-CLASSES = ("sem_alcool", "externo", "bebida")
+# O rótulo é o estado do motorista, não a presença de vapor de álcool.
+# Perfume, álcool em gel, borrifo e enxaguante são sem_efeito.
+CLASSES = ("sem_efeito", "sob_efeito")
 CONDITIONS = {
-    "clean": "sem_alcool",
-    "perfume": "externo",
-    "alcohol70_spray": "externo",
-    "alcohol70_hands": "externo",
-    "mouthwash": "externo",
-    "alcohol_cup": "externo",
-    "drink": "bebida",
-    "drink_perfume": "bebida",
+    "clean": "sem_efeito",
+    "perfume": "sem_efeito",
+    "alcohol70_spray": "sem_efeito",
+    "alcohol70_hands": "sem_efeito",
+    "mouthwash": "sem_efeito",
+    "drink": "sob_efeito",
 }
 
 

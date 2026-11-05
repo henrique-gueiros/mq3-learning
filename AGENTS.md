@@ -18,19 +18,14 @@ Antes de mudanças grandes, inspecione o repositório e preserve o que já exist
 
 ## 3. O que o modelo prevê
 
-Cada **tentativa de sopro** recebe uma classe:
+Cada **tentativa de sopro** recebe uma de duas classes:
 
 | Classe | Significado |
 | --- | --- |
-| `sem_alcool` | Nada detectado |
-| `externo` | Álcool no ar, mas não vindo do hálito (perfume, álcool 70%, enxaguante) |
-| `bebida` | O ar que veio dos pulmões tem álcool |
+| `sob_efeito` | A pessoa bebeu (`drink`) |
+| `sem_efeito` | A pessoa não bebeu. Inclui ar limpo, perfume, álcool em gel, borrifo e enxaguante |
 
-O mesmo problema é treinado de três formas: `3classes` (as três de uma vez), `etapa1` (há álcool?) e `etapa2` (bebida ou externo, só quando há álcool).
-
-O modelo **não** prevê embriaguez, quantidade ingerida nem concentração em mg/L. A classe `bebida` significa "álcool no hálito nas condições do experimento".
-
-A tabela de casos esperados (perfume, álcool 70% borrifado, enxaguante, caso misto) está no PDF e são **hipóteses** a confirmar na análise exploratória. O que separa bebida de álcool externo é o álcool **subir durante o sopro**, partindo de um ambiente sem álcool. "Valor alto demais" não é critério.
+Perfume e álcool em gel não são detecção positiva. São exemplos de `sem_efeito`, para o modelo não confundir vapor de álcool no ambiente com motorista que bebeu. O modelo não mede mg/L. `sob_efeito` significa "bebeu nas condições do experimento", não um laudo de embriaguez.
 
 ## 4. Estado atual
 
@@ -42,7 +37,7 @@ Pronto e testado:
 Ainda não existe:
 
 - [ ] Coleta rotulada suficiente (sessões + `ml/data/raw/attempts.csv` preenchido pela equipe).
-- [ ] Definição, com o professor, de como obter a classe `bebida` (simulador de hálito ou coleta aprovada pelo Comitê de Ética).
+- [ ] Coleta com as duas classes: `clean` e condições com álcool.
 - [ ] Análise exploratória e revisão das features com dados reais.
 - [ ] Modelo treinado e avaliado com dados reais. Métricas dos testes automatizados usam curvas montadas à mão e **não** dizem nada sobre o sensor.
 - [ ] MLflow, MQTT, banco de dados, Airflow, serviço de inferência, API, dashboard e Docker Compose.
@@ -69,9 +64,8 @@ O rótulo vem da `condition`, nunca dos sensores:
 
 | Condição | Classe |
 | --- | --- |
-| `clean` | `sem_alcool` |
-| `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash`, `alcohol_cup` | `externo` |
-| `drink`, `drink_perfume` | `bebida` |
+| `clean`, `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash` | `sem_efeito` |
+| `drink` | `sob_efeito` |
 
 Novas condições entram em `CONDITIONS`, em `ml/src/data_validation.py`.
 
@@ -84,7 +78,7 @@ Novas condições entram em `CONDITIONS`, em `ml/src/data_validation.py`.
 1. **Dataset inicial:** coleta própria, CSVs do firmware e `attempts.csv`; publicação por MQTT com gravação em banco (hoje os CSVs cumprem a coleta; MQTT ainda não existe).
 2. **EDA** em `ml/notebooks/`, com a lógica reutilizável permanecendo em `ml/src/`.
 3. **Pipeline** de validação, limpeza e preparação, reprodutível (`python -m src.cli prepare`).
-4. **Baseline, três modelos, Grid Search, validação cruzada por grupo e métricas**, já estruturados em `ml/src/train.py`; falta rodar com dados reais e registrar no **MLflow**. Métricas: F1 macro, acurácia balanceada, precisão e recall por classe, matriz de confusão. A prioridade é o **recall de `bebida`**: deixar passar quem bebeu é o erro mais grave.
+4. **Baseline, três modelos, Grid Search, validação cruzada por grupo e métricas**, já estruturados em `ml/src/train.py`; falta rodar com dados reais e registrar no **MLflow**. O rótulo é só `sob_efeito` (bebeu) ou `sem_efeito` (não bebeu, inclusive perfume e álcool em gel). Métricas: F1 macro, acurácia balanceada, precisão e recall, matriz de confusão. A prioridade é o **recall de `sob_efeito`**.
 5. **Inferência** com o mesmo pré-processamento do treino (já é um `Pipeline` do scikit-learn).
 6. **Integração:** Airflow orquestra a preparação e o treino; um serviço consome as leituras, classifica e publica o resultado; dashboard e API exibem.
 7. **Docker Compose** sobe broker MQTT, banco, MLflow, Airflow, API e dashboard com um comando.

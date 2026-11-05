@@ -12,7 +12,6 @@ from src.features import (
     build_dataset,
     compute_features,
     feature_columns,
-    task_target,
 )
 from tests.conftest import make_dataset, make_session
 
@@ -106,17 +105,12 @@ def test_firmware_columns_derived_from_mq3_are_never_features():
     assert not {"ppm", "alcool", "amostra", "mq135_mv"} & set(all_feature_columns())
 
 
-def test_tasks_select_rows_and_labels():
+def test_target_is_only_alcohol_or_not():
     readings, attempts = make_dataset(n_participants=2, repetitions=1)
     phased, _ = assign_phases(readings, attempts)
     features, _ = compute_features(phased)
     dataset = build_dataset(features, attempts)
 
-    _, y3 = task_target(dataset, "3classes")
-    _, y1 = task_target(dataset, "etapa1")
-    subset2, y2 = task_target(dataset, "etapa2")
-
-    assert set(y3) == {"sem_alcool", "externo", "bebida"}
-    assert set(y1) == {"sem_alcool", "alcool"}
-    assert set(y2) == {"externo", "bebida"}
-    assert (subset2["target"] != "sem_alcool").all()
+    assert set(dataset["target"]) == {"sem_efeito", "sob_efeito"}
+    assert set(dataset.loc[dataset["condition"].isin(["clean", "perfume"]), "target"]) == {"sem_efeito"}
+    assert set(dataset.loc[dataset["condition"] == "drink", "target"]) == {"sob_efeito"}

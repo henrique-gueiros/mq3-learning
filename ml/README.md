@@ -6,21 +6,14 @@ As decisões do projeto (o que o modelo prevê, a tabela de casos, as regras e o
 
 ## O que o modelo prevê
 
-Para cada **tentativa de sopro**, o modelo responde de onde vem o álcool:
+Para cada **tentativa de sopro**, o modelo responde só isto:
 
 | Classe | Significado |
 | --- | --- |
-| `sem_alcool` | Nada detectado |
-| `externo` | Há álcool no ar, mas não vindo do hálito (perfume, álcool 70%, enxaguante) |
-| `bebida` | O ar que veio dos pulmões tem álcool |
+| `sob_efeito` | A pessoa bebeu (`drink`) |
+| `sem_efeito` | A pessoa não bebeu: ar limpo, perfume, álcool em gel, borrifo ou enxaguante |
 
-Isso pode ser treinado de três formas (tarefas):
-
-- `3classes`: as três classes de uma vez;
-- `etapa1`: há álcool? (`alcool` ou `sem_alcool`);
-- `etapa2`: de onde vem o álcool? (`bebida` ou `externo`), só com tentativas que têm álcool.
-
-O modelo **não** prevê embriaguez, quanto a pessoa bebeu, nem a concentração em mg/L. O MQ-3 não é um etilômetro calibrado. A classe `bebida` significa "álcool no hálito nas condições do experimento".
+Perfume e álcool em gel **não** são `sob_efeito`. Eles entram na coleta justamente para o modelo aprender a não marcar essas situações como motorista sob efeito. O modelo não mede concentração em mg/L e não é um etilômetro calibrado. A classe `sob_efeito` significa "bebeu nas condições do experimento".
 
 ## Escopo
 
@@ -36,7 +29,7 @@ O pipeline está pronto e testado e lê diretamente os CSVs gravados pelo firmwa
 | Tensão de saída dos MQ e compatibilidade com o ADC do ESP32 | O ADC satura perto de 3,1 V (ver `firmware/README.md`) |
 | Protocolo de sopro (tempos das fases) | Proposta inicial; ajustar com os dados reais |
 | Coleta rotulada (sessões + `attempts.csv`) | Em andamento |
-| Classe `bebida` (simulador de hálito ou coleta aprovada pelo Comitê de Ética) | A definir com o professor |
+| Coleta das duas classes (bebeu e não bebeu, incluindo perfume e álcool em gel) | Em andamento |
 | Modelo treinado com dados reais | Não existe |
 
 Nenhuma calibração ou valor típico dos sensores está assumido neste repositório.
@@ -78,14 +71,12 @@ O ML recorta de cada sessão os **15 s antes** do sopro (ambiente), o **sopro** 
 
 | `condition` | Classe |
 | --- | --- |
-| `clean` | `sem_alcool` |
-| `perfume` | `externo` |
-| `alcohol70_spray` | `externo` |
-| `alcohol70_hands` | `externo` |
-| `mouthwash` | `externo` |
-| `alcohol_cup` | `externo` |
-| `drink` | `bebida` |
-| `drink_perfume` | `bebida` |
+| `clean` | `sem_efeito` |
+| `perfume` | `sem_efeito` |
+| `alcohol70_spray` | `sem_efeito` |
+| `alcohol70_hands` | `sem_efeito` |
+| `mouthwash` | `sem_efeito` |
+| `drink` | `sob_efeito` |
 
 O rótulo vem **da condição experimental**, nunca do valor dos sensores. Para acrescentar condições, edite `CONDITIONS` em `src/data_validation.py`.
 
@@ -110,7 +101,7 @@ ml/
 │   ├── cli.py                # Linha de comando
 │   ├── data_validation.py    # Esquema, condições e validação
 │   ├── data_io.py            # Leitura e gravação de CSVs
-│   ├── features.py           # Features por sopro, conjuntos de sensores e tarefas
+│   ├── features.py           # Features por sopro e conjuntos de sensores
 │   ├── splitting.py          # Separação treino/teste por participante ou sessão
 │   ├── train.py              # Modelos, validação cruzada aninhada e modelo final
 │   ├── inference.py          # Previsão para tentativas novas
@@ -147,15 +138,14 @@ python -m pytest        # roda os testes
 | --- | --- | --- |
 | `validate` | Confere sessões e tentativas e lista todos os problemas de uma vez | nada |
 | `prepare` | Recorta cada sopro, calcula as features e separa treino/teste por participante | `data/processed/*.csv`, `config/split.json` |
-| `train` | Para cada tarefa: compara 4 modelos em 4 conjuntos de sensores e treina o melhor | `reports/experiment_<tarefa>.csv`, `reports/final_<tarefa>.json`, `models/<tarefa>.joblib` |
+| `train` | Compara 4 modelos em 4 conjuntos de sensores e treina o melhor (`sob_efeito` ou `sem_efeito`) | `reports/experiment.csv`, `reports/final.json`, `models/sob_efeito.joblib` |
 | `predict` | Classifica um sopro de uma sessão nova | previsões na tela ou em `--output` |
 
 Opções úteis:
 
 - `--group-by session_file`: separa por arquivo de sessão quando há poucos participantes (são precisos pelo menos 3 grupos no treino);
-- `--task etapa2`: treina só uma tarefa;
-- `--select-by recall_bebida`: escolhe o modelo final pela métrica de validação cruzada desejada;
-- `python -m src.cli predict --session leituras_7.csv --blow-start-s 60 --model models/3classes.joblib`.
+- `--select-by recall_sob_efeito`: escolhe o modelo final pela métrica de validação cruzada desejada;
+- `python -m src.cli predict --session leituras_7.csv --blow-start-s 60 --model models/sob_efeito.joblib`.
 
 Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste continua no teste. Para refazer o sorteio do zero, apague `config/split.json`.
 
@@ -164,21 +154,21 @@ Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste
 - **Modelos:** `baseline` (sempre a classe mais comum), regressão logística, árvore de decisão e Random Forest.
 - **Conjuntos de sensores:** `mq3`, `mq3+mq135`, `mq3+dht11`, `mq3+mq135+dht11`. Comparar os conjuntos mostra o quanto cada sensor ajuda.
 - **Validação cruzada aninhada por grupo:** o laço externo avalia com participantes que o modelo não viu; o laço interno escolhe os hiperparâmetros (Grid Search) só com os demais.
-- **Teste final:** usado uma única vez, para o modelo escolhido de cada tarefa.
-- **Métricas:** F1 macro, acurácia balanceada, precisão e recall por classe. O **recall de `bebida`** é a métrica mais importante: deixar passar quem bebeu é o erro mais grave.
+- **Teste final:** usado uma única vez, para o modelo escolhido.
+- **Métricas:** F1 macro, acurácia balanceada, precisão e recall de `sob_efeito` e de `sem_efeito`. O **recall de `sob_efeito`** importa mais: deixar passar quem bebeu é o erro mais grave.
 
 ## Limitações
 
 - Com poucos participantes, as métricas variam muito; não exagere as conclusões.
-- A classe `bebida` depende de um simulador de hálito ou de coleta com pessoas que beberam (aprovação do Comitê de Ética). Um simulador não reproduz CO₂ nem a variação entre pessoas.
-- `mouthwash` (enxaguante) produz álcool real na boca e tende a ser confundido com `bebida`.
+- Perfume, álcool em gel, borrifo e enxaguante são `sem_efeito`. Sem esses exemplos na coleta, o modelo tende a marcar qualquer vapor de álcool como motorista sob efeito.
+- Coleta com pessoas que beberam exige aprovação do Comitê de Ética. Um simulador de hálito não reproduz a variação entre pessoas.
 - O DHT11 é lento e pouco preciso; a subida de umidade pode demorar alguns segundos depois do sopro.
 - Os sensores MQ variam com temperatura, umidade e tempo de aquecimento; registre o aquecimento nas notas.
 
 ## Próximos passos
 
-1. Coletar as condições seguras (`clean`, `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash`, `alcohol_cup`) com vários participantes, cadastrando cada sopro em `attempts.csv`.
-2. Definir com o professor como obter a classe `bebida`.
+1. Coletar as condições seguras (`clean`, `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash`) com vários participantes, cadastrando cada sopro em `attempts.csv`.
+2. Coletar as duas classes: quem bebeu (`sob_efeito`) e quem não bebeu, incluindo perfume e álcool em gel (`sem_efeito`).
 3. Análise exploratória em `notebooks/01_eda.ipynb` e revisão das features e dos tempos do protocolo.
 4. Registrar os experimentos no MLflow.
 5. Quando as leituras chegarem por MQTT e forem gravadas no banco, ler as sessões de lá (no lugar dos CSVs) e orquestrar `prepare` e `train` no Airflow. O formato das leituras continua o mesmo do firmware.

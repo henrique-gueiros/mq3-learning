@@ -22,14 +22,14 @@ def test_full_pipeline_and_prediction(tmp_path, capsys):
     _write_raw(paths)
 
     assert main(["--root", str(tmp_path), "validate"]) == 0
-    assert main(["--root", str(tmp_path), "all", "--task", "etapa2"]) == 0
+    assert main(["--root", str(tmp_path), "all"]) == 0
 
     manifest = json.loads(paths.split_manifest.read_text(encoding="utf-8"))
     assert not set(manifest["train_groups"]) & set(manifest["test_groups"])
     test = pd.read_csv(paths.test)
     assert set(test["participant_id"]) == set(manifest["test_groups"])
-    assert (paths.reports_dir / "experiment_etapa2.csv").exists()
-    final = json.loads((paths.reports_dir / "final_etapa2.json").read_text(encoding="utf-8"))
+    assert (paths.reports_dir / "experiment.csv").exists()
+    final = json.loads((paths.reports_dir / "final.json").read_text(encoding="utf-8"))
     assert "test_metrics" in final
 
     write_csv(make_session("drink", seed=500), tmp_path / "leituras_99.csv")
@@ -39,13 +39,13 @@ def test_full_pipeline_and_prediction(tmp_path, capsys):
             "--root", str(tmp_path), "predict",
             "--session", str(tmp_path / "leituras_99.csv"),
             "--blow-start-s", str(BLOW_START_S),
-            "--model", str(paths.models_dir / "etapa2.joblib"),
+            "--model", str(paths.models_dir / "sob_efeito.joblib"),
         ]
     )
     assert code == 0
     output = capsys.readouterr().out
     assert "leituras_99@20s" in output
-    assert " bebida " in output
+    assert "sob_efeito" in output
 
 
 def test_prepare_keeps_split_stable(tmp_path):

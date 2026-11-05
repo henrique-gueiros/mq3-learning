@@ -61,13 +61,6 @@ SENSOR_SETS = {
     "mq3+mq135+dht11": ["mq3", "mq135", "dht11"],
 }
 
-TASKS = {
-    "3classes": "sem_alcool, externo ou bebida",
-    "etapa1": "há álcool? (alcool ou sem_alcool)",
-    "etapa2": "de onde vem o álcool? (bebida ou externo), só tentativas com álcool",
-}
-
-
 def feature_columns(sensor_set: str) -> list[str]:
     """Colunas de features usadas por um conjunto de sensores de ``SENSOR_SETS``."""
     if sensor_set not in SENSOR_SETS:
@@ -182,28 +175,6 @@ def build_dataset(features: pd.DataFrame, attempts: pd.DataFrame) -> pd.DataFram
     if "reference_mg_l" in attempts.columns:
         meta.append("reference_mg_l")
     return attempts[meta].merge(features, on="attempt_id", how="inner")
-
-
-def task_target(dataset: pd.DataFrame, task: str) -> tuple[pd.DataFrame, pd.Series]:
-    """Seleciona as linhas e o rótulo de uma tarefa de ``TASKS``.
-
-    - ``3classes``: todas as tentativas; rótulo ``target``.
-    - ``etapa1``: todas as tentativas; rótulo ``alcool`` ou ``sem_alcool``.
-    - ``etapa2``: só tentativas com álcool; rótulo ``bebida`` ou ``externo``.
-    """
-    if task == "3classes":
-        subset = dataset
-        y = subset["target"]
-    elif task == "etapa1":
-        subset = dataset
-        y = subset["target"].where(subset["target"] == "sem_alcool", "alcool")
-    elif task == "etapa2":
-        subset = dataset[dataset["target"] != "sem_alcool"]
-        y = subset["target"]
-    else:
-        raise ValueError(f"tarefa desconhecida: {task}; use uma de {list(TASKS)}")
-    subset = subset.reset_index(drop=True)
-    return subset, y.reset_index(drop=True).astype(str)
 
 
 def _sensor_features(

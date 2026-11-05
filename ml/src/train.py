@@ -1,15 +1,16 @@
 """Treino, comparação de modelos e experimento por conjunto de sensores.
 
-Para cada tarefa (``3classes``, ``etapa1`` ou ``etapa2``), cada conjunto de
-sensores e cada modelo, o desempenho é estimado com **validação cruzada
-aninhada por grupo**, usando só o treino:
+O rótulo é binário: ``sob_efeito`` (bebeu) ou ``sem_efeito`` (não bebeu, mesmo
+com perfume ou álcool em gel). Para cada conjunto de sensores
+e cada modelo, o desempenho é estimado com **validação cruzada aninhada por
+grupo**, usando só o treino:
 
 - o laço externo (``GroupKFold``) separa participantes/sessões para avaliar;
 - o laço interno (``GridSearchCV`` com ``GroupKFold``) escolhe os hiperparâmetros
   usando apenas os grupos de treino daquela rodada.
 
 Assim nenhuma pessoa avaliada participa da escolha dos hiperparâmetros. O
-conjunto de teste só é usado uma vez, para o melhor modelo de cada tarefa.
+conjunto de teste só é usado uma vez, para o melhor modelo.
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
-from src.features import SENSOR_SETS, feature_columns, task_target
+from src.features import SENSOR_SETS, feature_columns
 
 MIN_GROUPS = 3
 
@@ -135,7 +136,6 @@ def nested_cv_predict(
 
 def run_experiment(
     train: pd.DataFrame,
-    task: str,
     group_by: str = "participant_id",
     sensor_sets: list[str] | None = None,
     scoring: str = "f1_macro",
@@ -150,26 +150,25 @@ def run_experiment(
     Returns:
         Uma linha por (conjunto de sensores, modelo) com as métricas de validação cruzada.
     """
-    subset, y = task_target(train, task)
-    groups = subset[group_by].astype(str)
+    y = train["target"].astype(str)
+    groups = train[group_by].astype(str)
     if groups.nunique() < MIN_GROUPS:
         raise ValueError(
-            f"a tarefa {task} precisa de pelo menos {MIN_GROUPS} valores de {group_by} no treino "
+            f"o treino precisa de pelo menos {MIN_GROUPS} valores de {group_by} "
             f"(há {groups.nunique()}); colete mais ou use --group-by session_file"
         )
     if y.nunique() < 2:
-        raise ValueError(f"a tarefa {task} precisa de pelo menos 2 classes no treino (há {sorted(y.unique())})")
+        raise ValueError(f"o treino precisa das duas classes, sob_efeito e sem_efeito (há {sorted(y.unique())})")
 
     labels = sorted(y.unique())
     models = models or model_specs(seed)
     rows: list[dict] = []
     for sensor_set in sensor_sets or list(SENSOR_SETS):
-        X = subset[feature_columns(sensor_set)]
+        X = train[feature_columns(sensor_set)]
         for model_name, spec in models.items():
             predictions, params = nested_cv_predict(spec, X, y, groups, scoring=scoring)
             rows.append(
                 {
-                    "task": task,
                     "sensor_set": sensor_set,
                     "model": model_name,
                     "n_attempts": len(y),
@@ -184,7 +183,6 @@ def run_experiment(
 def train_final_model(
     train: pd.DataFrame,
     test: pd.DataFrame,
-    task: str,
     sensor_set: str,
     model_name: str,
     group_by: str = "participant_id",
@@ -197,13 +195,12 @@ def train_final_model(
         ``(modelo, metadados)``; os metadados têm features, classes,
         hiperparâmetros, métricas de teste e matriz de confusão.
     """
-    subset, y = task_target(train, task)
+    y = train["target"].astype(str)
     columns = feature_columns(sensor_set)
     spec = model_specs(seed)[model_name]
-    model, params = fit_with_search(spec, subset[columns], y, subset[group_by].astype(str), 5, scoring)
+    model, params = fit_with_search(spec, train[columns], y, train[group_by].astype(str), 5, scoring)
 
     metadata = {
-        "task": task,
         "sensor_set": sensor_set,
         "model": model_name,
         "features": columns,
@@ -211,9 +208,9 @@ def train_final_model(
         "best_params": params,
         "n_train_attempts": len(y),
     }
-    test_subset, y_test = task_target(test, task)
+    y_test = test["target"].astype(str)
     if len(y_test):
-        predictions = pd.Series(model.predict(test_subset[columns]), dtype=str)
+        predictions = pd.Series(model.predict(test[columns]), dtype=str)
         labels = sorted(set(y) | set(y_test))
         metadata["n_test_attempts"] = len(y_test)
         metadata["test_metrics"] = compute_metrics(y_test, predictions, labels)
@@ -228,7 +225,7 @@ def choose_best(results: pd.DataFrame, select_by: str) -> pd.Series:
     """Melhor combinação pela métrica de validação cruzada (empate: a primeira da lista)."""
     if select_by not in results.columns:
         options = [c for c in results.columns if c.startswith(("f1", "balanced", "recall", "precision"))]
-        raise ValueError(f"métrica {select_by} não existe nesta tarefa; use uma de {options}")
+        raise ValueError(f"métrica {select_by} não existe; use uma de {options}")
     candidates = results[results["model"] != "baseline"]
     return candidates.loc[candidates[select_by].astype(float).idxmax()]
 

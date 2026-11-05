@@ -67,7 +67,7 @@ def test_repeated_t_ms_is_rejected():
 def test_attempts_get_target_and_csv_extension():
     attempts = validate_attempts(_attempts())
 
-    assert dict(zip(attempts["attempt_id"], attempts["target"])) == {"a1": "externo", "a2": "bebida"}
+    assert dict(zip(attempts["attempt_id"], attempts["target"])) == {"a1": "sem_efeito", "a2": "sob_efeito"}
     assert set(attempts["session_file"]) == {"leituras_1.csv"}
 
 

@@ -46,7 +46,7 @@ def test_warns_when_a_class_is_missing_from_test():
     dataset = _dataset(n_participants=4)
     split, _ = update_split(dataset, existing=None)
     only_clean_in_test = dataset[
-        ~dataset["participant_id"].isin(split.test_groups) | (dataset["target"] == "sem_alcool")
+        ~dataset["participant_id"].isin(split.test_groups) | (dataset["target"] == "sem_efeito")
     ]
     _, warnings = update_split(only_clean_in_test, existing=split)
     assert any("classes ausentes no teste" in w for w in warnings)
