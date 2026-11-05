@@ -47,13 +47,15 @@ Pronto e testado:
 
 - Firmware lendo os três sensores e gravando CSV por sessão (`firmware/src/main.cpp`, `firmware/monitor/filter_leituras.py`). `firmware/leituras.csv` é a primeira amostra real.
 - Pipeline de ML em `ml/src/`, que lê esses CSVs sem alterá-los: validação, recorte de cada sopro, features, separação treino/teste por participante, comparação de 4 modelos (baseline, regressão logística, árvore de decisão, Random Forest) em 4 conjuntos de sensores, Grid Search em validação cruzada aninhada por grupo, modelo final e previsão. Comandos em `ml/README.md`.
+- Base MQTT em `services/`: Mosquitto, PostgreSQL, simulador de um CSV do firmware, worker que grava no banco e servidor do modelo. O servidor só classifica quando existir `ml/models/sob_efeito.joblib`. A ESP32 ainda não publica. Uso em `services/README.md`.
 
 Ainda não existe:
 
 - [ ] Coleta rotulada suficiente (sessões + `ml/data/raw/attempts.csv`), com as duas classes.
 - [ ] Análise exploratória e revisão das features com dados reais.
 - [ ] Modelo treinado e avaliado com dados reais. Métricas dos testes automatizados usam curvas montadas à mão e **não** dizem nada sobre o sensor.
-- [ ] Wi-Fi/MQTT na ESP32, broker, banco, MLflow, Airflow, serviço de inferência, API, dashboard Grafana e Docker Compose.
+- [ ] Wi-Fi e publicação MQTT no firmware da ESP32.
+- [ ] MLflow, Airflow, API, dashboard Grafana e o Compose com esses serviços. A base (broker, Postgres, simulador, worker e servidor do modelo) já está em `services/`.
 
 Calibração, limites de detecção e valores típicos dos sensores só entram quando medidos. Um entregável está pronto quando está implementado e testado.
 
@@ -88,7 +90,7 @@ Novas condições entram em `CONDITIONS`, em `ml/src/data_validation.py`. O PDF 
 
 ## 6. Entregáveis de Machine Learning
 
-Fonte: coluna CC de `docs/Entregáveis 6ºP - Projeto 2026.2.xlsx`.
+Fonte: coluna CC de `docs/Entregáveis 6ºP - Projeto 2026.2.xlsx`. A base de MQTT (Mosquitto, PostgreSQL, simulador, worker e servidor do modelo) já está em `services/`. A ESP32 ainda não publica.
 
 1. **Infraestrutura e dataset inicial:** coleta própria (CSVs do firmware + `attempts.csv`) e publicação por MQTT com gravação em banco.
 2. **Pipeline no Airflow** (ingestão, preparação, disponibilização) e **notebook de EDA** em `ml/notebooks/`, justificando limpeza, normalização, ausentes etc. A lógica reutilizável fica em `ml/src/`.
@@ -103,18 +105,19 @@ Fonte: coluna CC de `docs/Entregáveis 6ºP - Projeto 2026.2.xlsx`.
 
 Métricas: F1 macro, acurácia balanceada, precisão e recall por classe, matriz de confusão. A prioridade é o **recall de `sob_efeito`**. A inferência usa o mesmo pré-processamento do treino (já é um `Pipeline` do scikit-learn).
 
-## 7. MQTT (direção acordada, ainda não implementada)
+## 7. MQTT (base em `services/`)
 
-A ESP publica; não envia direto ao servidor do modelo. Um broker (Mosquitto) entrega cópias a quem assina.
+A ESP publica no broker. O servidor do modelo é um container do mesmo Docker Compose, no computador da bancada (a mesma rede da placa). A placa não abre conexão com ele.
 
 | Tópico | Quem publica | Conteúdo |
 | --- | --- | --- |
-| `mq3/<placa>/leituras` | ESP32 | Uma mensagem por leitura, com os mesmos campos do CSV |
-| `mq3/<placa>/eventos` | ESP32 | `sopro_inicio` e `sopro_fim`, para não depender de anotar o segundo à mão |
-| `mq3/<placa>/status` | ESP32 | `online`/`offline` |
-| `mq3/<placa>/resultado` | serviço de inferência | Classe e probabilidades |
+| `mq3/<placa>/leituras` | ESP32 (hoje, o simulador) | Uma mensagem por leitura, com os mesmos campos do CSV |
+| `mq3/<placa>/eventos` | ESP32 (hoje, o simulador) | `sopro_inicio` e `sopro_fim`, para não depender de anotar o segundo à mão |
+| `mq3/<placa>/status` | ESP32 (hoje, o simulador) | `online`/`offline` |
+| `mq3/<placa>/sopro_pronto` | worker, depois de gravar o `sopro_fim` | Aviso interno para o servidor do modelo. A ESP não publica aqui |
+| `mq3/<placa>/resultado` | servidor do modelo | `sem_modelo` enquanto não houver `ml/models/sob_efeito.joblib`; depois, classe e probabilidades |
 
-Um serviço assina `leituras` e `eventos` e grava num PostgreSQL, ignorando repetidas (mesma placa, sessão e amostra). O formato é o mesmo do CSV, então o código de ML não muda quando a fonte passar de arquivo para banco: muda só a leitura dos dados. Para desenvolver sem a placa, um simulador publica um CSV do firmware linha a linha. A ESP e o broker precisam estar na mesma rede.
+O worker assina `leituras`, `eventos` e `status` e grava no PostgreSQL, ignorando repetidas (mesma placa, sessão e amostra). O formato é o mesmo do CSV, então o código de ML não muda quando a fonte passar de arquivo para banco: muda só a leitura dos dados. O servidor do modelo lê o sopro no banco e chama `ml/src/inference.py`. Para desenvolver sem a placa, o simulador publica um CSV do firmware linha a linha. A ESP e o broker precisam estar na mesma rede. A publicação pela ESP32 continua com quem mantém o firmware.
 
 ### 7.1 Dashboard (Grafana, ainda não implementado)
 
@@ -139,9 +142,10 @@ ml/
 ├── models/  reports/  notebooks/
 ├── src/                  # data_validation, data_io, features, splitting, train, inference, cli, paths
 ├── tests/  templates/  requirements.txt  pytest.ini
+services/               # Mosquitto, Postgres, worker, servidor do modelo, simulador
 ```
 
-Python 3.9+ com numpy, pandas, scikit-learn, matplotlib, seaborn e jupyter (versões em `ml/requirements.txt`). MLflow, MQTT e banco entram quando o entregável correspondente for implementado. Ambiente: `ml/.venv`, criado como em `ml/README.md`; use só ele.
+Python 3.9+ com numpy, pandas, scikit-learn, matplotlib, seaborn e jupyter (versões em `ml/requirements.txt`). O cliente MQTT e o Postgres estão em `services/requirements.txt` e entram no mesmo `ml/.venv`, criado como em `ml/README.md`. MLflow entra quando o experimento real for registrado. Não criar outro gerenciador de ambiente.
 
 - Código simples, com tipos e docstrings nas funções públicas; testes para validação, features e treino.
 - Separar treino e teste **por participante** (`participant_id`) ou, com poucos participantes, por arquivo de sessão. A mesma pessoa fica de um lado só, e todas as leituras de um sopro ficam juntas.
@@ -164,9 +168,9 @@ Python 3.9+ com numpy, pandas, scikit-learn, matplotlib, seaborn e jupyter (vers
 
 1. Análise exploratória das sessões já gravadas e revisão das features e dos tempos do protocolo.
 2. Apoiar a coleta: conferir `attempts.csv` e os CSVs copiados (`python -m src.cli validate`).
-3. Base do MQTT: Mosquitto e PostgreSQL no Docker Compose, simulador que publica um CSV do firmware, e serviço que grava no banco. A publicação pela ESP32 fica com quem mantém o firmware.
+3. Base do MQTT em `services/` (broker, banco, simulador, worker e servidor do modelo). Falta a ESP32 publicar; isso fica com quem mantém o firmware.
 4. Grafana no Compose lendo o PostgreSQL (e o broker), a tempo do checkpoint de 17/11.
-5. Rodar o experimento com dados reais e registrar no MLflow, com a análise de k-fold e overfitting.
-6. Airflow, serviço de inferência, API e o Compose completo.
+5. Rodar o experimento com dados reais e registrar no MLflow, com a análise de k-fold e overfitting. Aí o `sob_efeito.joblib` passa a existir e o servidor do modelo começa a preencher a classe.
+6. Airflow, API e o restante do Compose.
 
 Uma etapa por vez.

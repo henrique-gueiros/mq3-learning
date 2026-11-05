@@ -1,0 +1,64 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mq3
+      POSTGRES_PASSWORD: mq3
+      POSTGRES_DB: mq3
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mq3 -d mq3"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  ingest:
+    build:
+      context: ..
+      dockerfile: services/Dockerfile.ingest
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      DATABASE_URL: postgresql://mq3:mq3@postgres:5432/mq3
+    volumes:
+      - .:/opt/services
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+  model:
+    build:
+      context: ..
+      dockerfile: services/Dockerfile.model
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      DATABASE_URL: postgresql://mq3:mq3@postgres:5432/mq3
+      MODEL_PATH: /opt/ml/models/sob_efeito.joblib
+      PYTHONPATH: /opt/ml:/opt/services
+    volumes:
+      - .:/opt/services
+      - ../ml:/opt/ml
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+volumes:
+  pgdata:
