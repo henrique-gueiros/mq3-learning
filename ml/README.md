@@ -2,7 +2,7 @@
 
 Parte de Machine Learning e dados de um projeto acadêmico de detector de álcool para carro, combinando os sensores **MQ-3**, **MQ-135** e **DHT11**.
 
-As decisões do projeto (o que o modelo prevê, a tabela de casos, as regras e o caminho) estão resumidas em `../decisoes_projeto_ml.pdf`.
+As decisões do projeto (o que o modelo prevê, a tabela de casos, as regras e o caminho) estão resumidas em `../docs/decisoes_projeto_ml.pdf`.
 
 ## O que o modelo prevê
 
