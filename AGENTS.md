@@ -47,13 +47,14 @@ Pronto e testado:
 
 - Firmware lendo os três sensores e gravando CSV por sessão (`firmware/src/main.cpp`, `firmware/monitor/filter_leituras.py`). `firmware/leituras.csv` é a primeira amostra real.
 - Pipeline de ML em `ml/src/`, que lê esses CSVs sem alterá-los: validação, recorte de cada sopro, features, separação treino/teste por participante, comparação de 4 modelos (baseline, regressão logística, árvore de decisão, Random Forest) em 4 conjuntos de sensores, Grid Search em validação cruzada aninhada por grupo, modelo final e previsão. Comandos em `ml/README.md`.
+- Coleta até o dashboard em `applications/` (uso em `applications/README.md`): ponte serial → MQTT que grava o CSV de sessão e completa o `attempts.csv`, Docker Compose com Mosquitto, PostgreSQL e ingestor, simulador, importador e dashboard versionado para o Grafana Cloud (ligado pelo agente PDC). Testado com a amostra `firmware/leituras.csv`, uma porta serial simulada e um Grafana local; falta testar com a placa e na stack do Grafana Cloud.
 
 Ainda não existe:
 
 - [ ] Coleta rotulada suficiente (sessões + `ml/data/raw/attempts.csv`), com as duas classes.
 - [ ] Análise exploratória e revisão das features com dados reais.
 - [ ] Modelo treinado e avaliado com dados reais. Métricas dos testes automatizados usam curvas montadas à mão e **não** dizem nada sobre o sensor.
-- [ ] Wi-Fi/MQTT na ESP32, broker, banco, MLflow, Airflow, serviço de inferência, API, dashboard Grafana e Docker Compose.
+- [ ] Wi-Fi/MQTT na ESP32 (hoje a ponte serial no notebook faz esse papel), MLflow, Airflow, serviço de inferência e API.
 
 Calibração, limites de detecção e valores típicos dos sensores só entram quando medidos. Um entregável está pronto quando está implementado e testado.
 
@@ -109,27 +110,28 @@ A ESP publica; não envia direto ao servidor do modelo. Um broker (Mosquitto) en
 
 | Tópico | Quem publica | Conteúdo |
 | --- | --- | --- |
-| `mq3/<placa>/leituras` | ESP32 | Uma mensagem por leitura, com os mesmos campos do CSV |
-| `mq3/<placa>/eventos` | ESP32 | `sopro_inicio` e `sopro_fim`, para não depender de anotar o segundo à mão |
-| `mq3/<placa>/status` | ESP32 | `online`/`offline` |
-| `mq3/<placa>/resultado` | serviço de inferência | Classe e probabilidades |
+| `mq3/<placa>/rodada` | ponte (depois a ESP32) | Rodada atual: caso, participante, arquivo; retida |
+| `mq3/<placa>/leituras` | ponte (depois a ESP32) | Uma mensagem por leitura, com os mesmos campos do CSV e o `rodada_id` |
+| `mq3/<placa>/eventos` | ponte (depois a ESP32) | `sopro_inicio`, `sopro_fim` e `rodada_fim` |
+| `mq3/<placa>/status` | ponte (depois a ESP32) | `{"estado": "online"}` / `"offline"` (last will); retida |
+| `mq3/<placa>/resultado` | serviço de inferência | Classe e probabilidades (ainda não existe) |
 
-Um serviço assina `leituras` e `eventos` e grava num PostgreSQL, ignorando repetidas (mesma placa, sessão e amostra). O formato é o mesmo do CSV, então o código de ML não muda quando a fonte passar de arquivo para banco: muda só a leitura dos dados. Para desenvolver sem a placa, um simulador publica um CSV do firmware linha a linha. A ESP e o broker precisam estar na mesma rede.
+O formato das mensagens está em `applications/coleta/mensagens.py`. Hoje quem publica é a ponte serial no notebook; quando a ESP32 tiver Wi-Fi, ela publica as mesmas mensagens e a ponte sai. O ingestor grava tudo no PostgreSQL sem duplicar (chave rodada + amostra). O esquema e as views (médias, sopros, subidas) estão em `applications/db/01-schema.sql`. A ESP e o broker precisam estar na mesma rede.
 
-### 7.1 Dashboard (Grafana, ainda não implementado)
+### 7.1 Dashboard (Grafana Cloud)
 
-Grafana no Docker Compose, com dashboards provisionados por arquivo (versionados em JSON).
+Grafana Cloud no plano gratuito: o Grafana não roda no Compose. O agente PDC (serviço `pdc`, perfil `cloud`) abre um túnel de saída para a stack consultar o PostgreSQL e assinar o Mosquitto locais. O dashboard é versionado em `applications/grafana/dashboards/coleta.json` e publicado com `applications/grafana/publicar.py`; a configuração da stack está em `applications/grafana/README.md`.
 
-- **PostgreSQL** (data source nativo): histórico das leituras e dos resultados do modelo.
-- **MQTT** (`grafana-mqtt-datasource`): curvas ao vivo direto do broker.
-- Painéis nativos (Time series, Stat, State timeline) para curvas dos sensores, última classe e status da placa.
-- **Business Charts** (`volkovlabs-echarts-panel`, Apache ECharts com código JavaScript) só para o que os nativos não fazem bem: matriz de confusão, dispersão MQ-135 × MQ-3 por condição, gauge de probabilidade. A Grafana Labs assumiu a manutenção com compromisso declarado até julho/2026; conferir a versão e a compatibilidade com o Grafana antes de fixar no Compose.
+- **PostgreSQL** (nativo): médias por caso, boxplot, heatmap, subidas por sopro, histórico e situação da placa. A lógica fica nas views do banco; os painéis só fazem `SELECT`.
+- **MQTT** (`grafana-mqtt-datasource`): curvas ao vivo.
+- **Business Charts** (`volkovlabs-echarts-panel`): só boxplot e heatmap, que não existem nativos. O resto é painel nativo.
 
 ## 8. Estrutura e estilo
 
 ```text
-AGENTS.md  CLAUDE.md
-docs/                     # requisitos das disciplinas (PDF e planilha) e decisoes_projeto_ml.pdf
+AGENTS.md  CLAUDE.md  docker-compose.yml  .env.example
+applications/             # coleta (ponte, ingestor, simulador, importador), db/, mosquitto/, grafana/, pdc/
+docs/                     # requisitos das disciplinas, decisoes_projeto_ml.pdf e superpowers/ (design e plano)
 firmware/                 # ESP32 (PlatformIO); src/main.cpp, monitor/, leituras.csv
 ml/
 ├── data/raw/sessions/    # CSVs do firmware, sem edição (não versionados)
@@ -141,7 +143,7 @@ ml/
 ├── tests/  templates/  requirements.txt  pytest.ini
 ```
 
-Python 3.9+ com numpy, pandas, scikit-learn, matplotlib, seaborn e jupyter (versões em `ml/requirements.txt`). MLflow, MQTT e banco entram quando o entregável correspondente for implementado. Ambiente: `ml/.venv`, criado como em `ml/README.md`; use só ele.
+Python 3.9+ com numpy, pandas, scikit-learn, matplotlib, seaborn e jupyter (versões em `ml/requirements.txt`). MLflow entra quando o entregável correspondente for implementado. Ambiente: `ml/.venv`, criado como em `ml/README.md`, com as dependências de `applications/coleta/requirements.txt` também; use só ele. Só o ingestor tem imagem Docker própria.
 
 - Código simples, com tipos e docstrings nas funções públicas; testes para validação, features e treino.
 - Separar treino e teste **por participante** (`participant_id`) ou, com poucos participantes, por arquivo de sessão. A mesma pessoa fica de um lado só, e todas as leituras de um sopro ficam juntas.
@@ -162,11 +164,13 @@ Python 3.9+ com numpy, pandas, scikit-learn, matplotlib, seaborn e jupyter (vers
 
 ## 10. Próximas tarefas, em ordem
 
-1. Análise exploratória das sessões já gravadas e revisão das features e dos tempos do protocolo.
-2. Apoiar a coleta: conferir `attempts.csv` e os CSVs copiados (`python -m src.cli validate`).
-3. Base do MQTT: Mosquitto e PostgreSQL no Docker Compose, simulador que publica um CSV do firmware, e serviço que grava no banco. A publicação pela ESP32 fica com quem mantém o firmware.
-4. Grafana no Compose lendo o PostgreSQL (e o broker), a tempo do checkpoint de 17/11.
-5. Rodar o experimento com dados reais e registrar no MLflow, com a análise de k-fold e overfitting.
-6. Airflow, serviço de inferência, API e o Compose completo.
+Feito: base do MQTT (Mosquitto, PostgreSQL, ingestor, simulador, ponte serial) e dashboard para o Grafana Cloud, em `applications/`.
+
+1. Coleta com a ponte (`applications/README.md`, "Dia de coleta") e conferência com `python -m src.cli validate`.
+2. Configurar a stack do Grafana Cloud e o PDC (`applications/grafana/README.md`) e conferir o painel ao vivo pelo MQTT.
+3. Análise exploratória das sessões coletadas e revisão das features e dos tempos do protocolo.
+4. Rodar o experimento com dados reais e registrar no MLflow, com a análise de k-fold e overfitting.
+5. Publicação MQTT direto pela ESP32 (quem mantém o firmware), usando as mensagens de `applications/coleta/mensagens.py`.
+6. Airflow, serviço de inferência (publicando em `mq3/<placa>/resultado`), API e o Compose completo.
 
 Uma etapa por vez.
