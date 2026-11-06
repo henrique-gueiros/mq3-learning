@@ -40,6 +40,8 @@ struct Leitura {
   unsigned long tMs;
   int mq3;
   float ppm;
+  float rs;
+  float rsRsAr;
   int mq135;
   int mq135Mv;
   float temperatura;
@@ -59,16 +61,16 @@ char arquivoCsv[28] = "/leituras_1.csv";
 
 DHT dht(PINO_DHT, DHT11);
 
-void escreverCampoFloat(Print &saida, float valor) {
+void escreverCampoFloat(Print &saida, float valor, int casas = 1) {
   if (isnan(valor)) {
     return;
   }
-  saida.print(valor, 1);
+  saida.print(valor, casas);
 }
 
 void escreverCabecalho(Print &saida) {
   saida.println(
-      "amostra,t_ms,mq3_raw,ppm,mq135_raw,mq135_mv,temperature_c,humidity_pct,alcool");
+      "amostra,t_ms,mq3_raw,ppm,rs,rs_rsar,mq135_raw,mq135_mv,temperature_c,humidity_pct,alcool");
 }
 
 void escreverLinha(Print &saida, unsigned long numero, const Leitura &amostra) {
@@ -79,6 +81,10 @@ void escreverLinha(Print &saida, unsigned long numero, const Leitura &amostra) {
   saida.print(amostra.mq3);
   saida.print(',');
   saida.print(amostra.ppm, 1);
+  saida.print(',');
+  escreverCampoFloat(saida, amostra.rs, 2);
+  saida.print(',');
+  escreverCampoFloat(saida, amostra.rsRsAr, 2);
   saida.print(',');
   saida.print(amostra.mq135);
   saida.print(',');
@@ -137,17 +143,21 @@ void acrescentarCsv(unsigned long numero, const Leitura &amostra) {
   arquivo.close();
 }
 
-float estimarPpm(float tensaoMv, float tensaoReferenciaMv) {
+float estimarPpm(float tensaoMv, float tensaoReferenciaMv, float &rs, float &rsRsAr) {
+  rs = NAN;
+  rsRsAr = NAN;
   if (tensaoMv <= 0.0f || tensaoReferenciaMv <= 0.0f ||
       tensaoMv >= TENSAO_CIRCUITO_MV || tensaoReferenciaMv >= TENSAO_CIRCUITO_MV) {
     return 0.0f;
   }
 
-  float rs = (TENSAO_CIRCUITO_MV / tensaoMv) - 1.0f;
+  float rsCalculado = (TENSAO_CIRCUITO_MV / tensaoMv) - 1.0f;
   float rsAr = (TENSAO_CIRCUITO_MV / tensaoReferenciaMv) - 1.0f;
-  if (rs <= 0.0f || rsAr <= 0.0f) {
+  if (rsCalculado <= 0.0f || rsAr <= 0.0f) {
     return 0.0f;
   }
+  rs = rsCalculado;
+  rsRsAr = rs / rsAr;
 
   Serial.print("Tensao atual: ");
   Serial.println(tensaoMv);
@@ -156,12 +166,12 @@ float estimarPpm(float tensaoMv, float tensaoReferenciaMv) {
   Serial.println(tensaoReferenciaMv);
 
   Serial.print("Rs: ");
-  Serial.println(rs);
+  Serial.println(rs, 2);
 
   Serial.print("Rs/RsAr: ");
-  Serial.println(rs / rsAr);
+  Serial.println(rsRsAr, 2);
 
-  float razao = RAZAO_AR_LIMPO * (rs / rsAr);
+  float razao = RAZAO_AR_LIMPO * rsRsAr;
   float mgPorL = CURVA_A * powf(razao, CURVA_B);
   if (isnan(mgPorL) || isinf(mgPorL) || mgPorL < 0.0f) {
     return 0.0f;
@@ -209,7 +219,9 @@ void loop() {
   }
 
   int leitura = analogRead(PINO_SENSOR);
-  float ppm = estimarPpm(analogReadMilliVolts(PINO_SENSOR), tensaoArLimpoMv);
+  float rs = NAN;
+  float rsRsAr = NAN;
+  float ppm = estimarPpm(analogReadMilliVolts(PINO_SENSOR), tensaoArLimpoMv, rs, rsRsAr);
   int leituraMq135 = analogRead(PINO_MQ135);
   int mq135Mv = analogReadMilliVolts(PINO_MQ135);
   bool alcool = leitura > (referencia + MARGEM);
@@ -218,6 +230,8 @@ void loop() {
   amostra.tMs = agora;
   amostra.mq3 = leitura;
   amostra.ppm = ppm;
+  amostra.rs = rs;
+  amostra.rsRsAr = rsRsAr;
   amostra.mq135 = leituraMq135;
   amostra.mq135Mv = mq135Mv;
   amostra.temperatura = temperaturaC;
