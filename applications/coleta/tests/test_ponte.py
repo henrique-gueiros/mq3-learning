@@ -54,3 +54,39 @@ def test_sopro_antes_de_leitura_avisa(coleta, capsys):
     coleta.comando("")
     assert coleta.rodada.sopros == []
     assert "nenhuma leitura" in capsys.readouterr().out
+
+
+def _linhas_attempts(caminho):
+    if not caminho.exists():
+        return []
+    with caminho.open() as arquivo:
+        return list(csv.DictReader(arquivo))
+
+
+def test_sopro_vai_para_o_attempts_assim_que_termina(coleta, tmp_path):
+    attempts = tmp_path / "attempts.csv"
+    coleta.receber(leitura(1, 20000))
+    coleta.comando("")
+    assert _linhas_attempts(attempts) == []
+    coleta.receber(leitura(2, 21000))
+    coleta.comando("f")
+    assert [l["blow_end_s"] for l in _linhas_attempts(attempts)] == ["21.0"]
+
+
+def test_sopro_sem_fim_e_gravado_quando_comeca_outro(coleta, tmp_path):
+    coleta.receber(leitura(1, 20000))
+    coleta.comando("")
+    coleta.receber(leitura(2, 80000))
+    coleta.comando("")
+    assert [l["blow_start_s"] for l in _linhas_attempts(tmp_path / "attempts.csv")] == ["20.0"]
+    coleta.encerrar_rodada()
+    assert [l["blow_start_s"] for l in _linhas_attempts(tmp_path / "attempts.csv")] == ["20.0", "80.0"]
+
+
+def test_encerrar_nao_repete_sopros_ja_gravados(coleta, tmp_path):
+    coleta.receber(leitura(1, 20000))
+    coleta.comando("")
+    coleta.receber(leitura(2, 21000))
+    coleta.comando("f")
+    coleta.encerrar_rodada()
+    assert len(_linhas_attempts(tmp_path / "attempts.csv")) == 1

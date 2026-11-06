@@ -57,3 +57,20 @@ def test_sem_duracao_nunca_termina_sozinha():
 
 def test_ids_unicos():
     assert Rodada("clean", "p01", None).id != Rodada("clean", "p01", None).id
+
+
+def test_fim_no_mesmo_instante_do_inicio_espera_a_proxima_leitura():
+    rodada = Rodada("perfume", "p01", None)
+    rodada.receber(leitura(5, 20400))
+    rodada.marcar_inicio_sopro()
+    assert rodada.marcar_fim_sopro() is None
+    rodada.receber(leitura(6, 21400))
+    assert rodada.marcar_fim_sopro() == Sopro(20400, 21400)
+
+
+def test_inicio_repetido_no_mesmo_instante_e_ignorado():
+    rodada = Rodada("perfume", "p01", None)
+    rodada.receber(leitura(5, 20400))
+    assert rodada.marcar_inicio_sopro() == Sopro(20400)
+    assert rodada.marcar_inicio_sopro() is None
+    assert len(rodada.sopros) == 1

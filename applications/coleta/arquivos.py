@@ -55,22 +55,19 @@ class CsvSessao:
         return hashlib.sha256(self.caminho.read_bytes()).hexdigest()
 
 
-def linhas_attempts(rodada: Rodada, arquivo_sessao: str, data: date, n: int) -> List[dict]:
-    """Uma linha do ``attempts.csv`` por sopro da rodada."""
-    prefixo = f"{data:%Y-%m-%d}_{rodada.participante}_{rodada.caso}_{n}"
-    return [
-        {
-            "attempt_id": f"{prefixo}_s{k}",
-            "session_file": arquivo_sessao,
-            "participant_id": rodada.participante,
-            "condition": rodada.caso,
-            "blow_start_s": str(sopro.inicio_ms / 1000),
-            "blow_end_s": "" if sopro.fim_ms is None else str(sopro.fim_ms / 1000),
-            "reference_mg_l": "",
-            "notes": "",
-        }
-        for k, sopro in enumerate(rodada.sopros, start=1)
-    ]
+def linha_attempt(rodada: Rodada, k: int, arquivo_sessao: Path) -> dict:
+    """Linha do ``attempts.csv`` para o ``k``-ésimo sopro (a partir de 1) da rodada."""
+    sopro = rodada.sopros[k - 1]
+    return {
+        "attempt_id": f"{arquivo_sessao.stem}_s{k}",
+        "session_file": arquivo_sessao.name,
+        "participant_id": rodada.participante,
+        "condition": rodada.caso,
+        "blow_start_s": str(sopro.inicio_ms / 1000),
+        "blow_end_s": "" if sopro.fim_ms is None else str(sopro.fim_ms / 1000),
+        "reference_mg_l": "",
+        "notes": "",
+    }
 
 
 def anexar_attempts(caminho: Path, linhas: List[dict]) -> None:

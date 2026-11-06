@@ -57,19 +57,32 @@ class Rodada:
         return LEITURA
 
     def marcar_inicio_sopro(self) -> Optional[Sopro]:
-        """Marca um sopro no ``t_ms`` da última leitura; ``None`` se ainda não houve leitura."""
+        """Marca um sopro no ``t_ms`` da última leitura.
+
+        ``None`` se ainda não houve leitura ou se já há um sopro nesse instante
+        (Enter apertado duas vezes no mesmo segundo).
+        """
         if self.ultimo_t_ms is None:
+            return None
+        if self.sopros and self.sopros[-1].inicio_ms == self.ultimo_t_ms:
             return None
         sopro = Sopro(self.ultimo_t_ms)
         self.sopros.append(sopro)
         return sopro
 
     def marcar_fim_sopro(self) -> Optional[Sopro]:
-        """Fecha o último sopro; ``None`` se não houver sopro aberto."""
-        if not self.sopros or self.sopros[-1].fim_ms is not None or self.ultimo_t_ms is None:
+        """Fecha o último sopro no ``t_ms`` da última leitura.
+
+        ``None`` se não houver sopro aberto ou se ainda não chegou leitura
+        depois do início (o fim precisa ser posterior ao início).
+        """
+        if not self.sopros or self.sopros[-1].fim_ms is not None:
             return None
-        self.sopros[-1].fim_ms = self.ultimo_t_ms
-        return self.sopros[-1]
+        sopro = self.sopros[-1]
+        if self.ultimo_t_ms <= sopro.inicio_ms:
+            return None
+        sopro.fim_ms = self.ultimo_t_ms
+        return sopro
 
     def terminou(self) -> bool:
         """``True`` quando a duração pedida já foi coberta pelas leituras."""

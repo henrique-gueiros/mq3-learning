@@ -2,7 +2,7 @@ import csv
 from datetime import date
 from pathlib import Path
 
-from coleta.arquivos import CsvSessao, anexar_attempts, linhas_attempts, nome_sessao
+from coleta.arquivos import CsvSessao, anexar_attempts, linha_attempt, nome_sessao
 from coleta.rodada import Rodada
 from coleta.serial_proto import CABECALHO_CSV, ler_linha
 from coleta.tests.ajuda import leitura
@@ -43,12 +43,18 @@ def _rodada_com_dois_sopros() -> Rodada:
     return rodada
 
 
-def test_linhas_attempts():
-    linhas = linhas_attempts(_rodada_com_dois_sopros(), "2026-11-05_p01_perfume_1.csv", DIA, 1)
+def _linhas(rodada):
+    sessao = Path("2026-11-05_p01_perfume_1.csv")
+    return [linha_attempt(rodada, k, sessao) for k in range(1, len(rodada.sopros) + 1)]
+
+
+def test_linha_attempt_usa_o_nome_do_arquivo():
+    linhas = _linhas(_rodada_com_dois_sopros())
     assert [linha["attempt_id"] for linha in linhas] == [
         "2026-11-05_p01_perfume_1_s1",
         "2026-11-05_p01_perfume_1_s2",
     ]
+    assert linhas[0]["session_file"] == "2026-11-05_p01_perfume_1.csv"
     assert linhas[0]["blow_start_s"] == "20.4"
     assert linhas[0]["blow_end_s"] == "25.5"
     assert linhas[1]["blow_end_s"] == ""
@@ -59,7 +65,7 @@ def test_linhas_attempts():
 
 def test_attempts_cria_com_cabecalho_e_acrescenta(tmp_path):
     destino = tmp_path / "attempts.csv"
-    linhas = linhas_attempts(_rodada_com_dois_sopros(), "s.csv", DIA, 1)
+    linhas = _linhas(_rodada_com_dois_sopros())
     anexar_attempts(destino, linhas[:1])
     anexar_attempts(destino, linhas[1:])
     with destino.open() as arquivo:
