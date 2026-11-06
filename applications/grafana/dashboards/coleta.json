@@ -1,0 +1,670 @@
+{
+  "uid": "mq3-coleta",
+  "title": "MQ-3 — Coleta",
+  "tags": [
+    "mq3",
+    "coleta"
+  ],
+  "timezone": "browser",
+  "refresh": "5s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "schemaVersion": 39,
+  "annotations": {
+    "list": [
+      {
+        "name": "Sopros",
+        "enable": true,
+        "iconColor": "orange",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${ds_pg}"
+        },
+        "target": {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select v.ts as time, 'Sopro ' || s.n as text\nfrom v_sopros s\njoin v_leituras v on v.rodada_id = s.rodada_id and v.t_ms = (\n    select min(t_ms) from leituras l where l.rodada_id = s.rodada_id and l.t_ms >= s.inicio_ms)\nwhere s.rodada_id::text = '$rodada'"
+        }
+      }
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "ds_pg",
+        "label": "PostgreSQL",
+        "type": "datasource",
+        "query": "grafana-postgresql-datasource"
+      },
+      {
+        "name": "ds_mqtt",
+        "label": "MQTT",
+        "type": "datasource",
+        "query": "grafana-mqtt-datasource"
+      },
+      {
+        "name": "caso",
+        "label": "Caso",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${ds_pg}"
+        },
+        "query": "select distinct caso from rodadas where caso is not null order by 1",
+        "definition": "select distinct caso from rodadas where caso is not null order by 1",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "participante",
+        "label": "Participante",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${ds_pg}"
+        },
+        "query": "select distinct participante from rodadas where participante is not null order by 1",
+        "definition": "select distinct participante from rodadas where participante is not null order by 1",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "rodada",
+        "label": "Rodada",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "${ds_pg}"
+        },
+        "query": "select id::text as __value,\n       caso || ' · ' || participante || ' · ' || to_char(inicio, 'DD/MM HH24:MI') as __text\nfrom rodadas\nwhere inicio is not null\norder by inicio desc",
+        "definition": "select id::text as __value,\n       caso || ' · ' || participante || ' · ' || to_char(inicio, 'DD/MM HH24:MI') as __text\nfrom rodadas\nwhere inicio is not null\norder by inicio desc",
+        "refresh": 2,
+        "multi": false,
+        "includeAll": false,
+        "current": {}
+      },
+      {
+        "name": "janela",
+        "label": "Janela",
+        "type": "custom",
+        "query": "arquivo,sopro",
+        "current": {
+          "text": "arquivo",
+          "value": "arquivo"
+        },
+        "options": [
+          {
+            "text": "arquivo",
+            "value": "arquivo",
+            "selected": true
+          },
+          {
+            "text": "sopro",
+            "value": "sopro",
+            "selected": false
+          }
+        ]
+      },
+      {
+        "name": "incluir_simulador",
+        "label": "Incluir simulador",
+        "type": "custom",
+        "query": "nao,sim",
+        "current": {
+          "text": "nao",
+          "value": "nao"
+        },
+        "options": [
+          {
+            "text": "nao",
+            "value": "nao",
+            "selected": true
+          },
+          {
+            "text": "sim",
+            "value": "sim",
+            "selected": false
+          }
+        ]
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Ao vivo: leituras da placa",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 16,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-mqtt-datasource",
+        "uid": "${ds_mqtt}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "${ds_mqtt}"
+          },
+          "refId": "A",
+          "topic": "mq3/placa01/leituras"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "rodada_id": true,
+              "amostra": true,
+              "t_ms": true,
+              "ppm": true,
+              "mq135_mv": true,
+              "alcool": true
+            },
+            "renameByName": {
+              "mq3_raw": "MQ-3",
+              "mq135_raw": "MQ-135",
+              "humidity_pct": "Umidade (%)",
+              "temperature_c": "Temperatura (°C)"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Umidade (%)"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Temperatura (°C)"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Chega pelo MQTT direto do broker, via PDC. Umidade e temperatura no eixo da direita."
+    },
+    {
+      "id": 2,
+      "title": "Placa",
+      "type": "stat",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 3
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select case when max(recebido_em) > now() - interval '10 seconds'\n            then 'recebendo' else 'parada' end as \"situação\",\n       extract(epoch from now() - max(recebido_em))::int as \"s desde a última leitura\"\nfrom leituras"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/"
+        },
+        "colorMode": "background",
+        "textMode": "value_and_name",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "recebendo": {
+                  "text": "recebendo",
+                  "color": "green"
+                },
+                "parada": {
+                  "text": "parada",
+                  "color": "red"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "description": "Recebendo = chegou leitura no banco nos últimos 10 s."
+    },
+    {
+      "id": 3,
+      "title": "Rodada atual",
+      "type": "table",
+      "gridPos": {
+        "x": 16,
+        "y": 3,
+        "w": 8,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select caso, participante, arquivo_sessao as arquivo,\n       case when fim is null then 'em andamento' else 'encerrada' end as situacao,\n       (select count(*) from leituras l where l.rodada_id = r.id) as leituras\nfrom rodadas r\nwhere inicio is not null\norder by inicio desc\nlimit 1"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "id": 4,
+      "title": "Média por caso ($janela)",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select caso,\n       count(*) as rodadas,\n       avg(media_mq3_raw) as \"MQ-3\", avg(media_mq135_raw) as \"MQ-135\", avg(media_humidity_pct) as \"Umidade (%)\", avg(media_temperature_c) as \"Temperatura (°C)\"\nfrom v_media_rodada\nwhere janela = '$janela' and n_leituras > 0 and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')\ngroup by caso\norder by caso"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "rodadas"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Média das médias de cada rodada (cada CSV pesa igual). 'rodadas' = quantas entraram."
+    },
+    {
+      "id": 5,
+      "title": "Média por caso: MQ-3 e MQ-135 ($janela)",
+      "type": "barchart",
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select caso,\n       count(*) as rodadas,\n       avg(media_mq3_raw) as \"MQ-3\", avg(media_mq135_raw) as \"MQ-135\", avg(media_humidity_pct) as \"Umidade (%)\", avg(media_temperature_c) as \"Temperatura (°C)\"\nfrom v_media_rodada\nwhere janela = '$janela' and n_leituras > 0 and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')\ngroup by caso\norder by caso"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "rodadas": true,
+              "Umidade (%)": true,
+              "Temperatura (°C)": true
+            }
+          }
+        }
+      ],
+      "options": {
+        "xField": "caso",
+        "orientation": "vertical",
+        "showValue": "auto",
+        "groupWidth": 0.7
+      }
+    },
+    {
+      "id": 6,
+      "title": "Boxplot por caso ($janela)",
+      "type": "volkovlabs-echarts-panel",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 24,
+        "h": 14
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select caso, mq3_raw, mq135_raw, humidity_pct, temperature_c\nfrom v_leituras\nwhere ('$janela' = 'arquivo' or em_sopro) and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')"
+        }
+      ],
+      "options": {
+        "renderer": "canvas",
+        "editorMode": "code",
+        "getOption": "const frame = context.panel.data.series[0];\nif (!frame) {\n  return { title: { text: 'Sem dados', left: 'center', top: 'middle' } };\n}\nconst coluna = (nome) => {\n  const campo = frame.fields.find((f) => f.name === nome);\n  return campo ? Array.from(campo.values) : [];\n};\n\nconst sensores = [\n  ['mq3_raw', 'MQ-3'],\n  ['mq135_raw', 'MQ-135'],\n  ['humidity_pct', 'Umidade (%)'],\n  ['temperature_c', 'Temperatura (°C)'],\n];\nconst casos = coluna('caso');\nconst nomesCasos = [...new Set(casos)].sort();\n\nconst quartis = (valores) => {\n  const v = valores.filter((x) => x !== null && !Number.isNaN(x)).sort((a, b) => a - b);\n  if (v.length === 0) {\n    return [];\n  }\n  const q = (p) => {\n    const i = (v.length - 1) * p;\n    const base = Math.floor(i);\n    return v[base] + (v[Math.min(base + 1, v.length - 1)] - v[base]) * (i - base);\n  };\n  return [v[0], q(0.25), q(0.5), q(0.75), v[v.length - 1]];\n};\n\nconst grids = [];\nconst xAxis = [];\nconst yAxis = [];\nconst title = [];\nconst series = [];\nsensores.forEach(([campo, nome], i) => {\n  const valores = coluna(campo);\n  const esquerda = i % 2 === 0 ? 6 : 54;\n  const topo = i < 2 ? 8 : 56;\n  grids.push({ left: `${esquerda}%`, top: `${topo}%`, width: '40%', height: '32%' });\n  title.push({ text: nome, left: `${esquerda}%`, top: `${topo - 6}%`, textStyle: { fontSize: 12 } });\n  xAxis.push({ type: 'category', data: nomesCasos, gridIndex: i, axisLabel: { fontSize: 10 } });\n  yAxis.push({ type: 'value', gridIndex: i, scale: true });\n  series.push({\n    name: nome,\n    type: 'boxplot',\n    xAxisIndex: i,\n    yAxisIndex: i,\n    data: nomesCasos.map((caso) => quartis(valores.filter((_, k) => casos[k] === caso))),\n  });\n});\n\nreturn { title, grid: grids, xAxis, yAxis, series, tooltip: { trigger: 'item' } };",
+        "map": "none"
+      },
+      "description": "Distribuição de todas as leituras das rodadas de cada caso."
+    },
+    {
+      "id": 7,
+      "title": "Heatmap caso × sensor ($janela)",
+      "type": "volkovlabs-echarts-panel",
+      "gridPos": {
+        "x": 0,
+        "y": 31,
+        "w": 12,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select caso,\n       count(*) as rodadas,\n       avg(media_mq3_raw) as \"MQ-3\", avg(media_mq135_raw) as \"MQ-135\", avg(media_humidity_pct) as \"Umidade (%)\", avg(media_temperature_c) as \"Temperatura (°C)\"\nfrom v_media_rodada\nwhere janela = '$janela' and n_leituras > 0 and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')\ngroup by caso\norder by caso"
+        }
+      ],
+      "options": {
+        "renderer": "canvas",
+        "editorMode": "code",
+        "getOption": "const frame = context.panel.data.series[0];\nif (!frame) {\n  return { title: { text: 'Sem dados', left: 'center', top: 'middle' } };\n}\nconst coluna = (nome) => {\n  const campo = frame.fields.find((f) => f.name === nome);\n  return campo ? Array.from(campo.values) : [];\n};\n\nconst sensores = ['MQ-3', 'MQ-135', 'Umidade (%)', 'Temperatura (°C)'];\nconst casos = coluna('caso');\nconst dados = [];\nsensores.forEach((sensor, x) => {\n  const medias = coluna(sensor);\n  const validas = medias.filter((m) => m !== null);\n  const menor = Math.min(...validas);\n  const maior = Math.max(...validas);\n  medias.forEach((media, y) => {\n    if (media === null) {\n      return;\n    }\n    const normalizada = maior > menor ? (media - menor) / (maior - menor) : 0.5;\n    dados.push({ value: [x, y, normalizada], media });\n  });\n});\n\nreturn {\n  tooltip: {\n    formatter: (p) => `${casos[p.value[1]]} · ${sensores[p.value[0]]}: média ${p.data.media.toFixed(1)}`,\n  },\n  grid: { left: 110, right: 30, top: 10, bottom: 70 },\n  xAxis: { type: 'category', data: sensores, axisLabel: { interval: 0 } },\n  yAxis: { type: 'category', data: casos },\n  visualMap: {\n    min: 0, max: 1, calculable: true, orient: 'horizontal', left: 'center', bottom: 0,\n    text: ['maior média', 'menor média'],\n  },\n  series: [{\n    type: 'heatmap',\n    data: dados,\n    label: { show: true, formatter: (p) => p.data.media.toFixed(0) },\n  }],\n};",
+        "map": "none"
+      },
+      "description": "Cor = média normalizada por sensor (0 = menor caso, 1 = maior). O número é a média real."
+    },
+    {
+      "id": 8,
+      "title": "Subida por sopro: MQ-135 × MQ-3",
+      "type": "xychart",
+      "gridPos": {
+        "x": 12,
+        "y": 31,
+        "w": 12,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select caso, subida_mq3_raw as \"subida MQ-3\", subida_mq135_raw as \"subida MQ-135\"\nfrom v_sopros\nwhere caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')\n  and subida_mq3_raw is not null"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "caso"
+            ],
+            "keepFields": false,
+            "naming": {
+              "asLabels": false
+            }
+          }
+        }
+      ],
+      "options": {
+        "mapping": "auto",
+        "series": [],
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "show": "points",
+            "pointSize": {
+              "fixed": 8
+            }
+          }
+        },
+        "overrides": []
+      },
+      "description": "Um ponto por sopro. Subida = pico (sopro + 30 s) menos a mediana dos 15 s antes."
+    },
+    {
+      "id": 9,
+      "title": "Rodadas sem sopro marcado",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 12,
+        "h": 6
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select caso, participante, arquivo_sessao as arquivo, inicio\nfrom v_rodadas_sem_sopro\norder by inicio desc"
+        }
+      ],
+      "description": "Ficam fora do gráfico de subidas e da janela 'sopro'."
+    },
+    {
+      "id": 10,
+      "title": "Resultado do modelo",
+      "type": "text",
+      "gridPos": {
+        "x": 12,
+        "y": 41,
+        "w": 12,
+        "h": 6
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "**Sem modelo treinado com dados reais.**\n\nEste painel vai mostrar a classe prevista (`sob_efeito` / `sem_efeito`) quando o serviço de inferência publicar em `mq3/<placa>/resultado`."
+      }
+    },
+    {
+      "id": 11,
+      "title": "Histórico da rodada selecionada",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 47,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "time_series",
+          "rawSql": "select ts as time, mq3_raw as \"MQ-3\", mq135_raw as \"MQ-135\",\n       humidity_pct as \"Umidade (%)\", temperature_c as \"Temperatura (°C)\"\nfrom v_leituras\nwhere rodada_id::text = '$rodada'\norder by ts"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Umidade (%)"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Temperatura (°C)"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "As linhas verticais marcam os sopros. Ajuste o intervalo de tempo para a data da rodada."
+    }
+  ]
+}

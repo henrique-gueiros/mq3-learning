@@ -10,7 +10,7 @@ import threading
 
 import paho.mqtt.client as mqtt
 
-from coleta.mensagens import codificar, topico
+from coleta.mensagens import codificar, payload_status, topico
 
 
 class Publicador:
@@ -22,7 +22,7 @@ class Publicador:
         self._conexao = threading.Event()
         self._retidos: dict[str, bytes] = {}
         self._cliente = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        self._cliente.will_set(topico(placa, "status"), "offline", qos=1, retain=True)
+        self._cliente.will_set(topico(placa, "status"), codificar(payload_status(False)), qos=1, retain=True)
         self._cliente.on_connect = self._ao_conectar
         self._cliente.on_disconnect = self._ao_desconectar
 
@@ -53,7 +53,8 @@ class Publicador:
     def encerrar(self) -> None:
         """Avisa ``offline`` (se conectado) e para o cliente."""
         if self.conectado:
-            self._cliente.publish(topico(self.placa, "status"), "offline", qos=1, retain=True).wait_for_publish(2)
+            offline = codificar(payload_status(False))
+            self._cliente.publish(topico(self.placa, "status"), offline, qos=1, retain=True).wait_for_publish(2)
         self._cliente.disconnect()
         self._cliente.loop_stop()
 
@@ -61,7 +62,7 @@ class Publicador:
         if codigo.is_failure:
             return
         self.conectado = True
-        cliente.publish(topico(self.placa, "status"), "online", qos=1, retain=True)
+        cliente.publish(topico(self.placa, "status"), codificar(payload_status(True)), qos=1, retain=True)
         for nome, dados in self._retidos.items():
             cliente.publish(nome, dados, qos=1, retain=True)
         self._conexao.set()

@@ -59,3 +59,10 @@ def test_casos_vem_do_ml():
     assert validar_caso("drink") == "drink"
     with pytest.raises(ValueError, match="perfume"):
         validar_caso("vodka")
+
+
+def test_status_em_json():
+    from coleta.mensagens import payload_status
+
+    assert decodificar(codificar(payload_status(True))) == {"estado": "online"}
+    assert payload_status(False) == {"estado": "offline"}

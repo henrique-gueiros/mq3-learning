@@ -62,6 +62,11 @@ def payload_evento(rodada_id: str, tipo: str, t_ms: int, sha256: Optional[str] =
     return evento
 
 
+def payload_status(online: bool) -> dict:
+    """Situação da placa; o ``offline`` também vai como last will do cliente MQTT."""
+    return {"estado": "online" if online else "offline"}
+
+
 def codificar(payload: dict) -> bytes:
     return json.dumps(payload, ensure_ascii=False).encode("utf-8")
 
