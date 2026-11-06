@@ -1,0 +1,47 @@
+# Infraestrutura da coleta: broker MQTT, banco e ingestor.
+# Uso: cp .env.example .env && docker compose up -d --build
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./applications/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-dados:/mosquitto/data
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      GRAFANA_PG_SENHA: ${GRAFANA_PG_SENHA}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./applications/db:/docker-entrypoint-initdb.d:ro
+      - postgres-dados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+
+  ingestor:
+    build:
+      context: ./applications
+      dockerfile: coleta/Dockerfile
+    environment:
+      MQTT_HOST: mosquitto
+      PG_DSN: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+
+volumes:
+  mosquitto-dados:
+  postgres-dados:
