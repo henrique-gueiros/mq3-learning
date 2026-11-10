@@ -29,6 +29,10 @@ const int PINO_DHT = 4;
 const unsigned long INTERVALO_DHT_MS = 2000;
 const unsigned long INTERVALO_LEITURA_MS = 1000;
 const int MARGEM = 80;
+// Abaixo disto o LittleFS desta placa nao devolve "disco cheio":
+// reinicia com IntegerDivideByZero ao alocar um bloco. A reserva
+// fica livre apagando os CSVs mais antigos.
+const size_t RESERVA_CSV_BYTES = 12 * 1024;
 
 const float TENSAO_CIRCUITO_MV = 5000.0f;
 const float RAZAO_AR_LIMPO = 60.0f;
@@ -97,6 +101,87 @@ void escreverLinha(Print &saida, unsigned long numero, const Leitura &amostra) {
   saida.println(amostra.alcool ? 1 : 0);
 }
 
+size_t espacoLivreCsv() {
+  size_t total = LittleFS.totalBytes();
+  size_t usado = LittleFS.usedBytes();
+  if (total == 0 || usado >= total) {
+    return 0;
+  }
+  return total - usado;
+}
+
+bool apagarCsvMaisAntigo() {
+  char caminho[28];
+  for (int numero = 1; numero < 10000; numero++) {
+    snprintf(caminho, sizeof(caminho), "/leituras_%d.csv", numero);
+    if (strcmp(caminho, arquivoCsv) == 0 || !LittleFS.exists(caminho)) {
+      continue;
+    }
+    if (!LittleFS.remove(caminho)) {
+      Serial.print("Falha ao apagar ");
+      Serial.println(caminho);
+      return false;
+    }
+    Serial.print("CSV antigo removido: ");
+    Serial.println(caminho);
+    return true;
+  }
+  return false;
+}
+
+bool formatarLittleFs() {
+  Serial.println("LittleFS sem bloco livre: formatando a particao");
+  LittleFS.end();
+  bool formatou = LittleFS.format();
+  sistemaArquivosOk = formatou && LittleFS.begin(true);
+  if (!sistemaArquivosOk) {
+    Serial.println("Sem sistema de arquivos: o CSV sai so no monitor");
+    return false;
+  }
+  Serial.println("LittleFS formatado");
+  return true;
+}
+
+// true se a particao foi formatada e o nome do CSV precisa ser escolhido de novo.
+bool liberarEspacoCsv(bool podeFormatar) {
+  if (!sistemaArquivosOk) {
+    return false;
+  }
+  size_t livre = espacoLivreCsv();
+  if (livre >= RESERVA_CSV_BYTES) {
+    return false;
+  }
+  Serial.print("Espaco livre no LittleFS: ");
+  Serial.println(livre);
+
+  // Sem um bloco inteiro, apagar um CSV tambem aloca e reinicia a placa.
+  if (livre < 4096) {
+    if (podeFormatar) {
+      return formatarLittleFs();
+    }
+    sistemaArquivosOk = false;
+    Serial.println("Sem espaco no LittleFS: o CSV sai so no monitor");
+    return false;
+  }
+
+  int removidos = 0;
+  while (espacoLivreCsv() < RESERVA_CSV_BYTES && removidos < 200) {
+    if (espacoLivreCsv() < 4096 || !apagarCsvMaisAntigo()) {
+      break;
+    }
+    removidos++;
+  }
+  if (espacoLivreCsv() >= RESERVA_CSV_BYTES) {
+    return false;
+  }
+  if (podeFormatar) {
+    return formatarLittleFs();
+  }
+  sistemaArquivosOk = false;
+  Serial.println("Sem espaco no LittleFS: o CSV sai so no monitor");
+  return false;
+}
+
 void escolherCsvNovo() {
   int numero = 1;
   if (!sistemaArquivosOk) {
@@ -117,6 +202,9 @@ void escolherCsvNovo() {
 void iniciarCsv() {
   proximaAmostra = 1;
   escolherCsvNovo();
+  if (liberarEspacoCsv(true)) {
+    escolherCsvNovo();
+  }
   if (!sistemaArquivosOk) {
     return;
   }
@@ -131,6 +219,7 @@ void iniciarCsv() {
 }
 
 void acrescentarCsv(unsigned long numero, const Leitura &amostra) {
+  liberarEspacoCsv(false);
   if (!sistemaArquivosOk) {
     return;
   }
