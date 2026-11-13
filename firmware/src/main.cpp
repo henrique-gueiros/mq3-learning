@@ -51,6 +51,8 @@ struct Leitura {
   float temperatura;
   float umidade;
   bool alcool;
+  float tensaoAtualMv;
+  float tensaoReferenciaMv;
 };
 
 int referencia = 0;
@@ -74,7 +76,7 @@ void escreverCampoFloat(Print &saida, float valor, int casas = 1) {
 
 void escreverCabecalho(Print &saida) {
   saida.println(
-      "amostra,t_ms,mq3_raw,ppm,rs,rs_rsar,mq135_raw,mq135_mv,temperature_c,humidity_pct,alcool");
+      "amostra,t_ms,mq3_raw,ppm,rs,rs_rsar,mq135_raw,mq135_mv,temperature_c,humidity_pct,alcool,tensao_atual_mv,tensao_referencia_mv");
 }
 
 void escreverLinha(Print &saida, unsigned long numero, const Leitura &amostra) {
@@ -98,7 +100,11 @@ void escreverLinha(Print &saida, unsigned long numero, const Leitura &amostra) {
   saida.print(',');
   escreverCampoFloat(saida, amostra.umidade);
   saida.print(',');
-  saida.println(amostra.alcool ? 1 : 0);
+  saida.print(amostra.alcool ? 1 : 0);
+  saida.print(',');
+  saida.print(amostra.tensaoAtualMv, 2);
+  saida.print(',');
+  saida.println(amostra.tensaoReferenciaMv, 2);
 }
 
 size_t espacoLivreCsv() {
@@ -310,7 +316,8 @@ void loop() {
   int leitura = analogRead(PINO_SENSOR);
   float rs = NAN;
   float rsRsAr = NAN;
-  float ppm = estimarPpm(analogReadMilliVolts(PINO_SENSOR), tensaoArLimpoMv, rs, rsRsAr);
+  int tensaoAtualMv = analogReadMilliVolts(PINO_SENSOR);
+  float ppm = estimarPpm(tensaoAtualMv, tensaoArLimpoMv, rs, rsRsAr);
   int leituraMq135 = analogRead(PINO_MQ135);
   int mq135Mv = analogReadMilliVolts(PINO_MQ135);
   bool alcool = leitura > (referencia + MARGEM);
@@ -326,6 +333,8 @@ void loop() {
   amostra.temperatura = temperaturaC;
   amostra.umidade = umidadePct;
   amostra.alcool = alcool;
+  amostra.tensaoAtualMv = tensaoAtualMv;
+  amostra.tensaoReferenciaMv = tensaoArLimpoMv;
   acrescentarCsv(proximaAmostra, amostra);
   Serial.print("CSV_LINHA,");
   Serial.print(nomeCsv);
