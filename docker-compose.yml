@@ -5,8 +5,7 @@ services:
     image: eclipse-mosquitto:2
     ports:
       - "1883:1883"
-      # WebSocket para o navegador; só no próprio computador (o frontend entra por /mqtt).
-      - "127.0.0.1:9001:9001"
+      # O WebSocket (9001) não vai para o host: só o nginx do frontend fala com ele, em /mqtt.
     volumes:
       - ./applications/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto-dados:/mosquitto/data
@@ -56,6 +55,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  # Tela (React) servida pelo nginx, que também encaminha /api para a API e /mqtt
+  # (WebSocket) para o Mosquitto. Abra http://localhost:8080
+  frontend:
+    build:
+      context: ./applications/frontend
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      - api
+      - mosquitto
     restart: unless-stopped
 
   # Túnel de saída até o Grafana Cloud (Private Data Source Connect).
