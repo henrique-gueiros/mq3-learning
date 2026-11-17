@@ -77,3 +77,12 @@ def test_attempts_cria_com_cabecalho_e_acrescenta(tmp_path):
 def test_attempts_sem_sopros_nao_cria_arquivo(tmp_path):
     anexar_attempts(tmp_path / "attempts.csv", [])
     assert not (tmp_path / "attempts.csv").exists()
+
+
+def test_csv_sessao_usa_o_cabecalho_do_formato_da_placa(tmp_path):
+    sessao = CsvSessao(tmp_path / "s.csv")
+    sessao.escrever(ler_linha("CSV_LINHA,s.csv,40,2940,1232,0.4,1.87,1.01,451,525,36.3,49.4,0,1745.00,1761.00"))
+    sessao.fechar()
+    linhas = (tmp_path / "s.csv").read_text().splitlines()
+    assert linhas[0] == "amostra,t_ms,mq3_raw,ppm,rs,rs_rsar,mq135_raw,mq135_mv,temperature_c,humidity_pct,alcool,tensao_atual_mv,tensao_referencia_mv"
+    assert linhas[1] == "40,2940,1232,0.4,1.87,1.01,451,525,36.3,49.4,0,1745.00,1761.00"

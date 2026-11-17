@@ -1,0 +1,13 @@
+origem,sessao,caso,participante
+leituras_1_ambiente.csv,2026-11-14_equipe_clean_1.csv,clean,equipe
+leituras_2_ambiente.csv,2026-11-14_equipe_clean_2.csv,clean,equipe
+leituras_3_ambiente.csv,2026-11-14_equipe_clean_3.csv,clean,equipe
+leituras_4_ambiente.csv,2026-11-14_equipe_clean_4.csv,clean,equipe
+leituras_28_ambiente.csv,2026-11-14_equipe_clean_5.csv,clean,equipe
+leituras_7_ambiente.csv,2026-11-12_equipe_clean_6.csv,clean,equipe
+leituras_9_ambiente.csv,2026-11-12_equipe_clean_7.csv,clean,equipe
+leituras_11_alcool.csv,2026-11-12_equipe_drink_1.csv,drink,equipe
+leituras_11_alcool2.csv,2026-11-12_equipe_drink_2.csv,drink,equipe
+leituras_14_Alcool3.csv,2026-11-12_equipe_drink_3.csv,drink,equipe
+leituras_17_Alcool.csv,2026-11-12_equipe_drink_4.csv,drink,equipe
+leituras_25_perfume.csv,2026-11-12_equipe_perfume_1.csv,perfume,equipe

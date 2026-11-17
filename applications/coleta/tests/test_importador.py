@@ -86,3 +86,23 @@ def test_caso_divergente_do_attempts_recusa(pg, tmp_path):
 def test_caso_desconhecido_recusa(tmp_path):
     with pytest.raises(ValueError, match="caso desconhecido"):
         importar(None, _sessao(tmp_path), "vodka", "p01", "placa01", tmp_path / "a.csv")
+
+
+def test_le_csv_no_formato_com_rs(tmp_path):
+    caminho = tmp_path / "s.csv"
+    caminho.write_text(
+        "amostra,t_ms,mq3_raw,ppm,rs,rs_rsar,mq135_raw,mq135_mv,temperature_c,humidity_pct,alcool,tensao_atual_mv,tensao_referencia_mv\n"
+        "1,1002,922,0.4,4.61,1.01,202,294,,,0,892.00,901.70\n"
+    )
+    leituras = ler_csv_sessao(caminho)
+    assert [(l.amostra, l.mq3_raw, l.mq135_raw, l.temperature_c) for l in leituras] == [(1, 922, 202, None)]
+
+
+def test_le_csv_no_formato_de_11_colunas(tmp_path):
+    caminho = tmp_path / "s.csv"
+    caminho.write_text(
+        "amostra,t_ms,mq3_raw,ppm,rs,rs_rsar,mq135_raw,mq135_mv,temperature_c,humidity_pct,alcool\n"
+        "1,1002,922,0.4,4.61,1.01,202,294,29.1,48.1,0\n"
+    )
+    leituras = ler_csv_sessao(caminho)
+    assert [(l.mq3_raw, l.humidity_pct) for l in leituras] == [(922, 48.1)]

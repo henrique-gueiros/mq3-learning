@@ -1,9 +1,10 @@
 from pathlib import Path
 
-from coleta.serial_proto import ArquivoNovo, Leitura, ler_linha
+from coleta.serial_proto import CABECALHO_COM_RS, CABECALHO_CSV, ArquivoNovo, Leitura, ler_linha
 
 REPO = Path(__file__).resolve().parents[3]
 LINHA = "CSV_LINHA,leituras_3.csv,40,2940,1232,0.4,451,525,36.3,49.4,0"
+LINHA_COM_RS = "CSV_LINHA,leituras_3.csv,40,2940,1232,0.4,1.87,1.01,451,525,36.3,49.4,0,1745.00,1761.00"
 
 
 def test_leitura_completa():
@@ -49,3 +50,25 @@ def test_amostra_real_ida_e_volta():
         leitura = ler_linha(f"CSV_LINHA,leituras_1.csv,{linha}")
         assert leitura is not None, linha
         assert leitura.como_linha_csv() == linha
+
+
+def test_leitura_no_formato_com_rs():
+    assert ler_linha(LINHA_COM_RS) == Leitura(40, 2940, 1232, 0.4, 451, 525, 36.3, 49.4, 0)
+
+
+def test_formato_com_rs_ida_e_volta():
+    leitura = ler_linha(LINHA_COM_RS)
+    assert leitura.como_linha_csv() == "40,2940,1232,0.4,1.87,1.01,451,525,36.3,49.4,0,1745.00,1761.00"
+
+
+def test_cabecalho_acompanha_o_formato():
+    assert ler_linha(LINHA).cabecalho_csv == CABECALHO_CSV
+    assert ler_linha(LINHA_COM_RS).cabecalho_csv == CABECALHO_COM_RS
+
+
+def test_numero_de_campos_estranho_e_ignorado():
+    assert ler_linha("CSV_LINHA,leituras_3.csv,40,2940,1232,0.4,1.87,1.01,451,525") is None
+
+
+def test_campo_extra_ilegivel_invalida_a_linha():
+    assert ler_linha(LINHA_COM_RS.replace("1745.00", "17x5")) is None

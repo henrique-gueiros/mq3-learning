@@ -83,6 +83,40 @@ associa a outra condição. A cópia que a placa grava na própria memória
 (LittleFS) só deve ser importada quando a rodada não passou pela ponte; senão
 os dados entram duas vezes.
 
+## Ver o dashboard sem o Grafana Cloud
+
+O Compose tem um Grafana local, no perfil `local`, já ligado ao banco e com o
+dashboard `coleta`. Não use junto com o Compose de `services/` (mesmas portas).
+
+```bash
+docker compose --profile local up -d --build
+```
+
+Abra http://localhost:3000. Usuário `admin`; a senha é `GRAFANA_ADMIN_SENHA` do
+`.env` (padrão `admin` quando a variável não existe; o Grafana só escuta em
+`127.0.0.1`). Os data sources e o dashboard vêm de `grafana/provisioning/` e
+`grafana/dashboards/`, e as edições feitas na interface não são salvas: exporte o
+JSON como descrito em `grafana/README.md`.
+
+## CSVs já coletados
+
+`dados/lote-2026-11.csv` lista os 12 CSVs válidos (bateria de 12/11 em diante),
+com o nome que cada sessão recebe em `ml/data/raw/sessions/`, o caso e o
+participante (`equipe`, porque não se sabe quem soprou em cada arquivo). Para copiar
+e importar tudo de uma vez, com o Compose de pé:
+
+```bash
+python -m coleta.lote
+```
+
+É seguro repetir: arquivo igual é aceito e sessão já importada é só contada. Sem
+`attempts.csv` os sopros não estão marcados, então os painéis "Subida por sopro" e
+"Janela de sopro" ficam vazios e todas as rodadas aparecem em "Rodadas sem sopro
+marcado".
+
+O firmware já gravou CSVs com 9, 11 e 13 colunas; os três formatos são aceitos
+pela ponte e pelo importador.
+
 ## Testes
 
 ```bash

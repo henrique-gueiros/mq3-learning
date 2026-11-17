@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List
 
 from coleta.rodada import Rodada
-from coleta.serial_proto import CABECALHO_CSV, Leitura
+from coleta.serial_proto import Leitura
 
 REPO = Path(__file__).resolve().parents[2]
 PASTA_SESSOES = REPO / "ml" / "data" / "raw" / "sessions"
@@ -38,10 +38,11 @@ class CsvSessao:
         self.caminho = caminho
         caminho.parent.mkdir(parents=True, exist_ok=True)
         self._arquivo = caminho.open("x", encoding="utf-8", newline="\n")
-        self._arquivo.write(CABECALHO_CSV)
         self._leituras = 0
 
     def escrever(self, leitura: Leitura) -> None:
+        if self._leituras == 0:
+            self._arquivo.write(leitura.cabecalho_csv)
         self._arquivo.write(leitura.como_linha_csv() + "\n")
         self._arquivo.flush()
         self._leituras += 1

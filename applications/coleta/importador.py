@@ -23,7 +23,7 @@ from typing import List, Optional, Set, Tuple
 from coleta import banco
 from coleta.arquivos import ARQUIVO_ATTEMPTS
 from coleta.casos import validar_caso
-from coleta.serial_proto import CABECALHO_CSV, Leitura, ler_campos
+from coleta.serial_proto import CABECALHO_CSV, CABECALHOS_ACEITOS, Leitura, ler_campos
 
 Sopros = List[Tuple[int, Optional[int]]]
 
@@ -31,7 +31,7 @@ Sopros = List[Tuple[int, Optional[int]]]
 def ler_csv_sessao(caminho: Path) -> List[Leitura]:
     """Leituras de um CSV no formato do firmware; ``ValueError`` aponta a linha ruim."""
     linhas = caminho.read_text(encoding="utf-8").splitlines()
-    if not linhas or linhas[0].strip() != CABECALHO_CSV.strip():
+    if not linhas or linhas[0].strip() not in CABECALHOS_ACEITOS:
         raise ValueError(f"{caminho.name}: cabeçalho diferente do firmware ({CABECALHO_CSV.strip()})")
     leituras = []
     for numero, linha in enumerate(linhas[1:], start=2):

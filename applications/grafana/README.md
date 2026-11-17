@@ -9,6 +9,9 @@ O dashboard está versionado em `dashboards/coleta.json` e é publicado por
 `publicar.py`. Ele não usa uid fixo de data source: os seletores
 **PostgreSQL** e **MQTT** no topo escolhem os data sources da stack.
 
+Para ver o mesmo dashboard num Grafana local, sem conta, use o perfil `local` do
+Compose (veja `applications/README.md`).
+
 ## Configurar a stack (uma vez)
 
 1. Crie a conta e a stack em grafana.com (plano Free).
@@ -73,7 +76,7 @@ O dashboard está versionado em `dashboards/coleta.json` e é publicado por
 | Heatmap caso × sensor | `v_media_rodada` (Business Charts), cor normalizada por sensor |
 | Subida por sopro: MQ-135 × MQ-3 | `v_sopros` (XY chart nativo), um ponto por sopro |
 | Rodadas sem sopro marcado | `v_rodadas_sem_sopro` |
-| Histórico da rodada selecionada | `v_leituras`, com os sopros como anotações |
+| Histórico da rodada selecionada | `v_leituras`, em segundos desde a primeira leitura, com a janela de sopro em pontos |
 | Resultado do modelo | reservado |
 
 A variável **Janela** escolhe entre o arquivo inteiro e só as janelas de

@@ -59,6 +59,31 @@ services:
       - mosquitto
     restart: unless-stopped
 
+  # Grafana local, para ver o dashboard sem o Grafana Cloud.
+  # Sobe só com: docker compose --profile local up -d   (http://localhost:3000)
+  grafana:
+    image: grafana/grafana-oss:13.0.2
+    profiles: ["local"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_INSTALL_PLUGINS: volkovlabs-echarts-panel,grafana-mqtt-datasource
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_SENHA:-admin}
+      GF_USERS_DEFAULT_THEME: light
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/coleta.json
+      GRAFANA_PG_SENHA: ${GRAFANA_PG_SENHA}
+    volumes:
+      - ./applications/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./applications/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-dados:/var/lib/grafana
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
+  grafana-dados:
   mosquitto-dados:
   postgres-dados:

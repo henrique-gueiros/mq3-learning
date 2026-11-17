@@ -607,7 +607,7 @@
     {
       "id": 11,
       "title": "Histórico da rodada selecionada",
-      "type": "timeseries",
+      "type": "trend",
       "gridPos": {
         "x": 0,
         "y": 47,
@@ -627,14 +627,16 @@
           "refId": "A",
           "rawQuery": true,
           "editorMode": "code",
-          "format": "time_series",
-          "rawSql": "select ts as time, mq3_raw as \"MQ-3\", mq135_raw as \"MQ-135\",\n       humidity_pct as \"Umidade (%)\", temperature_c as \"Temperatura (°C)\"\nfrom v_leituras\nwhere rodada_id::text = '$rodada'\norder by ts"
+          "format": "table",
+          "rawSql": "select tempo_s as \"Tempo (s)\", mq3_raw as \"MQ-3\", mq135_raw as \"MQ-135\",\n       humidity_pct as \"Umidade (%)\", temperature_c as \"Temperatura (°C)\",\n       case when em_sopro then 0 end as \"Janela de sopro\"\nfrom v_leituras\nwhere rodada_id::text = '$rodada'\norder by tempo_s"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "custom": {
-            "lineWidth": 2
+            "lineWidth": 2,
+            "axisLabel": "",
+            "spanNulls": false
           }
         },
         "overrides": [
@@ -661,10 +663,45 @@
                 "value": "right"
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Janela de sopro"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "always"
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 6
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
           }
         ]
       },
-      "description": "As linhas verticais marcam os sopros. Ajuste o intervalo de tempo para a data da rodada."
+      "description": "Leituras da rodada selecionada, em segundos desde a primeira leitura. Os pontos laranja na base marcam a janela de sopro (sopro + 30 s).",
+      "options": {
+        "xField": "Tempo (s)",
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
     }
   ]
 }
