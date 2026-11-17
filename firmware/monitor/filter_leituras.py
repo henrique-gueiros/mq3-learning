@@ -5,8 +5,8 @@ from platformio.public import DeviceMonitorFilterBase  # pyright: ignore[reportM
 
 PASTA = Path(__file__).resolve().parents[1]
 CABECALHO = (
-    "amostra,t_ms,mq3_raw,ppm,mq135_raw,mq135_mv,"
-    "temperature_c,humidity_pct,alcool\n"
+    "amostra,t_ms,mq3_raw,ppm,rs,rs_rsar,mq135_raw,mq135_mv,"
+    "temperature_c,humidity_pct,alcool,tensao_atual_mv,tensao_referencia_mv\n"
 )
 NOME_OK = re.compile(r"leituras_\d+\.csv\Z")
 

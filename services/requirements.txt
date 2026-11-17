@@ -1,0 +1,3 @@
+# Cliente MQTT e Postgres. O servidor do modelo também usa o requirements do ml/.
+paho-mqtt>=2.1
+psycopg[binary]>=3.2

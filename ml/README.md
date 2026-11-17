@@ -2,7 +2,7 @@
 
 Parte de Machine Learning e dados de um projeto acadêmico de detector de álcool para carro, combinando os sensores **MQ-3**, **MQ-135** e **DHT11**.
 
-As decisões do projeto (o que o modelo prevê, a tabela de casos, as regras e o caminho) estão resumidas em `../docs/decisoes_projeto_ml.pdf`.
+O passo a passo da coleta, do treino e do MQTT está no [README do repositório](../README.md). As decisões antigas estão em `../docs/decisoes_projeto_ml.pdf` (esse PDF ainda descreve três classes; vale a tabela abaixo).
 
 ## O que o modelo prevê
 
@@ -171,7 +171,7 @@ Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste
 2. Coletar as duas classes: quem bebeu (`sob_efeito`) e quem não bebeu, incluindo perfume e álcool em gel (`sem_efeito`).
 3. Análise exploratória em `notebooks/01_eda.ipynb` e revisão das features e dos tempos do protocolo.
 4. Registrar os experimentos no MLflow.
-5. Quando as leituras chegarem por MQTT e forem gravadas no banco, ler as sessões de lá (no lugar dos CSVs) e orquestrar `prepare` e `train` no Airflow. O formato das leituras continua o mesmo do firmware.
+5. As leituras ao vivo entram pelo MQTT em `services/`: o worker grava no Postgres e o servidor do modelo espera `models/sob_efeito.joblib`. Quando esse arquivo existir, ele classifica com o mesmo `predict` daqui. Airflow e a leitura do treino direto do banco ainda não existem.
 
 ## Segurança
 

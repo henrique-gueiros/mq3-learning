@@ -29,6 +29,10 @@ const int PINO_DHT = 4;
 const unsigned long INTERVALO_DHT_MS = 2000;
 const unsigned long INTERVALO_LEITURA_MS = 1000;
 const int MARGEM = 80;
+// Abaixo disto o LittleFS desta placa nao devolve "disco cheio":
+// reinicia com IntegerDivideByZero ao alocar um bloco. A reserva
+// fica livre apagando os CSVs mais antigos.
+const size_t RESERVA_CSV_BYTES = 12 * 1024;
 
 const float TENSAO_CIRCUITO_MV = 5000.0f;
 const float RAZAO_AR_LIMPO = 60.0f;
@@ -40,11 +44,15 @@ struct Leitura {
   unsigned long tMs;
   int mq3;
   float ppm;
+  float rs;
+  float rsRsAr;
   int mq135;
   int mq135Mv;
   float temperatura;
   float umidade;
   bool alcool;
+  float tensaoAtualMv;
+  float tensaoReferenciaMv;
 };
 
 int referencia = 0;
@@ -59,16 +67,16 @@ char arquivoCsv[28] = "/leituras_1.csv";
 
 DHT dht(PINO_DHT, DHT11);
 
-void escreverCampoFloat(Print &saida, float valor) {
+void escreverCampoFloat(Print &saida, float valor, int casas = 1) {
   if (isnan(valor)) {
     return;
   }
-  saida.print(valor, 1);
+  saida.print(valor, casas);
 }
 
 void escreverCabecalho(Print &saida) {
   saida.println(
-      "amostra,t_ms,mq3_raw,ppm,mq135_raw,mq135_mv,temperature_c,humidity_pct,alcool");
+      "amostra,t_ms,mq3_raw,ppm,rs,rs_rsar,mq135_raw,mq135_mv,temperature_c,humidity_pct,alcool,tensao_atual_mv,tensao_referencia_mv");
 }
 
 void escreverLinha(Print &saida, unsigned long numero, const Leitura &amostra) {
@@ -80,6 +88,10 @@ void escreverLinha(Print &saida, unsigned long numero, const Leitura &amostra) {
   saida.print(',');
   saida.print(amostra.ppm, 1);
   saida.print(',');
+  escreverCampoFloat(saida, amostra.rs, 2);
+  saida.print(',');
+  escreverCampoFloat(saida, amostra.rsRsAr, 2);
+  saida.print(',');
   saida.print(amostra.mq135);
   saida.print(',');
   saida.print(amostra.mq135Mv);
@@ -88,7 +100,92 @@ void escreverLinha(Print &saida, unsigned long numero, const Leitura &amostra) {
   saida.print(',');
   escreverCampoFloat(saida, amostra.umidade);
   saida.print(',');
-  saida.println(amostra.alcool ? 1 : 0);
+  saida.print(amostra.alcool ? 1 : 0);
+  saida.print(',');
+  saida.print(amostra.tensaoAtualMv, 2);
+  saida.print(',');
+  saida.println(amostra.tensaoReferenciaMv, 2);
+}
+
+size_t espacoLivreCsv() {
+  size_t total = LittleFS.totalBytes();
+  size_t usado = LittleFS.usedBytes();
+  if (total == 0 || usado >= total) {
+    return 0;
+  }
+  return total - usado;
+}
+
+bool apagarCsvMaisAntigo() {
+  char caminho[28];
+  for (int numero = 1; numero < 10000; numero++) {
+    snprintf(caminho, sizeof(caminho), "/leituras_%d.csv", numero);
+    if (strcmp(caminho, arquivoCsv) == 0 || !LittleFS.exists(caminho)) {
+      continue;
+    }
+    if (!LittleFS.remove(caminho)) {
+      Serial.print("Falha ao apagar ");
+      Serial.println(caminho);
+      return false;
+    }
+    Serial.print("CSV antigo removido: ");
+    Serial.println(caminho);
+    return true;
+  }
+  return false;
+}
+
+bool formatarLittleFs() {
+  Serial.println("LittleFS sem bloco livre: formatando a particao");
+  LittleFS.end();
+  bool formatou = LittleFS.format();
+  sistemaArquivosOk = formatou && LittleFS.begin(true);
+  if (!sistemaArquivosOk) {
+    Serial.println("Sem sistema de arquivos: o CSV sai so no monitor");
+    return false;
+  }
+  Serial.println("LittleFS formatado");
+  return true;
+}
+
+// true se a particao foi formatada e o nome do CSV precisa ser escolhido de novo.
+bool liberarEspacoCsv(bool podeFormatar) {
+  if (!sistemaArquivosOk) {
+    return false;
+  }
+  size_t livre = espacoLivreCsv();
+  if (livre >= RESERVA_CSV_BYTES) {
+    return false;
+  }
+  Serial.print("Espaco livre no LittleFS: ");
+  Serial.println(livre);
+
+  // Sem um bloco inteiro, apagar um CSV tambem aloca e reinicia a placa.
+  if (livre < 4096) {
+    if (podeFormatar) {
+      return formatarLittleFs();
+    }
+    sistemaArquivosOk = false;
+    Serial.println("Sem espaco no LittleFS: o CSV sai so no monitor");
+    return false;
+  }
+
+  int removidos = 0;
+  while (espacoLivreCsv() < RESERVA_CSV_BYTES && removidos < 200) {
+    if (espacoLivreCsv() < 4096 || !apagarCsvMaisAntigo()) {
+      break;
+    }
+    removidos++;
+  }
+  if (espacoLivreCsv() >= RESERVA_CSV_BYTES) {
+    return false;
+  }
+  if (podeFormatar) {
+    return formatarLittleFs();
+  }
+  sistemaArquivosOk = false;
+  Serial.println("Sem espaco no LittleFS: o CSV sai so no monitor");
+  return false;
 }
 
 void escolherCsvNovo() {
@@ -111,6 +208,9 @@ void escolherCsvNovo() {
 void iniciarCsv() {
   proximaAmostra = 1;
   escolherCsvNovo();
+  if (liberarEspacoCsv(true)) {
+    escolherCsvNovo();
+  }
   if (!sistemaArquivosOk) {
     return;
   }
@@ -125,6 +225,7 @@ void iniciarCsv() {
 }
 
 void acrescentarCsv(unsigned long numero, const Leitura &amostra) {
+  liberarEspacoCsv(false);
   if (!sistemaArquivosOk) {
     return;
   }
@@ -137,19 +238,35 @@ void acrescentarCsv(unsigned long numero, const Leitura &amostra) {
   arquivo.close();
 }
 
-float estimarPpm(float tensaoMv, float tensaoReferenciaMv) {
+float estimarPpm(float tensaoMv, float tensaoReferenciaMv, float &rs, float &rsRsAr) {
+  rs = NAN;
+  rsRsAr = NAN;
   if (tensaoMv <= 0.0f || tensaoReferenciaMv <= 0.0f ||
       tensaoMv >= TENSAO_CIRCUITO_MV || tensaoReferenciaMv >= TENSAO_CIRCUITO_MV) {
     return 0.0f;
   }
 
-  float rs = (TENSAO_CIRCUITO_MV / tensaoMv) - 1.0f;
+  float rsCalculado = (TENSAO_CIRCUITO_MV / tensaoMv) - 1.0f;
   float rsAr = (TENSAO_CIRCUITO_MV / tensaoReferenciaMv) - 1.0f;
-  if (rs <= 0.0f || rsAr <= 0.0f) {
+  if (rsCalculado <= 0.0f || rsAr <= 0.0f) {
     return 0.0f;
   }
+  rs = rsCalculado;
+  rsRsAr = rs / rsAr;
 
-  float razao = RAZAO_AR_LIMPO * (rs / rsAr);
+  Serial.print("Tensao atual: ");
+  Serial.println(tensaoMv);
+
+  Serial.print("Tensao referencia: ");
+  Serial.println(tensaoReferenciaMv);
+
+  Serial.print("Rs: ");
+  Serial.println(rs, 2);
+
+  Serial.print("Rs/RsAr: ");
+  Serial.println(rsRsAr, 2);
+
+  float razao = RAZAO_AR_LIMPO * rsRsAr;
   float mgPorL = CURVA_A * powf(razao, CURVA_B);
   if (isnan(mgPorL) || isinf(mgPorL) || mgPorL < 0.0f) {
     return 0.0f;
@@ -197,7 +314,10 @@ void loop() {
   }
 
   int leitura = analogRead(PINO_SENSOR);
-  float ppm = estimarPpm(analogReadMilliVolts(PINO_SENSOR), tensaoArLimpoMv);
+  float rs = NAN;
+  float rsRsAr = NAN;
+  int tensaoAtualMv = analogReadMilliVolts(PINO_SENSOR);
+  float ppm = estimarPpm(tensaoAtualMv, tensaoArLimpoMv, rs, rsRsAr);
   int leituraMq135 = analogRead(PINO_MQ135);
   int mq135Mv = analogReadMilliVolts(PINO_MQ135);
   bool alcool = leitura > (referencia + MARGEM);
@@ -206,11 +326,15 @@ void loop() {
   amostra.tMs = agora;
   amostra.mq3 = leitura;
   amostra.ppm = ppm;
+  amostra.rs = rs;
+  amostra.rsRsAr = rsRsAr;
   amostra.mq135 = leituraMq135;
   amostra.mq135Mv = mq135Mv;
   amostra.temperatura = temperaturaC;
   amostra.umidade = umidadePct;
   amostra.alcool = alcool;
+  amostra.tensaoAtualMv = tensaoAtualMv;
+  amostra.tensaoReferenciaMv = tensaoArLimpoMv;
   acrescentarCsv(proximaAmostra, amostra);
   Serial.print("CSV_LINHA,");
   Serial.print(nomeCsv);

@@ -1,0 +1,14 @@
+FROM python:3.11-slim
+
+# O mesmo conjunto que a inferência do ml/ precisa, sem o Jupyter.
+RUN pip install --no-cache-dir \
+    "numpy>=1.26" \
+    "pandas>=2.1" \
+    "scikit-learn>=1.4" \
+    "paho-mqtt>=2.1" \
+    "psycopg[binary]>=3.2"
+
+WORKDIR /opt/services
+ENV PYTHONPATH=/opt/ml:/opt/services
+
+CMD ["python", "-m", "mq3mqtt.model_server"]
