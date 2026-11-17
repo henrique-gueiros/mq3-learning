@@ -123,7 +123,7 @@ cd services
 source ../ml/.venv/bin/activate
 pip install -r requirements.txt
 python -m mq3mqtt.simulator \
-  --csv ../firmware/leituras.csv \
+  --csv ../esp32-esp8266/leituras.csv \
   --placa bancada \
   --sessao leituras_1.csv \
   --blow-start-s 30 \
@@ -137,7 +137,7 @@ Troque o CSV e os segundos pelos do teste de vocês. O passo a passo do broker, 
 
 | Pasta | Função |
 | --- | --- |
-| `firmware/` | ESP32. Grava o CSV. Ainda não publica MQTT. |
+| `esp32-esp8266/` | ESP32. Grava o CSV. Ainda não publica MQTT. |
 | `ml/` | Validação, recorte, treino e previsão nos arquivos. |
 | `services/` | Mosquitto, Postgres, worker, servidor do modelo e simulador. |
 | `docs/` | Requisitos das disciplinas e o PDF de decisões. |

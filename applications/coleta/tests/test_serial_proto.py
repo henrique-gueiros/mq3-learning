@@ -43,7 +43,7 @@ def test_ida_e_volta_csv():
 
 
 def test_amostra_real_ida_e_volta():
-    linhas = (REPO / "firmware" / "leituras.csv").read_text().splitlines()[1:]
+    linhas = (REPO / "esp32-esp8266" / "leituras.csv").read_text().splitlines()[1:]
     assert linhas
     for linha in linhas:
         leitura = ler_linha(f"CSV_LINHA,leituras_1.csv,{linha}")

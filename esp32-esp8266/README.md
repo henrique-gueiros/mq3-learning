@@ -9,7 +9,7 @@ A mesma linha mostra `ppm`, estimado pela curva do datasheet do MQ-3 (0,4 mg/L â
 Placa configurada: `esp32dev`, framework Arduino.
 
 ```bash
-cd firmware
+cd esp32-esp8266
 pio run          # compila
 pio run -t upload
 pio device monitor

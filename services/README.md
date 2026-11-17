@@ -44,7 +44,7 @@ Em outro terminal, com as dependências instaladas no `ml/.venv`:
 source ../ml/.venv/bin/activate
 pip install -r requirements.txt
 python -m mq3mqtt.simulator \
-  --csv ../firmware/leituras.csv \
+  --csv ../esp32-esp8266/leituras.csv \
   --placa bancada \
   --sessao leituras_1.csv \
   --blow-start-s 40 \
@@ -52,7 +52,7 @@ python -m mq3mqtt.simulator \
   --interval 0
 ```
 
-`--blow-start-s` e `--blow-end-s` são os segundos da sessão em que o sopro começou e terminou, os mesmos do `attempts.csv`. O exemplo acima não afirma nada sobre o conteúdo de `firmware/leituras.csv`; troque os segundos pelos do sopro que vocês anotaram.
+`--blow-start-s` e `--blow-end-s` são os segundos da sessão em que o sopro começou e terminou, os mesmos do `attempts.csv`. O exemplo acima não afirma nada sobre o conteúdo de `esp32-esp8266/leituras.csv`; troque os segundos pelos do sopro que vocês anotaram.
 
 O simulador precisa enxergar o broker em `localhost:1883`. Os containers usam o nome `mosquitto`.
 

@@ -17,7 +17,7 @@ Perfume e álcool em gel **não** são `sob_efeito`. Eles entram na coleta justa
 
 ## Escopo
 
-Este repositório cobre apenas ML e dados. O firmware da ESP32 fica em `../firmware/`. Fora do escopo: o que o carro faz com cada resposta.
+Este repositório cobre apenas ML e dados. O firmware da ESP32 fica em `../esp32-esp8266/`. Fora do escopo: o que o carro faz com cada resposta.
 
 ## Estado atual
 
@@ -26,7 +26,7 @@ O pipeline está pronto e testado e lê diretamente os CSVs gravados pelo firmwa
 | Item | Situação |
 | --- | --- |
 | Leitura de MQ-3, MQ-135 e DHT11 no firmware, com CSV por sessão | Funcionando |
-| Tensão de saída dos MQ e compatibilidade com o ADC do ESP32 | O ADC satura perto de 3,1 V (ver `firmware/README.md`) |
+| Tensão de saída dos MQ e compatibilidade com o ADC do ESP32 | O ADC satura perto de 3,1 V (ver `esp32-esp8266/README.md`) |
 | Protocolo de sopro (tempos das fases) | Proposta inicial; ajustar com os dados reais |
 | Coleta rotulada (sessões + `attempts.csv`) | Em andamento |
 | Coleta das duas classes (bebeu e não bebeu, incluindo perfume e álcool em gel) | Em andamento |

@@ -13,7 +13,7 @@ from src.data_validation import (
 from src.paths import ML_ROOT
 from tests.conftest import make_dataset, make_session
 
-FIRMWARE_SAMPLE = ML_ROOT.parent / "firmware" / "leituras.csv"
+FIRMWARE_SAMPLE = ML_ROOT.parent / "esp32-esp8266" / "leituras.csv"
 
 
 def _attempts() -> pd.DataFrame:

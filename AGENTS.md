@@ -7,13 +7,13 @@ Este arquivo orienta o Cursor, o Claude Code e outros agentes a continuar o proj
 Onde está o resto:
 
 - `ml/README.md`: uso do pipeline de ML (comandos, formato dos dados, como o treino avalia).
-- `firmware/README.md`: firmware da ESP32 e limitações do ADC.
+- `esp32-esp8266/README.md`: firmware da ESP32 e limitações do ADC.
 - `docs/`: requisitos das duas disciplinas. `Projeto-Embarcados_CesarSchool-CSBC.pdf` (Sistemas Embarcados) e `Entregáveis 6ºP - Projeto 2026.2.xlsx` (entregáveis de Machine Learning, coluna CC).
 - `docs/decisoes_projeto_ml.pdf` (versão de 04/11/2026): sensores, tabela de casos, regras e caminho. **Está desatualizado nas classes**: ainda descreve 3 classes (`sem_alcool`, `externo`, `bebida`), duas etapas e as condições `alcohol_cup` e `drink_perfume`. Em 05/11/2026 a equipe passou para a classificação binária da seção 3, que é a que vale e a que o código implementa. O resto do PDF continua válido.
 
 Trabalhe incrementalmente, explique decisões importantes e trate hipóteses experimentais como hipóteses. A equipe está aprendendo; prefira código claro, modular e didático.
 
-Antes de mudanças grandes, inspecione o repositório e preserve o que já existe. O firmware em `firmware/` é mantido por outro integrante: mude-o só quando a tarefa pedir.
+Antes de mudanças grandes, inspecione o repositório e preserve o que já existe. O firmware em `esp32-esp8266/` é mantido por outro integrante: mude-o só quando a tarefa pedir.
 
 ## 2. Contexto
 
@@ -21,14 +21,14 @@ Antes de mudanças grandes, inspecione o repositório e preserve o que já exist
 - Hardware funcionando: **ESP32** (`esp32dev`, Arduino/PlatformIO) com **MQ-3** (GPIO 34), **MQ-135** (GPIO 35) e **DHT11** (GPIO 4). O firmware lê cerca de 1 vez por segundo e grava um CSV por sessão. Ainda não há Wi-Fi nem MQTT no firmware.
 - O que o sistema faz depois de uma detecção (alerta, bloqueio) ainda não foi decidido e não é decisão do modelo.
 - **Só dados coletados pela equipe.** Nada de datasets da internet nem dados sintéticos. Treino e teste vêm das sessões gravadas pelo firmware.
-- O ADC da ESP32 satura perto de 3,1 V; leituras muito altas dos MQ ficam achatadas (ver `firmware/README.md`).
+- O ADC da ESP32 satura perto de 3,1 V; leituras muito altas dos MQ ficam achatadas (ver `esp32-esp8266/README.md`).
 
 ### Datas e regras de Sistemas Embarcados
 
 - **17/11** checkpoint (protótipo, código-fonte, arquitetura, dashboard e protótipo do front-end). **03/12** relatório (modelo CSBC/ABNT2) e repositório. **12/12** apresentação na Mostra TechDesign.
 - Avaliação: funcionamento com MQTT, dashboard em tempo real, relatório, organização do GitHub (README detalhado, commits de todos) e apresentação. Bônus: alertas por e-mail ou mensageiro e comunicação em IPv6.
 - **Uso de IA no relatório só para revisão de texto**, com declaração de uso. Agentes não redigem o relatório; podem revisar texto escrito pela equipe e produzir código, figuras e tabelas de resultados.
-- O PDF sugere a estrutura `/docs`, `/applications`, `/esp32-esp8266`, `/schematics`. O repositório hoje usa `firmware/`, `ml/`, `applications/` e `services/`; renomear ou reorganizar é decisão da equipe, não do agente.
+- O PDF sugere a estrutura `/docs`, `/applications`, `/esp32-esp8266`, `/schematics`. O repositório usa essas pastas (a do firmware se chama `esp32-esp8266/`, renomeada de `firmware/` em 17/11/2026), mais `ml/` e `services/`; reorganizar é decisão da equipe, não do agente.
 
 ## 3. O que o modelo prevê
 
@@ -45,9 +45,9 @@ Perfume, álcool 70% e enxaguante são exemplos de `sem_efeito`: estão na colet
 
 Pronto e testado:
 
-- Firmware lendo os três sensores e gravando CSV por sessão (`firmware/src/main.cpp`, `firmware/monitor/filter_leituras.py`). `firmware/leituras.csv` é a primeira amostra real.
+- Firmware lendo os três sensores e gravando CSV por sessão (`esp32-esp8266/src/main.cpp`, `esp32-esp8266/monitor/filter_leituras.py`). `esp32-esp8266/leituras.csv` é a primeira amostra real.
 - Pipeline de ML em `ml/src/`, que lê esses CSVs sem alterá-los: validação, recorte de cada sopro, features, separação treino/teste por participante, comparação de 4 modelos (baseline, regressão logística, árvore de decisão, Random Forest) em 4 conjuntos de sensores, Grid Search em validação cruzada aninhada por grupo, modelo final e previsão. Comandos em `ml/README.md`.
-- Coleta até o dashboard em `applications/` (uso em `applications/README.md`): ponte serial → MQTT que grava o CSV de sessão e completa o `attempts.csv`, Docker Compose com Mosquitto, PostgreSQL e ingestor, simulador, importador e dashboard versionado para o Grafana Cloud (ligado pelo agente PDC). Testado com a amostra `firmware/leituras.csv`, uma porta serial simulada e um Grafana local; falta testar com a placa e na stack do Grafana Cloud.
+- Coleta até o dashboard em `applications/` (uso em `applications/README.md`): ponte serial → MQTT que grava o CSV de sessão e completa o `attempts.csv`, Docker Compose com Mosquitto, PostgreSQL e ingestor, simulador, importador e dashboard versionado para o Grafana Cloud (ligado pelo agente PDC). Testado com a amostra `esp32-esp8266/leituras.csv`, uma porta serial simulada e um Grafana local; falta testar com a placa e na stack do Grafana Cloud.
 - Servidor do modelo em `services/` (uso em `services/README.md`): Mosquitto, PostgreSQL, simulador de um CSV do firmware, worker que grava no banco e servidor que só classifica quando existir `ml/models/sob_efeito.joblib`, e um Grafana local (`bancada`, só leituras ao vivo e resultado do sopro; MQTT por WebSocket na porta 9001, que não funciona no Grafana Cloud). O scikit-learn é fixo em 1.6.1 em `ml/requirements.txt` e em `services/Dockerfile.model`: o `.joblib` só abre na versão que o gravou. A ESP32 ainda não publica.
 
 `applications/` e `services/` foram feitas em paralelo. Cada uma sobe o próprio broker e o próprio Postgres. As portas 1883 e 5432 coincidem (e a 3000 e a 9001, do Grafana local de `services/`), então as duas stacks não sobem juntas. Na coleta, só `applications/` roda. Unificar os dois fluxos é decisão da equipe.
@@ -153,7 +153,7 @@ Grafana Cloud no plano gratuito: o Grafana não roda no Compose. O agente PDC (s
 AGENTS.md  CLAUDE.md  docker-compose.yml  .env.example
 applications/             # coleta (ponte, ingestor, simulador, importador), db/, mosquitto/, grafana/, pdc/
 docs/                     # requisitos das disciplinas, decisoes_projeto_ml.pdf e superpowers/ (design e plano)
-firmware/                 # ESP32 (PlatformIO); src/main.cpp, monitor/, leituras.csv
+esp32-esp8266/           # ESP32 (PlatformIO); src/main.cpp, monitor/, leituras.csv
 ml/
 ├── data/raw/sessions/    # CSVs do firmware, sem edição (não versionados)
 ├── data/raw/attempts.csv # um sopro por linha (não versionado)

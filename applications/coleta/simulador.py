@@ -1,12 +1,12 @@
 """Simulador: publica um CSV real do firmware no MQTT, como se a placa estivesse ligada.
 
 Serve para desenvolver e demonstrar o dashboard sem a placa. Usa só CSVs
-gravados pela placa (por exemplo ``firmware/leituras.csv``); as rodadas saem
+gravados pela placa (por exemplo ``esp32-esp8266/leituras.csv``); as rodadas saem
 com origem ``simulador`` e ficam fora das comparações por padrão.
 
 Uso (de dentro de ``applications/``)::
 
-    python -m coleta.simulador ../firmware/leituras.csv --caso clean --participante p00 --sopros 20
+    python -m coleta.simulador ../esp32-esp8266/leituras.csv --caso clean --participante p00 --sopros 20
 """
 
 from __future__ import annotations
