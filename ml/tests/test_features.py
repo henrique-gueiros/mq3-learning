@@ -61,8 +61,6 @@ def test_features_of_a_simple_attempt():
     assert row["mq3_recovery_s"] == 2
     assert row["mq135_mq3_rise_ratio"] == pytest.approx(50 / 200)
     assert row["mq3_humidity_peak_lag_s"] == 0
-    assert row["temperature_rise"] == 0
-    assert np.isnan(row["temperature_recovery_s"])
 
 
 def test_blow_start_outside_the_session_is_skipped():
@@ -103,6 +101,11 @@ def test_every_sensor_set_uses_mq3_and_the_full_set_uses_everything():
 
 def test_firmware_columns_derived_from_mq3_are_never_features():
     assert not {"ppm", "alcool", "amostra", "mq135_mv"} & set(all_feature_columns())
+
+
+def test_temperature_is_not_a_feature():
+    # A temperatura não distingue hálito de ambiente e, num carro, varia com o clima.
+    assert not [c for c in all_feature_columns() if c.startswith("temperature")]
 
 
 def test_target_is_only_alcohol_or_not():

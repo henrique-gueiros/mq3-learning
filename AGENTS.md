@@ -71,7 +71,8 @@ Cópias **sem edição** dos CSVs do firmware. Cada arquivo vai do ligar ao rein
 | Coluna | Uso |
 | --- | --- |
 | `t_ms` | Tempo em ms desde a partida (obrigatório) |
-| `mq3_raw`, `mq135_raw`, `temperature_c`, `humidity_pct` | Leituras usadas nas features. O DHT11 fica vazio nos primeiros segundos |
+| `mq3_raw`, `mq135_raw`, `humidity_pct` | Leituras usadas nas features. O DHT11 fica vazio nos primeiros segundos |
+| `temperature_c` | Gravada, mas fora das features (não distingue hálito de ambiente; num carro varia com o clima) |
 | `amostra`, `ppm`, `mq135_mv`, `alcool` | **Nunca usar.** `ppm` e `alcool` são calculados pelo firmware a partir do próprio MQ-3; usá-los como rótulo ou feature ensina a regra do firmware, não o problema |
 
 ### 5.2 Sopros — `ml/data/raw/attempts.csv`

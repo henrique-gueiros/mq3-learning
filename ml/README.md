@@ -82,7 +82,7 @@ O rótulo vem **da condição experimental**, nunca do valor dos sensores. Para 
 
 ## Features por sopro
 
-Para cada sensor (MQ-3, MQ-135, umidade e temperatura): valor antes do sopro, pico, subida, tempo até o pico e tempo de recuperação. Também há a proporção entre as subidas do MQ-135 e do MQ-3 e o atraso entre o pico do MQ-3 e o de umidade. Os detalhes estão em `src/features.py`. Essas features são o ponto de partida e devem ser revistas na análise exploratória.
+Para cada sensor (MQ-3, MQ-135 e umidade; a temperatura é lida, mas não entra nas features): valor antes do sopro, pico, subida, tempo até o pico e tempo de recuperação. Também há a proporção entre as subidas do MQ-135 e do MQ-3 e o atraso entre o pico do MQ-3 e o de umidade. Os detalhes estão em `src/features.py`. Essas features são o ponto de partida e devem ser revistas na análise exploratória.
 
 ## Estrutura
 

@@ -8,7 +8,7 @@ a partir do ``blow_start_s`` cadastrado em ``attempts.csv``:
 - ``after``: os ``AFTER_SECONDS`` depois do sopro (pico e recuperação).
 
 Depois, ``compute_features`` calcula para cada sensor (``mq3``, ``mq135``,
-``humidity``, ``temperature``):
+``humidity``; a temperatura fica de fora porque não distingue hálito de ambiente):
 
 - ``<sensor>_before``: mediana na fase ``before``;
 - ``<sensor>_peak``: máximo nas fases ``blow`` e ``after``;
@@ -41,7 +41,6 @@ SENSORS = {
     "mq3": "mq3_raw",
     "mq135": "mq135_raw",
     "humidity": "humidity_pct",
-    "temperature": "temperature_c",
 }
 _STATS = ("before", "peak", "rise", "peak_time_s", "recovery_s")
 _MIN_RISE = 1e-9
@@ -50,7 +49,6 @@ SENSOR_GROUPS = {
     "mq3": [f"mq3_{s}" for s in _STATS],
     "mq135": [f"mq135_{s}" for s in _STATS] + ["mq135_mq3_rise_ratio"],
     "dht11": [f"humidity_{s}" for s in _STATS]
-    + [f"temperature_{s}" for s in _STATS]
     + ["mq3_humidity_peak_lag_s"],
 }
 
