@@ -1,13 +1,8 @@
 import type { ReactNode } from 'react'
 import { BotaoTema } from '../tema/BotaoTema'
+import { MenuSecoes } from './MenuSecoes'
+import { SECOES } from './secoes'
 import './layout.css'
-
-const LINKS = [
-  { href: '/#ao-vivo', rotulo: 'Ao vivo' },
-  { href: '/#comparacao', rotulo: 'Comparação' },
-  { href: '/#rodadas', rotulo: 'Rodadas' },
-  { href: '/#sopros', rotulo: 'Sopros' },
-]
 
 /** Barra fixa no topo: marca, atalhos para as seções e troca de tema. */
 export function Cabecalho({ direita }: { direita?: ReactNode }) {
@@ -28,7 +23,7 @@ export function Cabecalho({ direita }: { direita?: ReactNode }) {
           <span>Sopro Seguro</span>
         </a>
         <nav className="cabecalho-nav" aria-label="Seções">
-          {LINKS.map((l) => (
+          {SECOES.map((l) => (
             <a key={l.href} href={l.href}>
               {l.rotulo}
             </a>
@@ -37,6 +32,7 @@ export function Cabecalho({ direita }: { direita?: ReactNode }) {
         <div className="cabecalho-acoes">
           {direita}
           <BotaoTema />
+          <MenuSecoes />
         </div>
       </div>
     </header>
