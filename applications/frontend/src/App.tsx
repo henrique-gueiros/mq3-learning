@@ -1,3 +1,10 @@
+import { BarraFiltros } from './analise/BarraFiltros'
+import { useFiltrosDaUrl } from './analise/filtros'
+import { Resumo } from './analise/Resumo'
+import { SecaoComparacao } from './analise/SecaoComparacao'
+import { SecaoRodada } from './analise/SecaoRodada'
+import { SecaoRodadas } from './analise/SecaoRodadas'
+import { SecaoSopros } from './analise/SecaoSopros'
 import { Aviso } from './aovivo/componentes/Aviso'
 import { PainelAoVivo } from './aovivo/componentes/PainelAoVivo'
 import { SeloAoVivo } from './aovivo/componentes/SeloAoVivo'
@@ -8,6 +15,8 @@ import { DesignSystem } from './paginas/DesignSystem'
 
 function TelaPrincipal() {
   const { estado, conexao } = useAoVivo()
+  const [filtros, mudarFiltros] = useFiltrosDaUrl()
+  const propsSecao = { filtros, aoMudarFiltros: mudarFiltros }
   return (
     <>
       <Cabecalho direita={<SeloAoVivo estado={estado} conexao={conexao} />} />
@@ -23,10 +32,14 @@ function TelaPrincipal() {
         >
           <PainelAoVivo estado={estado} />
         </Secao>
-        <Secao id="comparacao" titulo="Comparação entre os casos." descricao="Como cada sensor se comporta em ambiente, bebida, perfume e nos outros casos." />
-        <Secao id="rodadas" titulo="Todas as rodadas juntas." descricao="Uma linha por rodada, colorida pelo caso." />
-        <Secao id="rodada" titulo="Rodada selecionada." descricao="Os três sensores de uma rodada, com as janelas de sopro." />
-        <Secao id="sopros" titulo="Sopros marcados." descricao="Quanto cada sopro fez os sensores subirem." />
+        <div className="analise">
+          <BarraFiltros filtros={filtros} aoMudar={mudarFiltros} />
+          <Resumo filtros={filtros} />
+          <SecaoComparacao {...propsSecao} />
+          <SecaoRodadas {...propsSecao} />
+          <SecaoRodada {...propsSecao} />
+          <SecaoSopros {...propsSecao} />
+        </div>
       </main>
       <Aviso aviso={estado.aviso} />
     </>
