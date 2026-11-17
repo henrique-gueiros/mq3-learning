@@ -14,7 +14,7 @@ export function Cabecalho({ direita }: { direita?: ReactNode }) {
   return (
     <header className="cabecalho">
       <div className="recipiente cabecalho-linha">
-        <a className="marca" href="/" aria-label="MQ-3, início">
+        <a className="marca" href="/" aria-label="Sopro Seguro, início">
           <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden>
             <path
               d="M4 19c3 0 3-7 6-7s3 10 6 10 3-14 6-14 3 11 6 11"
@@ -25,7 +25,7 @@ export function Cabecalho({ direita }: { direita?: ReactNode }) {
               strokeLinejoin="round"
             />
           </svg>
-          <span>MQ-3</span>
+          <span>Sopro Seguro</span>
         </a>
         <nav className="cabecalho-nav" aria-label="Seções">
           {LINKS.map((l) => (

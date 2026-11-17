@@ -1,4 +1,4 @@
-# Plano — Tela única em React (substitui o Grafana)
+# Plano — Tela do Sopro Seguro em React (substitui o Grafana)
 
 Branch: `frontend-react`. Atualizado a cada etapa concluída. Quem pegar a próxima
 etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
@@ -11,14 +11,15 @@ etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
 | 1. API somente leitura + WebSocket no Mosquitto | feita | `30f628e` |
 | 2. Esqueleto do frontend e design system | feita | `fbb53ed` |
 | 3. Seção "Ao vivo" e detector ambiente × sopro | feita | ver `git log` (commit desta etapa) |
-| 4. Seções de análise (painéis do Grafana redesenhados) | **próxima** | |
+| — Nome "Sopro Seguro", ARCHITECTURE.md, roadmap e AGENTS.md por área | feita | ver `git log` |
+| 4. Seções de análise (painéis do Grafana redesenhados) | **próxima** (em ondas, ver abaixo) | |
 | 5. Animações, acabamento e revisão de design | a fazer | |
-| 6. Compose (nginx) e documentação | a fazer | |
+| 6. Compose (nginx) e documentação | a fazer (6a pode começar já) | |
 | 7. Remoção do Grafana | a fazer | |
 
 ## Regras de trabalho (valem para todas as etapas)
 
-1. **Uma etapa por vez**, na ordem da tabela. Uma etapa só termina com testes verdes.
+1. **Uma frente por pessoa ou agente**, seguindo as ondas de "Trabalho em paralelo". Uma frente só termina com testes verdes.
 2. **TDD:** escreva o teste, veja falhar pelo motivo certo, escreva o mínimo para
    passar, refatore. Visual (cor, espaço, animação) não é TDD: confira por screenshot.
 3. **Antes de todo commit:** rodar a revisão de código (skill `code-review` no Claude
@@ -26,9 +27,69 @@ etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
 4. **Ao terminar uma etapa:** atualizar este plano (tabela "Andamento", o que foi
    feito, e o detalhe da próxima etapa) no mesmo commit.
 5. Textos da tela e do código em português. Código simples, com tipos e docstring
-   nas funções públicas (AGENTS.md, seção 8).
-6. `ppm` e `alcool` do firmware **não decidem nada** (AGENTS.md, seção 5.1). O PPM
-   pode ser **mostrado**, nunca usado como regra, rótulo ou feature.
+   nas funções públicas.
+6. `ppm` e `alcool` do firmware **não decidem nada** (AGENTS.md, "Regras invioláveis").
+   O PPM pode ser **mostrado**, nunca usado como regra, rótulo ou feature.
+7. Regras da pasta da tela: `applications/frontend/AGENTS.md`.
+
+## Trabalho em paralelo (worktrees)
+
+As etapas restantes não precisam ser todas em fila. O que trava o paralelismo são
+arquivos compartilhados (`App.tsx`, `package.json`, `docker-compose.yml`, este plano).
+A divisão abaixo dá a cada frente arquivos **só dela**; a base da Onda 1 cria os
+pontos de encaixe para as outras não se tocarem.
+
+```text
+Onda 1 (já)        1A base da análise ─────┐        1B nginx + Compose (6a)        1C menu do celular (5a)
+                                           ▼
+Onda 2 (após 1A)   2A comparação   2B rodadas juntas   2C rodada selecionada   2D sopros
+                                           │
+Onda 3 (após 2)    3A acabamento e revisão de design (5b)   3B e2e da análise + conferência com o Grafana   3C docs (6b)
+                                           │
+Onda 4 (após 3B)   4A remoção do Grafana (7)
+```
+
+| Frente | Etapa | Depende de | Arquivos que só ela toca |
+| --- | --- | --- | --- |
+| **1A base da análise** | 4.1, 4.2, 4.7 | — | `src/api/*`, `src/analise/{filtros,BarraFiltros,Resumo,CartaoGrafico}*`, `src/graficos/GraficoECharts.tsx`, **e** os 4 componentes de seção vazios + a ligação deles no `App.tsx` |
+| **1B nginx + Compose** | 6 (parte 6a) | — | `frontend/Dockerfile`, `frontend/nginx.conf`, `docker-compose.yml`, `.env.example`, `playwright.config.ts` (`PLAYWRIGHT_BASE_URL`) |
+| **1C menu do celular** | 5 (parte 5a) | — | `src/layout/Cabecalho.tsx`, `src/layout/layout.css` |
+| **2A comparação** | 4.3 | 1A | `src/graficos/{distribuicao,heatmap,dispersao}*`, `src/analise/SecaoComparacao*` |
+| **2B rodadas juntas** | 4.4 | 1A | `src/graficos/sobrepostas*`, `src/analise/SecaoRodadas*` |
+| **2C rodada selecionada** | 4.5 | 1A | `src/graficos/rodada*`, `src/analise/SecaoRodada*` |
+| **2D sopros** | 4.6 | 1A | `src/graficos/subida*`, `src/analise/SecaoSopros*` |
+| **3A acabamento** | 5 (parte 5b) | 2A–2D, 1C | toca a tela toda: **uma frente só**, sem paralelo |
+| **3B e2e + conferência** | aceite da 4 | 2A–2D | `e2e/analise.spec.ts` |
+| **3C docs** | 6 (parte 6b) | 1B, 2A–2D | `applications/README.md`, `frontend/README.md`, `ARCHITECTURE.md`, `docs/roadmap.md` |
+| **4A remoção do Grafana** | 7 | 3B | `applications/grafana/`, `pdc/`, compose, `.env.example`, `db/02-leitor.sh` |
+
+Para a Onda 2 não esbarrar:
+- A **1A** registra no `GraficoECharts` todos os módulos do ECharts que a Onda 2 vai usar
+  (`BoxplotChart`, `HeatmapChart`, `ScatterChart`, `LineChart`, `VisualMapComponent`,
+  `DataZoomComponent`, `LegendComponent`, `MarkAreaComponent`, `TooltipComponent`,
+  `GridComponent`, `TitleComponent`) e instala o que faltar no `package.json`.
+- A **1A** deixa no `App.tsx` as quatro seções ligadas a componentes vazios
+  (`SecaoComparacao`, `SecaoRodadas`, `SecaoRodada`, `SecaoSopros`), cada um num arquivo.
+  Cada frente da Onda 2 só preenche o seu.
+- Só quem integra (a pessoa ou o agente orquestrador) mexe neste plano e no CSS global.
+
+**Como abrir uma frente** (pessoa ou agente):
+
+```bash
+git switch frontend-react && git pull
+git worktree add ../sopro-<frente> -b frontend-react/<frente>   # ex.: ../sopro-2a-comparacao
+cd ../sopro-<frente>/applications/frontend && npm install
+npm run dev -- --port 517X   # uma porta por worktree (5174, 5175…)
+```
+
+Ao terminar: testes verdes, `code-review`, um commit, e merge em `frontend-react`
+na ordem das ondas (dentro de uma onda, qualquer ordem). Depois:
+`git worktree remove ../sopro-<frente>`.
+
+Com agentes do Claude Code: um agente por frente com isolamento em worktree, cada um
+recebendo a linha da tabela, a seção da etapa correspondente e as regras acima; o
+orquestrador revisa, faz o merge e atualiza o plano. A Onda 1 roda com 3 agentes ao
+mesmo tempo; a Onda 2, com 4.
 
 ## Como rodar tudo (pré-requisitos de qualquer etapa)
 
@@ -160,7 +221,7 @@ bruto; um CSV editado tem outro SHA-256 e duplicaria a rodada no banco.
 
 ---
 
-## Etapa 4 — Seções de análise (PRÓXIMA)
+## Etapa 4 — Seções de análise (PRÓXIMA; frentes 1A e 2A–2D)
 
 **Objetivo:** as quatro seções abaixo do "Ao vivo" mostram os mesmos gráficos do
 Grafana, com os mesmos filtros, lendo a API. Ao final, dá para comparar com o
@@ -171,6 +232,11 @@ Grafana local e ver os mesmos números.
 e as descrições dos painéis em `applications/grafana/montar_dashboard.py`.
 
 ### 4.1 Acesso à API e filtros
+
+Frente **1A**. Além dos arquivos abaixo, criar os quatro componentes de seção vazios
+(`src/analise/SecaoComparacao.tsx`, `SecaoRodadas.tsx`, `SecaoRodada.tsx`,
+`SecaoSopros.tsx`), ligados no `App.tsx`, e o `src/graficos/GraficoECharts.tsx` com
+todos os módulos do ECharts registrados (ver "Trabalho em paralelo").
 
 Arquivos novos:
 - `src/api/cliente.ts`: `buscar<T>(rota, filtros)` monta a query string (`caso` repetido, `participante`, `janela`, `simulador`) e faz `fetch('/api/...')`; lança erro com a mensagem da API se `!ok`.
@@ -234,7 +300,7 @@ Componente `src/analise/SecaoComparacao.tsx`: grade com o boxplot em largura tot
 
 ---
 
-## Etapa 5 — Animações, acabamento e revisão de design
+## Etapa 5 — Animações, acabamento e revisão de design (frentes 1C e 3A)
 
 Skills: `emil-design-eng`, `animate`, `review-animations`, `impeccable`, `web-design-guidelines`, `vercel-react-best-practices`.
 
@@ -242,21 +308,21 @@ Skills: `emil-design-eng`, `animate`, `review-animations`, `impeccable`, `web-de
 - [ ] Números do ao vivo com tween curto (≤ 200 ms) ao mudar; contagens do resumo idem.
 - [ ] Transição skeleton → gráfico (opacidade), e animação do ECharts ao trocar filtro (`notMerge: false`).
 - [ ] Interações 150–250 ms com `--sair`; `prefers-reduced-motion` desliga tudo (já há a regra global em `index.css`).
-- [ ] Menu das seções no celular (hoje os atalhos somem abaixo de 760 px).
+- [ ] **(5a, frente 1C)** Menu das seções no celular (hoje os atalhos somem abaixo de 760 px): botão no cabeçalho que abre a lista de seções; fecha ao escolher, com Esc e ao tocar fora; foco preso enquanto aberto.
 - [ ] O build avisa bundle > 500 kB (ECharts + mqtt.js): separar com `import()` dinâmico os gráficos de análise e a página `/design-system` (skill `vercel-react-best-practices`, regras de bundle).
 - [ ] Rodar `/impeccable critique` e `/impeccable audit`, `review-animations` e `web-design-guidelines` sobre a tela; corrigir.
 - [ ] Contraste AA de todo texto nos dois temas; foco visível em todos os controles; navegação por teclado.
 - Aceite: screenshots antes/depois anexados ao PR; Lighthouse de acessibilidade ≥ 95.
 
-## Etapa 6 — Compose (nginx) e documentação
+## Etapa 6 — Compose (nginx) e documentação (6a = frente 1B; 6b = frente 3C)
 
 - [ ] `applications/frontend/Dockerfile` multi-stage: `node:22` faz `npm ci && npm run build`; `nginx:1.27-alpine` serve `dist/`.
 - [ ] `applications/frontend/nginx.conf`: `try_files $uri /index.html` (rota `/design-system`), `location /api/ → http://api:8000`, `location /mqtt → http://mosquitto:9001` com `Upgrade`/`Connection` para WebSocket.
 - [ ] `docker-compose.yml`: serviço `frontend` em `127.0.0.1:8080`, `depends_on: api, mosquitto`. Tirar a porta 9001 do host (só o nginx fala com ela) e deixar a 8000 só se ainda for útil para desenvolver.
 - [ ] Teste: `docker compose up -d --build` e o e2e apontado para `http://localhost:8080` (`PLAYWRIGHT_BASE_URL`), com o simulador rodando.
-- [ ] Docs: `applications/frontend/README.md` (como adicionar um gráfico: função pura + teste + componente), `applications/README.md` (a tela substitui o dashboard), `AGENTS.md` seções 4, 6, 7.1, 7.3 e 8.
+- [ ] **(6b)** Docs: `applications/frontend/README.md` (como adicionar um gráfico: função pura + teste + componente), `applications/README.md` (a tela substitui o dashboard), `AGENTS.md` seções 4, 6, 7.1, 7.3 e 8.
 
-## Etapa 7 — Remoção do Grafana (só depois da Etapa 4 conferida)
+## Etapa 7 — Remoção do Grafana (frente 4A, só depois da Etapa 4 conferida)
 
 - [ ] Conferir painel a painel que a tela mostra tudo o que o Grafana mostra.
 - [ ] Apagar `applications/grafana/`, `applications/pdc/`, os serviços `pdc` e `grafana` do compose, as variáveis `GCLOUD_*` e `GRAFANA_*` do `.env.example` e `coleta/tests/test_dashboard.py`.

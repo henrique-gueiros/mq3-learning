@@ -1,4 +1,6 @@
-# Detector de álcool com MQ-3
+# Sopro Seguro
+
+Detector de álcool para carros com machine learning. O mapa do sistema está em [`ARCHITECTURE.md`](ARCHITECTURE.md) e o estado do projeto em [`docs/roadmap.md`](docs/roadmap.md).
 
 Projeto acadêmico para dizer se a pessoa **bebeu** ou **não bebeu**, a partir do MQ-3, do MQ-135 e do DHT11 numa ESP32.
 
