@@ -1,5 +1,7 @@
 # MQTT e servidor do modelo
 
+> Esta pilha usa as mesmas portas (1883, 5432) da coleta em `applications/` e ainda 3000 e 9001 (Grafana local). Não suba as duas ao mesmo tempo. A unificação está planejada para depois da coleta.
+
 O fluxo completo, da coleta ao resultado, está no [README do repositório](../README.md). Aqui ficam o Compose, os tópicos e os comandos.
 
 A ESP32 publica no broker. O servidor do modelo é outro processo, no mesmo Docker Compose, no computador que estiver na mesma rede da placa. Hoje esse computador é o de vocês. A placa não abre conexão com ele.

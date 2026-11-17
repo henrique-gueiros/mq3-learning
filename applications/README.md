@@ -99,6 +99,8 @@ docker stop pg-teste
 
 ## Limitações
 
+- Não suba junto o Compose de `services/` (Henrique): as portas 1883 e 5432
+  coincidem, e o Grafana dele usa 3000 e 9001. Na coleta, só este roda.
 - O Mosquitto aceita conexões sem senha: use só na rede local da coleta.
 - O dashboard só tem dados enquanto o Compose (com o perfil `cloud`) estiver
   rodando em alguma máquina.

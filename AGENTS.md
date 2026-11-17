@@ -48,9 +48,9 @@ Pronto e testado:
 - Firmware lendo os três sensores e gravando CSV por sessão (`firmware/src/main.cpp`, `firmware/monitor/filter_leituras.py`). `firmware/leituras.csv` é a primeira amostra real.
 - Pipeline de ML em `ml/src/`, que lê esses CSVs sem alterá-los: validação, recorte de cada sopro, features, separação treino/teste por participante, comparação de 4 modelos (baseline, regressão logística, árvore de decisão, Random Forest) em 4 conjuntos de sensores, Grid Search em validação cruzada aninhada por grupo, modelo final e previsão. Comandos em `ml/README.md`.
 - Coleta até o dashboard em `applications/` (uso em `applications/README.md`): ponte serial → MQTT que grava o CSV de sessão e completa o `attempts.csv`, Docker Compose com Mosquitto, PostgreSQL e ingestor, simulador, importador e dashboard versionado para o Grafana Cloud (ligado pelo agente PDC). Testado com a amostra `firmware/leituras.csv`, uma porta serial simulada e um Grafana local; falta testar com a placa e na stack do Grafana Cloud.
-- Servidor do modelo em `services/` (uso em `services/README.md`): Mosquitto, PostgreSQL, simulador de um CSV do firmware, worker que grava no banco e servidor que só classifica quando existir `ml/models/sob_efeito.joblib`. A ESP32 ainda não publica.
+- Servidor do modelo em `services/` (uso em `services/README.md`): Mosquitto, PostgreSQL, simulador de um CSV do firmware, worker que grava no banco e servidor que só classifica quando existir `ml/models/sob_efeito.joblib`, e um Grafana local (`bancada`, só leituras ao vivo e resultado do sopro; MQTT por WebSocket na porta 9001, que não funciona no Grafana Cloud). O scikit-learn é fixo em 1.6.1 em `ml/requirements.txt` e em `services/Dockerfile.model`: o `.joblib` só abre na versão que o gravou. A ESP32 ainda não publica.
 
-`applications/` e `services/` foram feitas em paralelo. Cada uma sobe o próprio broker e o próprio Postgres. As portas 1883 e 5432 coincidem, então as duas stacks não sobem juntas. Unificar os dois fluxos é decisão da equipe.
+`applications/` e `services/` foram feitas em paralelo. Cada uma sobe o próprio broker e o próprio Postgres. As portas 1883 e 5432 coincidem (e a 3000 e a 9001, do Grafana local de `services/`), então as duas stacks não sobem juntas. Na coleta, só `applications/` roda. Unificar os dois fluxos é decisão da equipe.
 
 Ainda não existe:
 
