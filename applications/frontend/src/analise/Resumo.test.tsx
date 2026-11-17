@@ -26,9 +26,20 @@ describe('Resumo', () => {
     expect(screen.getByText('Leituras')).toBeInTheDocument()
   })
 
-  it('com a API fora mostra traço, não quebra', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('rede')))
+  it('carregando mostra traço e nenhum erro', () => {
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
     montar()
-    expect(await screen.findAllByText('—')).toHaveLength(2)
+    expect(screen.getAllByText('—')).toHaveLength(2)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('com a API fora mostra traço e o erro, sem confundir com carregando', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({ detail: 'Banco fora do ar.' }) }),
+    )
+    montar()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Banco fora do ar.')
+    expect(screen.getAllByText('—')).toHaveLength(2)
   })
 })

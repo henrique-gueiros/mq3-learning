@@ -23,8 +23,13 @@
 
 .resumo {
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   gap: var(--e-12);
   padding-top: var(--e-8);
+}
+.resumo-erro {
+  color: var(--vermelho);
 }
 
 .cartao-grafico {
