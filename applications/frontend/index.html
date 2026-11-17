@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="escuro">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Detector de álcool com MQ-3, MQ-135 e DHT11: leituras ao vivo e análise das coletas." />
+    <title>MQ-3 — Detector de álcool</title>
+    <script>
+      // aplica o tema salvo antes de pintar, para não piscar o escuro no claro
+      try {
+        var t = localStorage.getItem('mq3-tema')
+        if (t === 'claro' || t === 'escuro') document.documentElement.dataset.theme = t
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

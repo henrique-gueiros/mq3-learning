@@ -1,0 +1,128 @@
+/*
+ * Tokens da tela, tirados do DESIGN.md (Vercel / Geist) desta pasta.
+ * Escuro é o padrão; [data-theme="claro"] no <html> troca para o claro.
+ * Os componentes usam só estas variáveis, nunca cores soltas.
+ */
+
+@font-face {
+  font-family: 'Geist';
+  src: url('./fontes/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('./fontes/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* superfícies: página, cartão, inserção */
+  --pagina: #000000;
+  --cartao: #0a0a0a;
+  --insercao: #111111;
+  --linha: #242424;
+  --linha-forte: #3d3d3d;
+
+  /* texto */
+  --tinta: #ededed;
+  --corpo: #a1a1a1;
+  --mudo: #8f8f8f;
+  --sobre-primaria: #0a0a0a;
+  --primaria: #ededed;
+
+  /* semânticas (escala Geist, versão escura) */
+  --azul: #3291ff;
+  --azul-suave: #0a2a4d;
+  --vermelho: #ff5c5c;
+  --vermelho-suave: #3c0d0e;
+  --ambar: #f5a623;
+  --ambar-suave: #3a2604;
+  --verde: #45dec5;
+
+  /* gradiente da marca: o único elemento decorativo, só em escala grande */
+  --grad-desenvolver-1: #007cf0;
+  --grad-desenvolver-2: #00dfd8;
+  --grad-previa-1: #7928ca;
+  --grad-previa-2: #ff0080;
+  --grad-entrega-1: #ff4d4d;
+  --grad-entrega-2: #f9cb28;
+
+  /* elevação: sombras empilhadas + anel de 1 px */
+  --anel: 0 0 0 1px var(--linha);
+  --sombra-2: var(--anel), 0 1px 1px #00000040, 0 2px 2px #00000060;
+  --sombra-4: var(--anel), 0 2px 2px #00000060, 0 8px 16px -4px #00000080;
+  --sombra-5: var(--anel), 0 1px 1px #00000040, 0 8px 16px -4px #00000080, 0 24px 32px -8px #000000a0;
+
+  /* tipografia */
+  --fonte: 'Geist', Inter, system-ui, -apple-system, sans-serif;
+  --fonte-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* raios */
+  --raio-xs: 4px;
+  --raio-sm: 6px;
+  --raio-md: 8px;
+  --raio-lg: 12px;
+  --raio-xl: 16px;
+  --raio-pilula: 100px;
+
+  /* espaços (base 4 px) */
+  --e-1: 4px;
+  --e-2: 8px;
+  --e-3: 12px;
+  --e-4: 16px;
+  --e-6: 24px;
+  --e-8: 32px;
+  --e-10: 40px;
+  --e-12: 48px;
+  --e-16: 64px;
+  --e-24: 96px;
+
+  --largura: 1400px;
+  --margem: var(--e-6);
+
+  /* movimento */
+  --sair: cubic-bezier(0.23, 1, 0.32, 1);
+  --entrar-sair: cubic-bezier(0.77, 0, 0.175, 1);
+  --rapido: 150ms;
+  --medio: 220ms;
+}
+
+:root[data-theme='claro'] {
+  color-scheme: light;
+
+  --pagina: #fafafa;
+  --cartao: #ffffff;
+  --insercao: #f5f5f5;
+  --linha: #ebebeb;
+  --linha-forte: #a1a1a1;
+
+  --tinta: #171717;
+  --corpo: #4d4d4d;
+  --mudo: #6b6b6b;
+  --sobre-primaria: #ffffff;
+  --primaria: #171717;
+
+  --azul: #0070f3;
+  --azul-suave: #d3e5ff;
+  --vermelho: #c50000;
+  --vermelho-suave: #f7d4d6;
+  --ambar: #ab570a;
+  --ambar-suave: #ffefcf;
+  --verde: #0a7d6b;
+
+  --anel: 0 0 0 1px #00000014;
+  --sombra-2: var(--anel), 0 1px 1px #00000005, 0 2px 2px #0000000a;
+  --sombra-4: var(--anel), 0 2px 2px #0000000a, 0 8px 16px -4px #0000000a;
+  --sombra-5: var(--anel), 0 1px 1px #00000005, 0 8px 16px -4px #0000000a, 0 24px 32px -8px #0000000f;
+}
+
+@media (max-width: 600px) {
+  :root {
+    --margem: var(--e-4);
+  }
+}

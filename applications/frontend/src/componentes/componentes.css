@@ -1,0 +1,220 @@
+/* Componentes base. Só usam os tokens de styles/tokens.css. */
+
+.cartao {
+  background: var(--cartao);
+  border-radius: var(--raio-lg);
+  box-shadow: var(--sombra-2);
+  padding: var(--e-6);
+}
+
+/* Segmentado: trilho inserido, opção ativa elevada */
+.segmentado {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--insercao);
+  border-radius: var(--raio-sm);
+  box-shadow: inset 0 0 0 1px var(--linha);
+}
+.segmentado-opcao {
+  border: 0;
+  background: transparent;
+  height: 26px;
+  padding: 0 var(--e-3);
+  border-radius: var(--raio-xs);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--corpo);
+  cursor: pointer;
+  transition: background-color var(--rapido) var(--sair), color var(--rapido) var(--sair),
+    box-shadow var(--rapido) var(--sair);
+}
+.segmentado-opcao:hover {
+  color: var(--tinta);
+}
+.segmentado-opcao[aria-checked='true'] {
+  background: var(--cartao);
+  color: var(--tinta);
+  box-shadow: var(--sombra-2);
+}
+
+/* Chip: filtro pílula; ligado fica com tinta cheia */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  height: 32px;
+  padding: 0 var(--e-3);
+  border-radius: var(--raio-pilula);
+  border: 1px solid var(--linha);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mudo);
+  cursor: pointer;
+  transition: border-color var(--rapido) var(--sair), color var(--rapido) var(--sair),
+    background-color var(--rapido) var(--sair), transform var(--rapido) var(--sair);
+}
+.chip:hover {
+  color: var(--tinta);
+  border-color: var(--linha-forte);
+}
+.chip:active {
+  transform: scale(0.97);
+}
+.chip[aria-pressed='true'] {
+  color: var(--tinta);
+  background: var(--insercao);
+  border-color: var(--linha-forte);
+}
+.chip-cor {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  opacity: 0.35;
+  transition: opacity var(--rapido) var(--sair);
+}
+.chip[aria-pressed='true'] .chip-cor {
+  opacity: 1;
+}
+
+/* Interruptor */
+.interruptor {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  color: var(--corpo);
+  cursor: pointer;
+}
+.interruptor-trilho {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: var(--raio-pilula);
+  background: var(--linha-forte);
+  transition: background-color var(--medio) var(--sair);
+}
+.interruptor-botao {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--cartao);
+  box-shadow: 0 1px 2px #00000040;
+  transition: transform var(--medio) var(--sair);
+}
+.interruptor[aria-checked='true'] .interruptor-trilho {
+  background: var(--azul);
+}
+.interruptor[aria-checked='true'] .interruptor-botao {
+  transform: translateX(14px);
+}
+
+/* Botão de ícone redondo */
+.botao-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--linha);
+  background: var(--cartao);
+  color: var(--tinta);
+  cursor: pointer;
+  transition: border-color var(--rapido) var(--sair), transform var(--rapido) var(--sair);
+}
+.botao-icone:hover {
+  border-color: var(--linha-forte);
+}
+.botao-icone:active {
+  transform: scale(0.94);
+}
+
+/* Stat */
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-1);
+  min-width: 0;
+}
+.stat-rotulo {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--corpo);
+}
+.stat-valor {
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 500;
+  letter-spacing: -1px;
+  color: var(--tinta);
+  white-space: nowrap;
+}
+.stat[data-destaque] .stat-valor {
+  font-size: 48px;
+  line-height: 52px;
+  letter-spacing: -2px;
+}
+.stat-unidade {
+  margin-left: 4px;
+  font-size: 0.5em;
+  letter-spacing: 0;
+  color: var(--mudo);
+}
+.stat-variacao {
+  font-size: 13px;
+  color: var(--mudo);
+}
+
+/* Selo da placa */
+.selo-placa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  height: 28px;
+  padding: 0 var(--e-3);
+  border-radius: var(--raio-pilula);
+  border: 1px solid var(--linha);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--corpo);
+  white-space: nowrap;
+}
+.selo-ponto {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mudo);
+}
+.selo-placa[data-estado='recebendo'] .selo-ponto {
+  background: var(--verde);
+}
+.selo-placa[data-estado='recebendo'] .selo-ponto::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--verde);
+  animation: pulso 1.6s var(--sair) infinite;
+}
+.selo-placa[data-estado='offline'] .selo-ponto {
+  background: var(--vermelho);
+}
+
+@keyframes pulso {
+  from {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}

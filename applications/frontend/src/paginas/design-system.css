@@ -1,0 +1,71 @@
+.ds-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--e-4);
+}
+.ds-largo {
+  grid-column: 1 / -1;
+}
+.ds-amostras {
+  list-style: none;
+  margin: var(--e-4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--e-2);
+}
+.ds-amostras li {
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+}
+.ds-amostra {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--raio-sm);
+  box-shadow: inset 0 0 0 1px var(--linha-forte);
+  flex: none;
+}
+.ds-gradiente {
+  margin-top: var(--e-4);
+  height: 120px;
+  border-radius: var(--raio-lg);
+  background:
+    radial-gradient(60% 120% at 15% 50%, var(--grad-desenvolver-1), transparent 70%),
+    radial-gradient(50% 120% at 50% 40%, var(--grad-previa-2), transparent 70%),
+    radial-gradient(50% 120% at 85% 60%, var(--grad-entrega-2), transparent 70%),
+    var(--grad-previa-1);
+}
+.ds-tipos {
+  display: grid;
+  gap: var(--e-6);
+}
+.ds-tipo {
+  display: grid;
+  grid-template-columns: 140px 220px 1fr;
+  align-items: baseline;
+  gap: var(--e-4);
+}
+.ds-pilha {
+  margin-top: var(--e-4);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--e-4);
+}
+.ds-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2);
+}
+.ds-stats {
+  margin-top: var(--e-4);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--e-6);
+}
+@media (max-width: 760px) {
+  .ds-tipo {
+    grid-template-columns: 1fr;
+    gap: var(--e-1);
+  }
+}
