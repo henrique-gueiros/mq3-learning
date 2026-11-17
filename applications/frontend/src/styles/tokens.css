@@ -43,6 +43,7 @@
   --ambar: #f5a623;
   --ambar-suave: #3a2604;
   --verde: #45dec5;
+  --rosa: #ff4d94;
 
   /* gradiente da marca: o único elemento decorativo, só em escala grande */
   --grad-desenvolver-1: #007cf0;
@@ -114,6 +115,7 @@
   --ambar: #ab570a;
   --ambar-suave: #ffefcf;
   --verde: #0a7d6b;
+  --rosa: #d6006b;
 
   --anel: 0 0 0 1px #00000014;
   --sombra-2: var(--anel), 0 1px 1px #00000005, 0 2px 2px #0000000a;

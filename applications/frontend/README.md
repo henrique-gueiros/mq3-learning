@@ -24,7 +24,18 @@ O `vite.config.ts` manda `/api` para `127.0.0.1:8000` e `/mqtt` para `127.0.0.1:
 
 ```bash
 npm test           # Vitest: domínio, componentes e transformações dos gráficos
+npm run e2e        # Playwright; o broker MQTT é simulado (e2e/brokerFalso.ts)
 ```
+
+Para ver dados ao vivo sem a placa, rode o simulador de `applications/` (ver `../README.md`).
+
+## Detector ambiente × sopro
+
+A seção "Ao vivo" estima se há alguém soprando no sensor: umidade **e** gás (MQ-135
+ou MQ-3 cru) subindo juntos em relação à linha de base do ambiente. É uma heurística
+para a demonstração, não o modelo de ML, e os limiares (`LIMIARES` em
+`src/aovivo/detector.ts`) são hipótese a revisar com os dados. O `ppm` do firmware é
+só mostrado, nunca usado na decisão.
 
 ## Organização
 
@@ -35,4 +46,7 @@ npm test           # Vitest: domínio, componentes e transformações dos gráfi
 | `src/componentes` | Blocos base: cartão, número, filtros, selo da placa |
 | `src/layout` | Cabeçalho e seções |
 | `src/paginas` | Páginas além da tela principal (`/design-system`) |
+| `src/aovivo` | Seção "Ao vivo": MQTT (`useAoVivo`), estado (`estado.ts`), detector ambiente × sopro (`detector.ts`) e componentes |
+| `src/graficos` | Opções do ECharts como funções puras (testadas) e leitura das cores do tema |
+| `e2e` | Testes ponta a ponta com Playwright |
 | `src/styles` | Tokens e fontes Geist |

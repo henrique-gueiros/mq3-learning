@@ -204,7 +204,8 @@
   background: var(--verde);
   animation: pulso 1.6s var(--sair) infinite;
 }
-.selo-placa[data-estado='offline'] .selo-ponto {
+.selo-placa[data-estado='offline'] .selo-ponto,
+.selo-placa[data-estado='sem-broker'] .selo-ponto {
   background: var(--vermelho);
 }
 

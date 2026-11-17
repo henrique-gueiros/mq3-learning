@@ -1,6 +1,7 @@
-# Plano — Frontend React como tela única do MQ-3
+# Plano — Tela única em React (substitui o Grafana)
 
-Branch: `frontend-react`. Uma etapa por vez; cada uma termina com testes verdes e commit.
+Branch: `frontend-react`. Atualizado a cada etapa concluída. Quem pegar a próxima
+etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
 
 ## Andamento
 
@@ -9,285 +10,256 @@ Branch: `frontend-react`. Uma etapa por vez; cada uma termina com testes verdes 
 | 0. Ferramentas de design (skills + `DESIGN.md`) | feita | — (skills globais em `~/.claude/skills`) |
 | 1. API somente leitura + WebSocket no Mosquitto | feita | `30f628e` |
 | 2. Esqueleto do frontend e design system | feita | `fbb53ed` |
-| 3. Seção "Ao vivo" e detector ambiente × sopro | a fazer | |
-| 4. Seções de análise | a fazer | |
-| 5. Animações e acabamento | a fazer | |
-| 6. Compose e documentação | a fazer | |
+| 3. Seção "Ao vivo" e detector ambiente × sopro | feita | ver `git log` (commit desta etapa) |
+| 4. Seções de análise (painéis do Grafana redesenhados) | **próxima** | |
+| 5. Animações, acabamento e revisão de design | a fazer | |
+| 6. Compose (nginx) e documentação | a fazer | |
 | 7. Remoção do Grafana | a fazer | |
 
-### Mudança depois da aprovação (17/11): calibração do detector
+## Regras de trabalho (valem para todas as etapas)
 
-As 12 rodadas no banco não têm sopro marcado (vieram sem `attempts.csv`), então
-`v_sopros` está vazio e não serve para os limiares iniciais. Além disso, a equipe
-informou que nas sessões de bebida a pessoa soprou sem parar.
+1. **Uma etapa por vez**, na ordem da tabela. Uma etapa só termina com testes verdes.
+2. **TDD:** escreva o teste, veja falhar pelo motivo certo, escreva o mínimo para
+   passar, refatore. Visual (cor, espaço, animação) não é TDD: confira por screenshot.
+3. **Antes de todo commit:** rodar a revisão de código (skill `code-review` no Claude
+   Code) sobre o diff e corrigir o que ela achar de válido.
+4. **Ao terminar uma etapa:** atualizar este plano (tabela "Andamento", o que foi
+   feito, e o detalhe da próxima etapa) no mesmo commit.
+5. Textos da tela e do código em português. Código simples, com tipos e docstring
+   nas funções públicas (AGENTS.md, seção 8).
+6. `ppm` e `alcool` do firmware **não decidem nada** (AGENTS.md, seção 5.1). O PPM
+   pode ser **mostrado**, nunca usado como regra, rótulo ou feature.
 
-**Nova fonte dos limiares:** comparar as rodadas de ambiente (sem sopro) com as de
-bebida inteiras (sopro contínuo). Medido em 17/11, primeiros 20 s × depois de 60 s:
+## Como rodar tudo (pré-requisitos de qualquer etapa)
 
-| Caso | Umidade (%) | MQ-135 | PPM |
-| --- | --- | --- | --- |
-| ambiente (7) | 35–55, estável | 180–530 | ~0,4 |
-| bebida (4) | 49–76 → 71–92 | 326–640 → 519–1063 | 0,40 → 0,87 numa delas |
-| perfume (1) | 57 → 54 | ~1140 o tempo todo | 0,31 → 0,47 |
+```bash
+# raiz do repositório
+cp .env.example .env                 # se ainda não existir; troque as senhas
+docker compose up -d --build         # Mosquitto (1883 e ws 9001), Postgres, ingestor, API (8000)
+python -m coleta.lote                # de applications/, com o ml/.venv ativo: importa os CSVs reais
 
-Isso apoia a regra do detector: umidade **e** gás sobem juntos no sopro, e o perfume
-sobe o gás sem subir a umidade.
+# tela
+cd applications/frontend
+npm install
+npm run dev                          # http://localhost:5173  (/api e /mqtt vão para o Compose)
+npm test                             # Vitest
+npm run e2e                          # Playwright (broker simulado; não precisa do Compose)
 
-Duas rodadas de bebida já começam com umidade alta, então o detector precisa de uma
-base de referência do ambiente quando a sessão começa no meio de um sopro.
+# API
+cd applications
+python -m pytest                     # testes de banco precisam de PG_DSN (ver applications/README.md)
 
-A equipe ainda vai limpar os CSVs de bebida e perfume. Recomendação: marcar o trecho
-válido (`blow_start_s`/`blow_end_s` no `attempts.csv`) em vez de editar o bruto. Um
-CSV editado tem outro SHA-256 e duplicaria a rodada no banco.
+# leituras ao vivo sem a placa (de applications/, com o ml/.venv ativo)
+python -m coleta.simulador ../ml/data/raw/sessions/2026-11-12_equipe_drink_4.csv \
+  --caso drink --participante p00 --intervalo 0.25 --sopros 20
+```
 
-## Contexto
+O simulador grava no banco como `origem = 'simulador'`. A análise deixa essas rodadas
+de fora por padrão (interruptor "incluir simulador").
 
-Hoje a visualização da coleta é o dashboard do Grafana (`applications/grafana/`). Os gráficos e as variáveis dele estão bons, mas o visual está feio, e ele depende do PDC e do Grafana Cloud. A equipe quer uma **tela única** em React, dentro de `applications/`, para quem visita o projeto (checkpoint, Mostra TechDesign). Essa tela mostra:
+## Contexto e decisões
 
-1. a coleta **ao vivo**, com as leituras chegando da placa (hoje, da ponte serial ou do simulador) por MQTT;
-2. os **gráficos de análise de todas as coletas**, os mesmos tipos e variáveis do Grafana, com um design novo e animado.
+O dashboard do Grafana (`applications/grafana/`) tem bons gráficos e variáveis, mas o
+visual é fraco e depende do PDC/Grafana Cloud. A equipe quer **uma tela só**, em React,
+para todo visitante (checkpoint, Mostra TechDesign), com:
 
-ML fica de fora por enquanto: nada de `resultado` nem de veredito na tela.
+1. a coleta **ao vivo** (leituras chegando por MQTT);
+2. os **gráficos de análise de todas as coletas**, os mesmos tipos e variáveis do
+   Grafana, com design novo.
 
-Decisões tomadas com o usuário:
-
-- React, dentro de `applications/`.
-- Design system **Vercel / Geist**, do awesome-design-md.
-- Tema escuro por padrão, com troca para o claro.
-- O Grafana fica até o React cobrir todos os painéis e sai na última etapa.
-
-## Arquitetura
+Decisões: React em `applications/frontend`; design system **Vercel/Geist**
+(`applications/frontend/DESIGN.md`); **escuro por padrão** com troca para o claro;
+ML fora por enquanto; o Grafana só sai na Etapa 7.
 
 ```
 ESP32 / ponte / simulador ──MQTT──▶ Mosquitto ──▶ ingestor ──▶ PostgreSQL (views)
                                        │ ws:9001                        │
                                        ▼                                ▼
-                         navegador (mqtt.js)  ◀── nginx ──▶  API FastAPI (somente leitura)
-                                  └──────── frontend React (mesma origem) ────────┘
+                         navegador (mqtt.js)              API FastAPI (somente leitura, :8000)
+                                  └──── tela React: /mqtt e /api na mesma origem ────┘
 ```
 
-- **Ao vivo:** o navegador assina o Mosquitto por WebSocket. O nginx do frontend faz proxy de `/mqtt` → `mosquitto:9001` e de `/api` → `api:8000`. Tudo sai de uma porta só, sem CORS.
-- **Análise:** uma API FastAPI fina roda as mesmas consultas do Grafana, com parâmetros e sem concatenar texto, usando um papel só de leitura.
+Em desenvolvimento o Vite faz o proxy de `/mqtt` e `/api`; na Etapa 6 um nginx faz o mesmo.
 
-## Como implementar: TDD
+## O que já existe (Etapas 0–3)
 
-O TDD é recomendado aqui. Cada etapa segue vermelho → verde → refatorar: o teste é escrito primeiro, falha pelo motivo certo, e só então vem o código mínimo para passar. Um commit por ciclo concluído. A disciplina vale onde o comportamento é verificável:
+### API — `applications/api/`
 
-| Camada | Teste primeiro com | Exemplos de casos escritos antes do código |
+- `consultas.py`: uma função por gráfico. Os filtros (`Filtros`: casos,
+  participantes, janela `arquivo|sopro`, simulador) viram parâmetros do psycopg.
+  O SQL de origem é o de `applications/grafana/montar_dashboard.py`.
+- `app.py`: rotas FastAPI. Documentação em http://localhost:8000/api/docs.
+
+| Rota | Devolve | Painel do Grafana |
 | --- | --- | --- |
-| API (`applications/api`) | pytest + banco temporário (`integracao`) | filtro por caso; simulador excluído por padrão; janela `sopro` só pega `em_sopro`; heatmap sem `clean` devolve vazio; parâmetro inválido → 422 |
-| Domínio do front (`src/dominio`, `src/graficos`, `src/aovivo`) | Vitest | detector (ambiente estável, deriva lenta, só gás, umidade+gás, volta à base); faixas de sopro; percentis → boxplot; ordem e cor dos casos; escala do heatmap; parser das mensagens MQTT; buffer circular |
-| Componentes | Vitest + Testing Library | Stat mostra a variação em relação à base; card de estado troca de texto; estados de carregando, vazio e erro; filtros vão para a URL |
-| Ponta a ponta | Playwright | com o simulador rodando, o gráfico ao vivo recebe pontos e o estado muda para "sopro detectado" |
+| `GET /api/filtros` | casos, participantes, rodadas (`id`, `caso`, `rotulo`) | variáveis |
+| `GET /api/resumo` | `placa` (recebendo/parada), `rodadas`, `leituras` | 3 indicadores do topo |
+| `GET /api/distribuicao` | por caso: `n` e `{p5,p25,p50,p75,p95,media}` de `mq3`, `mq135`, `umid` | boxplot |
+| `GET /api/heatmap` | por caso (sem `clean`): % de `mq3`, `mq135`, `umid` em relação ao `clean` | heatmap |
+| `GET /api/dispersao` | até 400 pontos por caso: `caso, mq3_raw, mq135_raw` | MQ-3 × MQ-135 |
+| `GET /api/sobrepostas` | por rodada: `pontos` = `[tempo_s, umidade, mq135, ppm]` | rodadas sobrepostas |
+| `GET /api/rodadas/{id}/leituras` | `caso` e pontos `tempo_s, t_ms, mq3_raw, mq135_raw, humidity_pct, ppm, em_sopro` | rodada selecionada |
+| `GET /api/sopros` | `caso, subida_mq3, subida_mq135` | subida por sopro |
+| `GET /api/rodadas-sem-sopro` | `rodada_id, caso, participante, arquivo, inicio` | tabela |
 
-O visual (cores, espaçamento, animação) não se testa por TDD. Ele é revisado com screenshots e com as skills de design na Etapa 5. Os gráficos ECharts são testados pelas funções que montam as `options`, não pelo canvas.
+Filtros na query string: `?caso=drink&caso=perfume&participante=p01&janela=sopro&simulador=true`.
 
-## Etapa 0 — Ferramentas de design (antes do código)
+### Tela — `applications/frontend/`
 
-Feita: todas foram instaladas com `npx skills add <repo> -g -a claude-code -s <skill>` (globais, em `~/.claude/skills`). Referência das fontes:
-
-| Skill | Comando |
+| Pasta | O quê |
 | --- | --- |
-| frontend-design | já instalada |
-| vercel-react-best-practices + web-design-guidelines | `npx skills add vercel-labs/agent-skills` (escolher só essas duas) |
-| Emil Kowalski (animações) | `npx skills@latest add emilkowalski/skills` |
-| impeccable | `/plugin marketplace add pbakaus/impeccable` → `/plugin` → instalar; depois `/impeccable init` |
-| ui-ux-pro-max | `/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill` e `/plugin install ui-ux-pro-max@ui-ux-pro-max-skill` |
-| awesome-design-md | não é skill: copiar o `DESIGN.md` da Vercel (getdesign.md/vercel.com/design-md ou a pasta `design-md/vercel` do repo VoltAgent/awesome-design-md) para `applications/frontend/DESIGN.md` |
+| `src/styles/tokens.css` | tokens do DESIGN.md (cores, sombras, raios, espaços), escuro padrão e `[data-theme='claro']` |
+| `src/dominio` | `casos.ts` (nome, cor por tema, ordem), `formato.ts` (números pt-BR), `variacao.ts` |
+| `src/tema` | `TemaProvider` + `BotaoTema` (guarda em localStorage, View Transitions) |
+| `src/componentes` | `Cartao`, `Stat`, `SeloPlaca`, `Segmentado`, `Chip`, `Interruptor` |
+| `src/layout` | `Cabecalho` (âncoras + selo + tema), `Secao` (título com ponto final + descrição) |
+| `src/paginas/DesignSystem.tsx` | `/design-system`: referência viva dos tokens e componentes |
+| `src/aovivo` | MQTT, estado, detector e componentes da seção "Ao vivo" (abaixo) |
+| `src/graficos` | `aoVivo.ts` (opções do ECharts, testadas), `temaEcharts.ts` (lê os tokens) |
+| `e2e/` | Playwright com broker MQTT falso (`brokerFalso.ts`) |
 
-Depois de instalar, reiniciar a sessão para as skills carregarem.
+### Seção "Ao vivo" (Etapa 3)
 
-## Etapa 1 — Infra: WebSocket no Mosquitto e API de leitura
+- `aovivo/mensagens.ts`: tipos e `parsearMensagem` (formato de `applications/coleta/mensagens.py`; descarta `alcool` e `mq135_mv`).
+- `aovivo/estado.ts`: `reduzir(estado, mensagem, agora)`, puro. Segue **uma placa**
+  (a primeira com leituras; outra assume após 10 s de silêncio), guarda rodada e status
+  retidos por placa, eventos pendentes por rodada, 5 min de leituras, trechos de
+  estado do detector e o aviso atual. Ignora leituras repetidas e atrasadas.
+- `aovivo/detector.ts`: heurística ambiente × sopro (não é ML), estados
+  `calibrando → ambiente → sopro → recuperando`.
+  - Base: mediana dos últimos 60 s de ambiente (não aprende o sopro).
+  - Sopro: umidade **e** (MQ-135 **ou** MQ-3 cru) acima da base nos últimos 5 s, por 2 leituras seguidas.
+  - Limiares (`LIMIARES`, **hipótese**): subida umid 8 pts, MQ-135 120, MQ-3 300; tolerância de volta 3 / 60 / 150; referência provisória umid 55, MQ-135 400, MQ-3 900 (só na 1ª calibração, para sessão que já começa num sopro); recuperação máx. 120 s; sopro máx. 5 min.
+- `aovivo/useAoVivo.ts`: conecta `ws(s)://<host>/mqtt` com mqtt.js e assina `mq3/+/{rodada,leituras,eventos,status}`.
+- Componentes: `CartaoEstado` (estado em letra grande; o gradiente da marca "respira" no sopro — único elemento decorativo da tela), `PainelAoVivo` (3 números com variação sobre a base, dados da rodada, gráfico, legenda), `GraficoAoVivo` (PPM, MQ-135 e umidade empilhados, 3 min, base tracejada, faixas de sopro/recuperação, sopros marcados em contorno), `Aviso` (toast), `SeloAoVivo` (relógio próprio de 1 s).
 
-- `applications/mosquitto/mosquitto.conf`: adicionar `listener 9001` + `protocol websockets`.
-  - O modelo é `services/mosquitto/mosquitto.conf`, que já tem esse listener.
-  - Continua anônimo; a limitação já está registrada no comentário.
-- Nova pasta `applications/api/` (FastAPI + psycopg, imagem própria como o ingestor).
-  - Conecta com o papel somente leitura criado por `applications/db/02-leitor.sh` (`grafana_leitor`; renomear para `leitor` na Etapa 7).
-  - Os filtros comuns são query params validados: `caso[]`, `participante[]`, `janela=arquivo|sopro`, `simulador=bool`. Eles substituem os fragmentos `SIMULADOR`, `SO_RODADAS_ESCOLHIDAS` e `LEITURAS_ESCOLHIDAS` de `applications/grafana/montar_dashboard.py`, que é a fonte da verdade do SQL a portar.
-  - Endpoints (um por painel do Grafana):
-    - `GET /api/filtros`: casos, participantes e rodadas (id + rótulo "caso · participante · DD/MM HH:MI").
-    - `GET /api/resumo`: situação da placa (recebendo/parada pelo `max(recebido_em)`), total de rodadas e total de leituras.
-    - `GET /api/distribuicao`: p5/p25/p50/p75/p95/média por caso de MQ-3, MQ-135 e umidade (boxplot).
-    - `GET /api/heatmap`: % de diferença da média de cada caso em relação ao `clean`.
-    - `GET /api/dispersao`: amostra fixa de até 400 pontos por caso (MQ-3 × MQ-135), com `md5` para ser repetível.
-    - `GET /api/sobrepostas`: `rodada, caso, tempo_s, humidity_pct, mq135_raw, ppm`.
-    - `GET /api/rodadas/{id}/leituras`: `tempo_s, mq3_raw, mq135_raw, humidity_pct, em_sopro, caso`.
-    - `GET /api/sopros`: subidas de MQ-3 e MQ-135 por sopro (`v_sopros`).
-    - `GET /api/rodadas-sem-sopro`: tabela a partir de `v_rodadas_sem_sopro`.
-  - Testes em pytest com o marcador `integracao`, reaproveitando o fixture de banco temporário de `applications/coleta/tests/conftest.py`. Cobrem os filtros, a exclusão do simulador e o heatmap sem `clean` (resposta vazia, sem erro).
+**Avaliação do detector nas sessões reais (17/11, rodadas fora do simulador):**
 
-## Etapa 2 — Esqueleto do frontend e design system
+| Caso | Sessões | Resultado |
+| --- | --- | --- |
+| ambiente | 7 | 0 disparos em 6; 1 disparo em `6f3dbd6d` aos 942 s (umidade 50→67%, MQ-135 466→1004): parece sopro real dentro da sessão |
+| bebida | 4 | sopro detectado em todas (42–66% do tempo em "sopro") |
+| perfume | 1 | 0 disparos (gás alto sem umidade) |
 
-`applications/frontend/` com Vite + React + TypeScript:
+**Limitações conhecidas:**
+- Os limiares vêm de 12 sessões sem sopro marcado. Revisar na análise exploratória e quando houver `attempts.csv` com sopros marcados (aí `v_sopros` passa a ser a fonte).
+- Carro já úmido (> ~63%) com gás alto no início da sessão pode mostrar "sopro" por até 120 s, até recalibrar.
+- Sessão de bebida que começa no meio do sopro (base provisória) recalibra após 120 s e passa a tratar aquele ar como ambiente (`32d83bac`: 53% em sopro).
 
-| Peça | Escolha |
-| --- | --- |
-| Gráficos | ECharts via `echarts-for-react`, o mesmo motor do Business Charts; boxplot e heatmap são nativos e a lógica de `paineis/*.js` se porta quase direto |
-| Ao vivo | `mqtt` (mqtt.js) sobre WebSocket |
-| Dados da API | TanStack Query (cache, refetch e estados de carregando/erro) |
-| Animações | Motion (`motion/react`) |
-| Fonte | Geist Sans e Geist Mono (pacote `geist`) |
+**Dados (17/11):** primeiros 20 s × depois de 60 s.
 
-**Tokens** em `src/styles/tokens.css`:
-- Gerados a partir do `DESIGN.md` da Vercel: cores neutras, raios, espaçamentos, sombras e escala tipográfica.
-- Em `:root`, escuro por padrão e claro com `[data-theme="light"]`.
-- Os números usam Geist Mono com `tabular-nums`.
+| Caso | Umidade (%) | MQ-135 | MQ-3 cru | PPM (só exibido) |
+| --- | --- | --- | --- | --- |
+| ambiente (7) | 35–55, estável | 180–530 | 520–1240 | ~0,4 |
+| bebida (4) | 49–76 → 71–92 | 326–640 → 519–1063 | 1100–3000 | 0,40 → 0,87 numa delas |
+| perfume (1) | 57 → 54 | ~1140 | ~2000–2800 | 0,31 → 0,47 |
 
-**Paleta dos casos:**
-- Mantém as cores e os rótulos de `paineis/comum.js` (clean→"ambiente", drink→"bebida" etc.) e a ordem fixa dos casos, centralizadas em `src/dominio/casos.ts`.
-- Validar o contraste no claro e no escuro com a skill `dataviz`.
+A equipe ainda vai limpar os CSVs de bebida e perfume. Recomendação: **marcar** o
+trecho válido (`blow_start_s`/`blow_end_s` no `attempts.csv`) em vez de editar o
+bruto; um CSV editado tem outro SHA-256 e duplicaria a rodada no banco.
 
-**Tema:**
-- Um único `src/graficos/temaEcharts.ts` lê os tokens, então os gráficos acompanham a troca de tema.
-- A troca usa View Transitions quando o navegador suporta.
-- A preferência fica em `localStorage`.
+---
 
-**Página de referência visual:**
-- Rota `/design-system` mostra os tokens, os tipos, as cores dos casos e os componentes base (Card, Stat, Chip, Segmented, Toggle, Badge de status).
-- É o "design system em HTML" vivo da equipe.
+## Etapa 4 — Seções de análise (PRÓXIMA)
 
-## Etapa 3 — Seção "Ao vivo" (topo da tela)
+**Objetivo:** as quatro seções abaixo do "Ao vivo" mostram os mesmos gráficos do
+Grafana, com os mesmos filtros, lendo a API. Ao final, dá para comparar com o
+Grafana local e ver os mesmos números.
 
-Atributos mostrados ao vivo: **PPM, MQ-135 e umidade**. O PPM entra só para visualização. Ele é calculado pelo firmware a partir do MQ-3, então continua fora de rótulos e de features do ML.
+**Referências para portar** (lógica e textos de cada gráfico):
+`applications/grafana/paineis/{distribuicao,variacao,separacao,sobreposicao,rodada,subida}.js`
+e as descrições dos painéis em `applications/grafana/montar_dashboard.py`.
 
-### Recomendação de gráfico: 3 linhas empilhadas com o mesmo eixo de tempo
+### 4.1 Acesso à API e filtros
 
-- **Linha** é o gráfico certo para série temporal contínua. Como as escalas são muito diferentes (PPM, ADC bruto, %), cada atributo ganha a **sua grade**, empilhada e alinhada no tempo. Não usar um gráfico com dois eixos Y, que engana na leitura.
-- Janela deslizante dos **últimos 3 min**, com a linha nova entrando pela direita.
-- Em cada grade:
-  - uma **linha tracejada da linha de base do ambiente**, a mediana móvel das leituras classificadas como ambiente;
-  - uma faixa clara de ±tolerância em volta dela.
+Arquivos novos:
+- `src/api/cliente.ts`: `buscar<T>(rota, filtros)` monta a query string (`caso` repetido, `participante`, `janela`, `simulador`) e faz `fetch('/api/...')`; lança erro com a mensagem da API se `!ok`.
+- `src/api/consultas.ts`: um hook TanStack Query por rota (`useFiltros`, `useResumo`, `useDistribuicao`, `useHeatmap`, `useDispersao`, `useSobrepostas`, `useLeiturasRodada(id)`, `useSopros`, `useRodadasSemSopro`), com tipos espelhando a tabela da API acima. A chave da query inclui os filtros.
+- `src/analise/filtros.ts`: estado dos filtros **na URL** (`?caso=..&janela=..&simulador=1&rodada=..`): `lerFiltros(search)`, `escreverFiltros(filtros)` e o hook `useFiltrosDaUrl()` (usa `history.replaceState`).
+- `src/analise/BarraFiltros.tsx`: fixa abaixo do cabeçalho (`position: sticky; top: 64px`) quando a seção de análise está na tela. Chips de caso (cor do caso, `ordenarCasos`), `Segmentado` "Arquivo inteiro / Só o sopro", `Interruptor` "Incluir simulador". Participante não aparece (como no Grafana).
 
-  Assim quem olha vê na hora quando o sinal sai do normal do carro.
-- **Faixa de estado** no topo do gráfico, do tipo timeline: `ambiente` (neutro), `sopro detectado` (acento), `recuperando` (meio-tom). Os trechos marcados à mão (`sopro_inicio`/`sopro_fim`) aparecem como contorno, para comparar o detector com a marcação.
-- Ponteiro do mouse compartilhado entre as 3 grades.
+Testes primeiro:
+- [ ] `filtros.test.ts`: ida e volta URL ↔ filtros; nenhum caso marcado = todos; janela inválida na URL vira `arquivo`.
+- [ ] `cliente.test.ts` (com `fetch` falso): query string com `caso` repetido; erro da API vira exceção com a mensagem.
+- [ ] `BarraFiltros.test.tsx`: clicar num chip muda a URL; o segmentado troca a janela.
 
-### Detecção ambiente × sopro (heurística, não é ML)
+### 4.2 Resumo (topo da análise)
 
-Fica em `src/aovivo/detectorSopro.ts`, uma função pura testada com Vitest.
+- [ ] `src/analise/Resumo.tsx`: `Stat`s de rodadas e leituras (`/api/resumo`) com os filtros. Teste: mostra os números formatados (`11.941`).
 
-- **Linha de base:** mediana dos últimos 60 s em estado `ambiente`. Ela não é atualizada durante o sopro nem na recuperação, para o carro poder "derivar" devagar sem disparar o detector.
-- **Sopro detectado:** a umidade sobe pelo menos `Δumid` acima da base **e** (PPM **ou** MQ-135) sobe pelo menos `Δgás`, dentro de uma janela de ~5 s. A umidade é o sinal do sopro (ar expirado); o gás é o sinal de álcool ou vapor. A regra exige os dois porque perfume e álcool no ambiente sobem o gás sem subir a umidade.
-- **Estados:** `ambiente` → `sopro detectado` → `recuperando` (até voltar a ±tolerância da base) → `ambiente`. Uma histerese evita que o estado pisque.
-- **Limiares:** ficam num arquivo de configuração (`src/aovivo/limiares.ts`) e são tratados como **hipótese**. O valor inicial vem da comparação ambiente × bebida descrita em "Mudança depois da aprovação". Quando houver sopros marcados, `v_sopros` passa a ser a fonte, e a calibração é revista depois da análise exploratória.
-- **Na tela, o estado aparece como "estimado".** Não é a classificação `sob_efeito`/`sem_efeito`; ela entra quando houver modelo.
+### 4.3 "Comparação entre os casos"
 
-### Dados ao vivo
+Funções puras em `src/graficos/` (testar as `options`, não o canvas), uma por gráfico:
 
-`src/aovivo/useMqtt.ts`:
-- Assina `mq3/+/rodada` (retida), `leituras`, `eventos` e `status` (retida).
-- Guarda as leituras num buffer circular de cerca de 5 min.
-- Monta as janelas marcadas à mão a partir de `sopro_inicio`/`sopro_fim`; sem `sopro_fim`, usa início + 5 s, a mesma regra de `v_janelas_sopro`.
-- Passa as leituras pelo detector.
-- Os tipos de mensagem espelham `applications/coleta/mensagens.py`.
+- [ ] `distribuicao.ts` → **boxplot** em 3 grades lado a lado (MQ-3, MQ-135, Umidade %).
+  - Caixa p25–p75 com mediana, bigodes p5–p95 (`type: 'boxplot'`, dados `[p5,p25,p50,p75,p95]`), losango da média (`scatter`, `symbol: 'diamond'`) com o valor ao lado.
+  - Preenchimento com a cor do caso a 22% e borda na cor cheia.
+  - Tooltip com n, mediana, quartis, percentis e média.
+  - Testes: ordem dos casos; `[p5..p95]` no lugar certo; cor por caso; nome "ambiente" para `clean`.
+- [ ] `heatmap.ts` → **heatmap divergente** casos × sensores, célula = % arredondado.
+  - Escala simétrica ±max(10, |máx|); polos = cor do `clean` (negativo) e do `drink` (positivo), **meio neutro cinza** (regra da skill `dataviz`).
+  - Vazio sem `clean`: mensagem "Precisa de rodadas de ambiente".
+  - Testes: escala mínima 10; valor arredondado; sem dados → vazio.
+- [ ] `dispersao.ts` → **dispersão** MQ-3 (x) × MQ-135 (y), uma série por caso, alfa 0,6, legenda.
 
-### Componentes
+Componente `src/analise/SecaoComparacao.tsx`: grade com o boxplot em largura total; heatmap (≈40%) e dispersão (≈60%) lado a lado; cada gráfico num `Cartao` com título e uma linha de explicação (texto das descrições do Grafana).
 
-- **Card de estado grande:** "Ambiente" / "Sopro detectado" / "Recuperando", com transição animada entre os estados e o tempo no estado atual. É o destaque da tela para a demonstração.
-- **Três Stats** (PPM, MQ-135, umidade): valor atual com tween e a **variação em relação à base** (ex.: `+12,4 %`), colorida quando passa do limiar.
-- **Faixa da rodada:** caso (com a cor do caso), participante, placa e tempo decorrido.
-- **Badge da placa:** online, offline ou sem dados há mais de 10 s, com pulso quando está recebendo.
-- **O gráfico de 3 linhas descrito acima.**
-- **Aviso animado** em `sopro_inicio` marcado, em sopro detectado e em `rodada_fim`.
-- **Estado vazio:** "Aguardando a placa…", com instrução para rodar o simulador.
+### 4.4 "Todas as rodadas juntas"
 
-## Etapa 4 — Seções de análise (os painéis do Grafana redesenhados)
+- [ ] `sobrepostas.ts` → linhas sobrepostas em 3 grades empilhadas (Umidade %, MQ-135, PPM), uma linha por rodada na cor do caso, `sampling: 'lttb'`, `dataZoom` (inside + slider) começando em 0–300 s, ponteiro ligado entre as grades, legenda por caso (não por rodada).
+  - Testes: uma série por rodada × grade; cor pela rodada/caso; zoom inicial 0–300.
 
-**Barra de filtros fixa**, no estado da URL para poder compartilhar o link:
-- casos em chips multiseleção com a cor de cada caso;
-- janela "arquivo / sopro" em controle segmentado;
-- interruptor "incluir simulador" (desligado por padrão);
-- participante escondido, como no Grafana.
+### 4.5 "Rodada selecionada"
 
-**Topo:** cards de resumo (rodadas, leituras), com contagem animada.
+- [ ] Seletor de rodada (`<select>` estilizado ou lista) com os rótulos de `/api/filtros`, guardado na URL (`rodada=`). Padrão: a mais recente.
+- [ ] `rodada.ts` → 3 grades empilhadas (MQ-3, MQ-135, Umidade) na cor do caso, com faixas cinza onde `em_sopro` (sequências contíguas viram `markArea`).
+  - Teste da função `faixasDeSopro(pontos)`: sequências contíguas → `[início, fim]`; sem sopro → `[]`.
 
-Seções, na ordem do Grafana:
+### 4.6 "Sopros marcados"
 
-1. **Comparação entre os casos**
-   - Boxplot com 3 grades (p5–p95, p25–p75, mediana e losango da média).
-   - Heatmap divergente com a cor do `clean`, um neutro e a cor do `drink`, escala ±max(10, |máx|).
-   - Dispersão MQ-3 × MQ-135.
-2. **Todas as rodadas juntas**
-   - Linhas sobrepostas (umidade, MQ-135, PPM).
-   - Amostragem LTTB, eixo compartilhado e zoom inicial de 0–300 s.
-3. **Rodada selecionada**
-   - Seletor de rodada.
-   - 3 grades com as faixas de sopro (`markArea` calculado das sequências de `em_sopro`).
-4. **Sopros marcados**
-   - Dispersão das subidas.
-   - Tabela "rodadas sem sopro marcado".
+- [ ] `subida.ts` → dispersão subida MQ-3 (x) × subida MQ-135 (y), um ponto por sopro, cor do caso. Vazio: "Nenhum sopro marcado. Marque com Enter na ponte ou em attempts.csv."
+- [ ] Tabela "Rodadas sem sopro marcado" (`/api/rodadas-sem-sopro`): caso (com bolinha da cor), participante, arquivo, início (data pt-BR). Cabeçalho em `caption-mono`, linhas com hairline (DESIGN.md, `ex-data-table-cell`).
 
-As transformações de dados viram funções puras em `src/graficos/*.ts`: percentis → séries do boxplot, sequências de `em_sopro` → faixas, ordenação e cor dos casos, escala do heatmap. Elas são portadas de `applications/grafana/paineis/*.js`.
+### 4.7 Estados de cada gráfico
 
-Cada gráfico tem estados de carregando (skeleton), vazio (mensagem, como `semDados`) e erro.
+- [ ] Componente `src/analise/CartaoGrafico.tsx`: título, descrição e o conteúdo; mostra **skeleton** carregando, **mensagem** vazia e **erro** com o texto da API e um botão "Tentar de novo" (`refetch`). Teste dos três estados.
+- [ ] Um componente `GraficoECharts` genérico (o mesmo padrão de `GraficoAoVivo`: registra só os módulos usados e lê as cores com `coresDoTema` num `useEffect`).
 
-## Etapa 5 — Animações e acabamento
+### Critérios de aceite da Etapa 4
 
-Seguir as skills do Emil Kowalski, impeccable e web-design-guidelines:
-- Entrada escalonada das seções ao rolar.
-- Transição entre o skeleton e o gráfico.
-- Interações curtas (150–250 ms, easing ease-out).
-- Números com tween.
-- Pulso de status.
-- Animação dos gráficos ao trocar de filtro, sem refazer tudo.
-- `prefers-reduced-motion` desliga tudo isso.
+- `npm test` e `npm run e2e` verdes; novo e2e: com a rota `/api/*` falsa (`page.route`), as 4 seções renderizam e trocar um chip muda a URL e refaz as consultas.
+- Com o Compose e os CSVs importados, os números do boxplot, heatmap e resumo batem com o Grafana local (`docker compose --profile local up -d`, http://localhost:3000) com os mesmos filtros.
+- Screenshots (escuro e claro, 1280 px e 390 px) sem sobreposição de rótulos.
+- Plano atualizado e revisão de código antes do commit.
 
-Layout e acessibilidade:
-- Navegação por âncoras entre as seções.
-- Responsivo até a largura de celular.
-- Foco visível, contraste AA e textos em português.
+---
 
-Rodar `/impeccable critique` e `audit` e o web-design-guidelines sobre o resultado e corrigir.
+## Etapa 5 — Animações, acabamento e revisão de design
 
-## Etapa 6 — Compose e documentação
+Skills: `emil-design-eng`, `animate`, `review-animations`, `impeccable`, `web-design-guidelines`, `vercel-react-best-practices`.
 
-**`docker-compose.yml`:**
-- Novos serviços `api` e `frontend`. O `frontend` é um build multi-stage: o Node gera o build e um nginx serve os arquivos e faz o proxy de `/api` e `/mqtt`, na porta `127.0.0.1:8080`.
-- Expor 9001 do Mosquitto só para a rede interna; o navegador entra pelo nginx.
-- O que for preciso entra no `.env.example`.
+- [ ] Uma única entrada orquestrada na carga da página (cabeçalho → estado ao vivo → números), nada de fade em cada seção.
+- [ ] Números do ao vivo com tween curto (≤ 200 ms) ao mudar; contagens do resumo idem.
+- [ ] Transição skeleton → gráfico (opacidade), e animação do ECharts ao trocar filtro (`notMerge: false`).
+- [ ] Interações 150–250 ms com `--sair`; `prefers-reduced-motion` desliga tudo (já há a regra global em `index.css`).
+- [ ] Menu das seções no celular (hoje os atalhos somem abaixo de 760 px).
+- [ ] O build avisa bundle > 500 kB (ECharts + mqtt.js): separar com `import()` dinâmico os gráficos de análise e a página `/design-system` (skill `vercel-react-best-practices`, regras de bundle).
+- [ ] Rodar `/impeccable critique` e `/impeccable audit`, `review-animations` e `web-design-guidelines` sobre a tela; corrigir.
+- [ ] Contraste AA de todo texto nos dois temas; foco visível em todos os controles; navegação por teclado.
+- Aceite: screenshots antes/depois anexados ao PR; Lighthouse de acessibilidade ≥ 95.
 
-**Para desenvolver:** o proxy do `vite.config.ts` aponta `/api` e `/mqtt` para a stack local.
+## Etapa 6 — Compose (nginx) e documentação
 
-**Documentação:**
-- `applications/frontend/README.md` (como rodar, arquitetura, como adicionar um gráfico).
-- Atualizar `applications/README.md`.
-- Atualizar `AGENTS.md` nas seções 4, 6, 7.1, 7.3 e 8.
+- [ ] `applications/frontend/Dockerfile` multi-stage: `node:22` faz `npm ci && npm run build`; `nginx:1.27-alpine` serve `dist/`.
+- [ ] `applications/frontend/nginx.conf`: `try_files $uri /index.html` (rota `/design-system`), `location /api/ → http://api:8000`, `location /mqtt → http://mosquitto:9001` com `Upgrade`/`Connection` para WebSocket.
+- [ ] `docker-compose.yml`: serviço `frontend` em `127.0.0.1:8080`, `depends_on: api, mosquitto`. Tirar a porta 9001 do host (só o nginx fala com ela) e deixar a 8000 só se ainda for útil para desenvolver.
+- [ ] Teste: `docker compose up -d --build` e o e2e apontado para `http://localhost:8080` (`PLAYWRIGHT_BASE_URL`), com o simulador rodando.
+- [ ] Docs: `applications/frontend/README.md` (como adicionar um gráfico: função pura + teste + componente), `applications/README.md` (a tela substitui o dashboard), `AGENTS.md` seções 4, 6, 7.1, 7.3 e 8.
 
-## Etapa 7 — Remoção do Grafana (só quando o React cobrir tudo)
+## Etapa 7 — Remoção do Grafana (só depois da Etapa 4 conferida)
 
-1. Conferir, painel a painel, que o React mostra tudo o que o Grafana mostra.
-2. Apagar:
-   - `applications/grafana/` e `applications/pdc/`;
-   - os serviços `pdc` e `grafana` do compose;
-   - as variáveis `GCLOUD_*`, `GRAFANA_*` do `.env.example`;
-   - `coleta/tests/test_dashboard.py`.
-3. Renomear o papel `grafana_leitor` para `leitor` em `02-leitor.sh`, com uma migração em `applications/db/migracoes/`.
-4. Atualizar o `AGENTS.md`: a seção 7.3 passa a descrever o frontend.
-
-O que **não** muda: `services/`, que é o outro fluxo e uma decisão da equipe, e o firmware.
-
-## Arquivos principais
-
-- Novos: `applications/api/`, `applications/frontend/` (`src/aovivo`, `src/graficos`, `src/dominio`, `src/styles`, `DESIGN.md`, `Dockerfile`, `nginx.conf`).
-- Alterados: `applications/mosquitto/mosquitto.conf`, `docker-compose.yml`, `.env.example`, `applications/README.md`, `AGENTS.md`.
-- Referência para portar: `applications/grafana/montar_dashboard.py` (SQL), `applications/grafana/paineis/*.js` (gráficos e cores), `applications/db/01-schema.sql` (views), `applications/coleta/mensagens.py` (payloads).
-
-## Verificação
-
-1. `cd applications && python -m pytest`: a suíte atual continua verde, e os testes da API passam com `PG_DSN`.
-2. `cd applications/frontend && npm test`: Vitest das funções puras e do parser das mensagens MQTT. As funções puras são as faixas de sopro, percentis → boxplot, cor e ordem dos casos, "ambiente" e a escala do heatmap. O **detector** é testado com sequências montadas à mão:
-   - ambiente estável não dispara;
-   - deriva lenta não dispara;
-   - subida só de gás (perfume) não dispara;
-   - umidade + gás dispara;
-   - a volta à base retorna a `ambiente`.
-
-   Depois, conferir o detector contra os sopros marcados das sessões reais: quantos sopros marcados ele achou e quantos falsos disparos fez em trechos de ambiente. Esses números são da heurística, não do modelo.
-3. Ponta a ponta:
-   - `docker compose up -d --build`;
-   - importar CSVs reais (importador ou lote de `applications/`);
-   - rodar `python -m coleta.simulador ../esp32-esp8266/leituras.csv --caso clean --participante p00 --sopros 20`;
-   - abrir `http://localhost:8080` e ver os pontos chegando, o badge "recebendo", a faixa do sopro e os gráficos de análise preenchidos.
-4. Playwright (Chromium): abrir a página com a stack de pé e o simulador rodando, conferir que o gráfico ao vivo recebe pontos e que as seções renderizam. Tirar screenshots no tema escuro e no claro, no desktop e no celular, para revisão visual.
-5. Comparar lado a lado com o Grafana local (`docker compose --profile local up -d`): mesmos números no boxplot, heatmap e contagens com os mesmos filtros. Só depois disso fazer a Etapa 7.
+- [ ] Conferir painel a painel que a tela mostra tudo o que o Grafana mostra.
+- [ ] Apagar `applications/grafana/`, `applications/pdc/`, os serviços `pdc` e `grafana` do compose, as variáveis `GCLOUD_*` e `GRAFANA_*` do `.env.example` e `coleta/tests/test_dashboard.py`.
+- [ ] Renomear o papel `grafana_leitor` para `leitor` em `applications/db/02-leitor.sh` + migração em `applications/db/migracoes/`; atualizar `API_PG_DSN` no compose.
+- [ ] `AGENTS.md` seção 7.3 passa a descrever a tela.
+- Não mexer em `services/` (outro fluxo; decisão da equipe) nem no firmware.

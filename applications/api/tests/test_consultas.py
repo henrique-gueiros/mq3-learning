@@ -93,12 +93,15 @@ def test_sobrepostas_agrupa_os_pontos_por_rodada(pg):
 
 def test_leituras_da_rodada_marcam_o_sopro(pg):
     r = rodada(pg, "drink")
-    leituras(pg, r, [(0, 100, 400, 50.0), (20000, 900, 450, 60.0), (100000, 100, 400, 50.0)])
+    leituras(pg, r, [(0, 100, 400, 50.0), (20000, 900, 450, 60.0, 0.9), (100000, 100, 400, 50.0)])
     sopro(pg, r, 20000)
     resposta = consultas.leituras_rodada(pg, r)
     assert resposta["caso"] == "drink"
     assert [p["em_sopro"] for p in resposta["pontos"]] == [False, True, False]
-    assert resposta["pontos"][1] == {"tempo_s": 20, "mq3_raw": 900, "mq135_raw": 450, "humidity_pct": 60.0, "em_sopro": True}
+    assert resposta["pontos"][1] == {
+        "tempo_s": 20, "t_ms": 20000, "mq3_raw": 900, "mq135_raw": 450, "humidity_pct": 60.0,
+        "ppm": pytest.approx(0.9), "em_sopro": True,
+    }
 
 
 def test_leituras_de_rodada_desconhecida(pg):

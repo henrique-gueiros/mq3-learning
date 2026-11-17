@@ -1,0 +1,220 @@
+.aovivo-grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: var(--e-4);
+}
+
+/* Cartão de estado: o único lugar com o gradiente da marca */
+.estado {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 260px;
+  border-radius: var(--raio-xl);
+  background: var(--cartao);
+  box-shadow: var(--sombra-4);
+}
+.estado-brilho {
+  position: absolute;
+  inset: -30%;
+  z-index: -1;
+  background:
+    radial-gradient(40% 50% at 25% 60%, var(--grad-desenvolver-1), transparent 70%),
+    radial-gradient(40% 50% at 55% 40%, var(--grad-previa-2), transparent 70%),
+    radial-gradient(35% 45% at 80% 65%, var(--grad-entrega-2), transparent 70%);
+  filter: blur(40px);
+  will-change: opacity, transform;
+}
+.estado::after {
+  /* véu para o texto continuar legível sobre o gradiente */
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--cartao) 55%, transparent));
+}
+.estado-conteudo {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--e-8);
+  padding: var(--e-8);
+}
+.estado-texto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+}
+.estado-texto .corpo-lg {
+  color: var(--corpo);
+}
+.estado-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-4);
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.aovivo-numeros {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  border-radius: var(--raio-xl);
+  background: var(--cartao);
+  box-shadow: var(--sombra-2);
+}
+.aovivo-numeros .stat {
+  justify-content: center;
+  padding: var(--e-4) var(--e-6);
+}
+.aovivo-numeros .stat + .stat {
+  border-top: 1px solid var(--linha);
+}
+
+.aovivo-rodada {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-4) var(--e-10);
+  margin: 0;
+  padding: var(--e-2) var(--e-1);
+}
+.aovivo-rodada dd {
+  margin: 2px 0 0;
+  display: flex;
+  align-items: center;
+  gap: var(--e-2);
+  color: var(--tinta);
+}
+.aovivo-cor {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.aovivo-grafico {
+  grid-column: 1 / -1;
+  border-radius: var(--raio-xl);
+  background: var(--cartao);
+  box-shadow: var(--sombra-2);
+  padding: var(--e-4) var(--e-4) var(--e-3);
+}
+.grafico-aovivo {
+  height: 460px;
+}
+.aovivo-legenda {
+  list-style: none;
+  margin: var(--e-2) 0 0;
+  padding: 0 var(--e-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--e-2) var(--e-6);
+}
+.aovivo-legenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+.aovivo-amostra {
+  display: inline-block;
+  width: 16px;
+  height: 10px;
+  border-radius: 2px;
+}
+.aovivo-amostra.linha {
+  height: 2px;
+}
+.aovivo-amostra.tracejada {
+  height: 0;
+  border-top: 1px dashed var(--mudo);
+}
+.aovivo-amostra.faixa-sopro {
+  background: color-mix(in srgb, var(--rosa) 30%, transparent);
+}
+.aovivo-amostra.faixa-recuperando {
+  background: color-mix(in srgb, var(--ambar) 18%, transparent);
+}
+.aovivo-amostra.contorno {
+  border: 1px dashed var(--corpo);
+}
+
+.aovivo-vazio {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--e-3);
+  padding: var(--e-8);
+  border-radius: var(--raio-xl);
+  border: 1px dashed var(--linha-forte);
+}
+.codigo {
+  margin: 0;
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--raio-md);
+  background: var(--insercao);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+@media (max-width: 860px) {
+  .aovivo-grade {
+    grid-template-columns: 1fr;
+  }
+  .aovivo-numeros {
+    grid-template-rows: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .aovivo-numeros .stat {
+    padding: var(--e-4);
+  }
+  .aovivo-numeros .stat + .stat {
+    border-top: 0;
+    border-left: 1px solid var(--linha);
+  }
+  .aovivo-numeros .stat-valor {
+    font-size: 24px;
+    line-height: 32px;
+  }
+  .estado-conteudo {
+    padding: var(--e-6);
+  }
+  .grafico-aovivo {
+    height: 380px;
+  }
+}
+
+.aviso-area {
+  position: fixed;
+  right: var(--margem);
+  bottom: var(--margem);
+  z-index: 20;
+  pointer-events: none;
+}
+.aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--raio-md);
+  background: var(--cartao);
+  box-shadow: var(--sombra-5);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tinta);
+}
+.aviso-ponto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--corpo);
+}
+.aviso[data-tipo='sopro'] .aviso-ponto {
+  background: var(--rosa);
+}
+.aviso[data-tipo='marcacao'] .aviso-ponto {
+  background: var(--azul);
+}

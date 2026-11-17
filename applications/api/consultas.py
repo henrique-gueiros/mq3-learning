@@ -174,7 +174,7 @@ def leituras_rodada(con: psycopg.Connection, rodada_id: str) -> Optional[Dict[st
         return None
     pontos = _linhas(
         con,
-        """select tempo_s, mq3_raw, mq135_raw, humidity_pct, em_sopro
+        """select tempo_s, t_ms, mq3_raw, mq135_raw, humidity_pct, ppm, em_sopro
            from v_leituras where rodada_id::text = %(id)s order by tempo_s""",
         {"id": rodada_id},
     )

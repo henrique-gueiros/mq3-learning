@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useState, type ReactNode } from 'react'
 import { flushSync } from 'react-dom'
+import { semMovimento } from '../graficos/temaEcharts'
 import { lerTema, salvarTema, type Tema } from './tema'
 
 interface ValorTema {
@@ -31,8 +32,7 @@ export function TemaProvider({ children }: { children: ReactNode }) {
       flushSync(() => setTema(proximo))
       salvarTema(armazenamento(), proximo)
     }
-    const semMovimento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    if (document.startViewTransition && !semMovimento) {
+    if (document.startViewTransition && !semMovimento()) {
       document.startViewTransition(trocar)
     } else {
       trocar()

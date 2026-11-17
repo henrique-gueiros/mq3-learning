@@ -21,6 +21,8 @@ describe('SeloPlaca', () => {
     ['recebendo', 'Recebendo'],
     ['parada', 'Sem leituras'],
     ['offline', 'Placa offline'],
+    ['aguardando', 'Aguardando placa'],
+    ['sem-broker', 'Sem conexão'],
   ] as const)('estado %s', (estado, texto) => {
     render(<SeloPlaca estado={estado} />)
     expect(screen.getByRole('status')).toHaveTextContent(texto)

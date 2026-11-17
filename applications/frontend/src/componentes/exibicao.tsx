@@ -35,12 +35,14 @@ export function Stat({
   )
 }
 
-export type EstadoPlaca = 'recebendo' | 'parada' | 'offline'
+export type EstadoPlaca = 'recebendo' | 'parada' | 'offline' | 'aguardando' | 'sem-broker'
 
 const TEXTO_PLACA: Record<EstadoPlaca, string> = {
   recebendo: 'Recebendo',
   parada: 'Sem leituras',
   offline: 'Placa offline',
+  aguardando: 'Aguardando placa',
+  'sem-broker': 'Sem conexão',
 }
 
 /** Situação da placa; o ponto pulsa enquanto chegam leituras. */
