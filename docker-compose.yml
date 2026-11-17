@@ -5,6 +5,8 @@ services:
     image: eclipse-mosquitto:2
     ports:
       - "1883:1883"
+      # WebSocket para o navegador; só no próprio computador (o frontend entra por /mqtt).
+      - "127.0.0.1:9001:9001"
     volumes:
       - ./applications/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto-dados:/mosquitto/data
@@ -40,6 +42,20 @@ services:
         condition: service_healthy
       mosquitto:
         condition: service_started
+    restart: unless-stopped
+
+  # API somente leitura da tela (frontend/). Usa o usuário só leitura do banco.
+  api:
+    build:
+      context: ./applications
+      dockerfile: api/Dockerfile
+    environment:
+      API_PG_DSN: postgresql://grafana_leitor:${GRAFANA_PG_SENHA}@postgres:5432/${POSTGRES_DB}
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   # Túnel de saída até o Grafana Cloud (Private Data Source Connect).

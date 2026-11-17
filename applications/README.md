@@ -14,6 +14,7 @@ simulador ------MQTT-----^          importador ------------> PostgreSQL ──�
 | --- | --- | --- |
 | `coleta.ponte` | notebook (`ml/.venv`) | Lê a serial, grava o CSV de sessão, publica no MQTT e completa o `attempts.csv` |
 | Mosquitto, PostgreSQL, ingestor | Docker Compose | Broker, banco e gravação das mensagens |
+| `api` | Docker Compose (`127.0.0.1:8000`) | API somente leitura com os dados dos gráficos da tela (`api/`) |
 | `pdc` | Docker Compose (perfil `cloud`) | Túnel até o Grafana Cloud |
 | `coleta.simulador` | notebook | Publica um CSV real como se a placa estivesse ligada |
 | `coleta.importador` | notebook | Grava no banco um CSV feito sem a ponte |
@@ -24,7 +25,7 @@ A ponte roda fora do Docker porque o Docker no macOS não enxerga a porta USB.
 
 ```bash
 cd ml && python3 -m venv .venv && source .venv/bin/activate   # se ainda não existir
-pip install -r requirements.txt -r ../applications/coleta/requirements.txt
+pip install -r requirements.txt -r ../applications/coleta/requirements.txt -r ../applications/api/requirements.txt
 cd .. && cp .env.example .env    # troque as senhas
 docker compose up -d --build
 ```
@@ -97,6 +98,20 @@ Abra http://localhost:3000. Usuário `admin`; a senha é `GRAFANA_ADMIN_SENHA` d
 `127.0.0.1`). Os data sources e o dashboard vêm de `grafana/provisioning/` e
 `grafana/dashboards/`, e as edições feitas na interface não são salvas: exporte o
 JSON como descrito em `grafana/README.md`.
+
+## API da tela
+
+A tela em React (em construção, substituirá o Grafana) lê os gráficos de análise
+pela API e as leituras ao vivo direto do Mosquitto, por WebSocket (porta 9001, só
+em `127.0.0.1`). A API roda as mesmas consultas do dashboard do Grafana com o
+usuário só leitura, e os filtros vão na query string:
+
+```bash
+curl 'http://localhost:8000/api/resumo?caso=drink&caso=perfume&janela=sopro'
+```
+
+A lista de rotas está em http://localhost:8000/api/docs. Para rodar fora do
+Docker, de `applications/`: `uvicorn api.app:app --reload`.
 
 ## CSVs já coletados
 
