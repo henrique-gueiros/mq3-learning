@@ -115,7 +115,8 @@ Rodadas com `origem = 'simulador'` ficam fora da análise por padrão.
 | Mosquitto | 1883 (MQTT), 127.0.0.1:9001 (WebSocket) | `docker-compose.yml` |
 | PostgreSQL | 127.0.0.1:5432 | idem |
 | API | 127.0.0.1:8000 | idem |
-| Tela (dev) | 5173 | `npm run dev` em `applications/frontend` |
+| Tela (nginx: serve o build e encaminha `/api` e `/mqtt`) | 127.0.0.1:8080 | idem (`applications/frontend/Dockerfile`) |
+| Tela (dev) | 5173 | `npm run dev` em `applications/frontend` (usa 8000 e 9001 do host) |
 | Grafana local (perfil `local`) | 127.0.0.1:3000 | idem |
 
 O Compose de `services/` usa as mesmas portas: as duas stacks não sobem juntas.

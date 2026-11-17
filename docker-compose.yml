@@ -5,7 +5,10 @@ services:
     image: eclipse-mosquitto:2
     ports:
       - "1883:1883"
-      # O WebSocket (9001) não vai para o host: só o nginx do frontend fala com ele, em /mqtt.
+      # WebSocket para o navegador. Na tela do Compose o nginx fala com ele pela rede
+      # interna (/mqtt); a porta no host, só no próprio computador, serve ao `npm run dev`
+      # (o Vite encaminha /mqtt para 127.0.0.1:9001).
+      - "127.0.0.1:9001:9001"
     volumes:
       - ./applications/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - mosquitto-dados:/mosquitto/data
@@ -55,6 +58,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/saude', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     restart: unless-stopped
 
   # Tela (React) servida pelo nginx, que também encaminha /api para a API e /mqtt
@@ -65,8 +74,10 @@ services:
     ports:
       - "127.0.0.1:8080:80"
     depends_on:
-      - api
-      - mosquitto
+      api:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
     restart: unless-stopped
 
   # Túnel de saída até o Grafana Cloud (Private Data Source Connect).
