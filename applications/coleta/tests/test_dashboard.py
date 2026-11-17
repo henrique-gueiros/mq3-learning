@@ -74,8 +74,14 @@ GRAFICOS_COM_DADOS = {
             **{f"{s}_{k}": [1.0, 2.0] for s in ("mq3", "mq135", "umid") for k in ("p5", "p25", "p50", "p75", "p95", "media")},
         )
     ],
-    "Média em relação ao ar limpo": lambda: [_quadro(caso=["drink"], mq3=[120.0], mq135=[180.0], umid=[92.0])],
+    "Média em relação ao ambiente": lambda: [_quadro(caso=["drink"], mq3=[120.0], mq135=[180.0], umid=[92.0])],
     "MQ-3 × MQ-135 por leitura": lambda: [_quadro(caso=["clean", "drink"], mq3_raw=[800, 1900], mq135_raw=[250, 700])],
+    "Todas as rodadas sobrepostas": lambda: [
+        _quadro(
+            rodada=["a", "a", "b", "b"], caso=["clean", "clean", "drink", "drink"], tempo_s=[0, 1, 0, 1],
+            humidity_pct=[40, 41, 80, 81], mq135_raw=[200, 210, 600, 650], ppm=[0.4, 0.4, 3.0, 4.0],
+        )
+    ],
     "Leituras da rodada ao longo do tempo": lambda: [
         _quadro(tempo_s=[0, 1, 2, 3], mq3_raw=[1, 2, 3, 4], mq135_raw=[1, 2, 3, 4], humidity_pct=[5, 6, 7, 8],
                 em_sopro=[False, True, True, False], caso=["drink"] * 4)
@@ -119,3 +125,17 @@ def test_cada_caso_mantem_sua_cor_nos_graficos():
     cor_dispersao = next(s for s in dispersao["series"] if s["name"] == "bebida")["itemStyle"]["color"]
     assert cor_dispersao.startswith("rgba(235, 104, 52")
     assert subida["series"][0]["itemStyle"]["color"] == "#eb6834"
+
+
+@pytest.mark.skipif(NODE is None, reason="node não instalado")
+def test_sobreposicao_tem_uma_linha_por_rodada_e_sensor_com_o_nome_do_caso():
+    opcao = _opcao("Todas as rodadas sobrepostas", GRAFICOS_COM_DADOS["Todas as rodadas sobrepostas"]())
+    assert len(opcao["series"]) == 2 * 3
+    assert {s["name"] for s in opcao["series"]} == {"ambiente", "bebida"}
+    assert len(opcao["grid"]) == 3
+
+
+@pytest.mark.skipif(NODE is None, reason="node não instalado")
+def test_caso_clean_se_chama_ambiente():
+    opcao = _opcao("MQ-3 × MQ-135 por leitura", GRAFICOS_COM_DADOS["MQ-3 × MQ-135 por leitura"]())
+    assert [s["name"] for s in opcao["series"]] == ["ambiente", "bebida"]

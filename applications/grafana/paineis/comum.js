@@ -5,7 +5,7 @@ const PALETA = {
   escuro: { clean: '#3987e5', drink: '#d95926', perfume: '#199e70', alcohol70_spray: '#c98500', alcohol70_hands: '#d55181', mouthwash: '#0ca30c', outro: '#9085e9' },
 };
 const NOMES = {
-  clean: 'ar limpo', drink: 'bebida', perfume: 'perfume',
+  clean: 'ambiente', drink: 'bebida', perfume: 'perfume',
   alcohol70_spray: 'álcool 70 (spray)', alcohol70_hands: 'álcool 70 (mãos)', mouthwash: 'enxaguante',
 };
 

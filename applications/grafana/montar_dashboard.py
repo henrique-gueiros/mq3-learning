@@ -117,6 +117,11 @@ cross join (select * from medias where caso = 'clean') b
 where m.caso <> 'clean' and m.caso in ($caso)
 order by m.caso"""
 
+SQL_SOBREPOSICAO = f"""select rodada_id::text as rodada, caso, tempo_s, humidity_pct, mq135_raw, ppm
+from v_leituras
+where {LEITURAS_ESCOLHIDAS}
+order by rodada_id, tempo_s"""
+
 SQL_RODADA = """select tempo_s, mq3_raw, mq135_raw, humidity_pct, em_sopro, caso
 from v_leituras
 where rodada_id::text = '$rodada'
@@ -181,8 +186,8 @@ def montar() -> Dict[str, Any]:
             "distribuicao.js", _sql_distribuicao(), 0, 4, 24, 10,
         ),
         _grafico(
-            "Média em relação ao ar limpo",
-            "Quanto a média de cada caso difere da média do ar limpo, por sensor. Precisa de rodadas de ar limpo.",
+            "Média em relação ao ambiente",
+            "Quanto a média de cada caso difere da média do ambiente (ar sem álcool), por sensor. Precisa de rodadas de ambiente.",
             "variacao.js", SQL_VARIACAO, 0, 14, 10, 9,
         ),
         _grafico(
@@ -190,26 +195,32 @@ def montar() -> Dict[str, Any]:
             "Até 400 leituras por caso, sorteadas sempre do mesmo jeito. Se os casos formam grupos separados, os dois sensores já os distinguem.",
             "separacao.js", SQL_SEPARACAO, 10, 14, 14, 9,
         ),
-        _linha("Rodada selecionada", 23),
+        _linha("Todas as rodadas juntas", 23),
+        _grafico(
+            "Todas as rodadas sobrepostas",
+            "Uma linha por rodada, colorida pelo caso: dá para comparar umidade, MQ-135 e PPM entre ambiente, bebida e perfume. Mostra os primeiros 300 s; arraste a barra de baixo para ver o resto.",
+            "sobreposicao.js", SQL_SOBREPOSICAO, 0, 24, 24, 18,
+        ),
+        _linha("Rodada selecionada", 42),
         _grafico(
             "Leituras da rodada ao longo do tempo",
             "Um gráfico por sensor. A faixa cinza é a janela de sopro (sopro + 30 s), quando há sopro marcado.",
-            "rodada.js", SQL_RODADA, 0, 24, 24, 16,
+            "rodada.js", SQL_RODADA, 0, 43, 24, 16,
         ),
         _linha(
             "Sopros marcados",
-            40,
+            59,
             [
                 _grafico(
                     "Subida por sopro",
                     "Um ponto por sopro: pico (sopro + 30 s) menos a mediana dos 15 s antes. Aparece quando há sopros em attempts.csv ou marcados na ponte.",
-                    "subida.js", SQL_SUBIDA, 0, 41, 12, 9,
+                    "subida.js", SQL_SUBIDA, 0, 60, 12, 9,
                 ),
                 {
                     "title": "Rodadas sem sopro marcado",
                     "description": "Ficam fora do gráfico de subidas e da janela 'sopro'.",
                     "type": "table",
-                    "gridPos": {"x": 12, "y": 41, "w": 12, "h": 9},
+                    "gridPos": {"x": 12, "y": 60, "w": 12, "h": 9},
                     "datasource": PG,
                     "targets": [_consulta("select caso, participante, arquivo_sessao as arquivo, inicio\nfrom v_rodadas_sem_sopro\norder by inicio desc")],
                 },
@@ -217,12 +228,12 @@ def montar() -> Dict[str, Any]:
         ),
         _linha(
             "Ao vivo (placa)",
-            41,
+            60,
             [
                 _grafico(
                     "Leituras que chegam da placa",
                     "Chega pelo MQTT, direto do broker. Fica vazio enquanto nenhuma placa publica.",
-                    "aovivo.js", "", 0, 42, 24, 11, fonte=MQTT,
+                    "aovivo.js", "", 0, 61, 24, 11, fonte=MQTT,
                     alvo={"datasource": MQTT, "refId": "A", "topic": "mq3/placa01/leituras"},
                 ),
             ],

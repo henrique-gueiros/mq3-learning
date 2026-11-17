@@ -73,15 +73,16 @@ são o único uso de painéis nativos, porque um número não precisa de gráfic
 | --- | --- | --- |
 | Placa, Rodadas, Leituras | Um número só: indicador, não gráfico | PostgreSQL |
 | Distribuição das leituras por caso | Boxplot por sensor: mostra mediana, quartis e dispersão, que uma barra de média esconde. Losango = média | `v_leituras` |
-| Média em relação ao ar limpo | Heatmap divergente (azul abaixo, laranja acima, cinza igual): uma grade caso × sensor com a mesma unidade (%) | `v_leituras` |
+| Média em relação ao ambiente | Heatmap divergente (azul abaixo, laranja acima, cinza igual): uma grade caso × sensor com a mesma unidade (%) | `v_leituras` |
 | MQ-3 × MQ-135 por leitura | Dispersão: responde se os dois sensores juntos separam os casos | `v_leituras` |
+| Todas as rodadas sobrepostas | Uma linha por rodada, colorida pelo caso, em um gráfico por medida (umidade, MQ-135, PPM): compara os casos sem escolher uma rodada. Mostra os primeiros 300 s; a barra de baixo move a janela | `v_leituras` |
 | Leituras da rodada ao longo do tempo | Uma linha por sensor, cada um com sua escala (nunca dois eixos no mesmo gráfico) | `v_leituras` |
 | Subida por sopro | Dispersão, um ponto por sopro marcado | `v_sopros` |
 | Rodadas sem sopro marcado | Lista: são nomes de arquivos, não números | `v_rodadas_sem_sopro` |
 | Leituras que chegam da placa | Linhas ao vivo, um gráfico por sensor | MQTT `mq3/placa01/leituras` |
 
 Cada caso tem sempre a mesma cor em todos os gráficos (paleta validada, ver
-`paineis/comum.js`). Só aparecem os seletores **Caso**, **Rodada** e **Janela**;
+`paineis/comum.js`); o caso `clean` aparece como "ambiente". Só aparecem os seletores **Caso**, **Rodada** e **Janela**;
 os demais ficam ocultos (`var-incluir_simulador=sim` na URL mostra as rodadas do
 simulador). A variável **Janela** escolhe entre o arquivo inteiro e só as janelas
 de sopro (sopro + 30 s).
@@ -101,3 +102,10 @@ que cada gráfico monta com dados e sem dados (precisa de `node`).
 
 Não edite o `coleta.json` à mão nem só na interface: publicar de novo sobrescreve
 qualquer edição. Mude os arquivos acima e gere o JSON.
+
+## PPM
+
+O ppm vem calculado pelo firmware e aparece só em `v_leituras`, para comparar
+casos nos gráficos. Ele nunca entra em médias, subidas, rótulos nem features do
+modelo. Um banco criado antes de 17/11/2026 precisa da migração
+`applications/db/migracoes/2026-11-17-ppm-em-v_leituras.sql`.

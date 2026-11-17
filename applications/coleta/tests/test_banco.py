@@ -95,10 +95,18 @@ def test_rodada_fim_grava_sha_e_fim(pg):
     assert _um(pg, "select fim is not null from rodadas")[0] is True
 
 
-def test_views_sem_ppm_nem_alcool(pg):
+def test_views_sem_alcool_e_ppm_so_na_de_leituras(pg):
+    # O ppm aparece em v_leituras só para comparar casos nos gráficos; nunca entra em médias, subidas, rótulos ou features.
     for view in ("v_leituras", "v_media_rodada", "v_sopros"):
         colunas = {d.name for d in pg.execute(f"select * from {view} limit 0").description}
-        assert not colunas & {"ppm", "alcool"}, view
+        assert "alcool" not in colunas, view
+        assert ("ppm" in colunas) == (view == "v_leituras"), view
+
+
+def test_leitura_expoe_o_ppm_gravado(pg):
+    rodada = nova_rodada(pg)
+    gravar_serie(pg, rodada, [(1000, 100)])
+    assert _um(pg, "select ppm from v_leituras")[0] == pytest.approx(0.4)
 
 
 def test_tempo_desde_o_inicio(pg):

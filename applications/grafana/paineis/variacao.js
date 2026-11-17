@@ -1,6 +1,6 @@
-// Média de cada caso em relação ao ar limpo, por sensor. Azul = abaixo, laranja = acima, cinza = igual.
+// Média de cada caso em relação ao ambiente, por sensor. Azul = abaixo, laranja = acima, cinza = igual.
 if (!quadro || coluna('caso').length === 0) {
-  return semDados('Sem ar limpo para comparar');
+  return semDados('Sem leituras de ambiente para comparar');
 }
 const casos = ordenarCasos(coluna('caso'));
 const casoDe = coluna('caso');
@@ -27,11 +27,11 @@ return {
     left: 'center',
     bottom: 0,
     calculable: false,
-    text: ['mais alto que o ar limpo', 'mais baixo'],
+    text: ['mais alto que o ambiente', 'mais baixo'],
     textStyle: { color: tinta },
     inRange: { color: [cores.clean, escuro ? '#3a3a38' : '#e6e5e1', cores.drink] },
   },
-  tooltip: dica((x) => `<b>${nomeDoCaso(casos[x.value[1]])} · ${sensores[x.value[0]][1]}</b><br/>${x.value[2] > 0 ? '+' : ''}${x.value[2]}% em relação ao ar limpo`),
+  tooltip: dica((x) => `<b>${nomeDoCaso(casos[x.value[1]])} · ${sensores[x.value[0]][1]}</b><br/>${x.value[2] > 0 ? '+' : ''}${x.value[2]}% em relação ao ambiente`),
   series: [{
     type: 'heatmap',
     data: celulas,
