@@ -1,10 +1,12 @@
 FROM python:3.11-slim
 
 # O mesmo conjunto que a inferência do ml/ precisa, sem o Jupyter.
+# 1.6.1 é a versão que gravou ml/models/sob_efeito.joblib. Uma mais nova
+# não consegue abrir esse arquivo.
 RUN pip install --no-cache-dir \
     "numpy>=1.26" \
     "pandas>=2.1" \
-    "scikit-learn>=1.4" \
+    "scikit-learn==1.6.1" \
     "paho-mqtt>=2.1" \
     "psycopg[binary]>=3.2"
 
