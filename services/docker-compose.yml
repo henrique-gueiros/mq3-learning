@@ -3,6 +3,7 @@ services:
     image: eclipse-mosquitto:2
     ports:
       - "1883:1883"
+      - "9001:9001"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
 
@@ -59,6 +60,28 @@ services:
         condition: service_healthy
       mosquitto:
         condition: service_started
+
+  grafana:
+    image: grafana/grafana-oss:13.0.2
+    ports:
+      - "3000:3000"
+    environment:
+      GF_INSTALL_PLUGINS: grafana-mqtt-datasource
+      GF_INSTALL_PLUGINS_FORCE: "true"
+      GF_USERS_DEFAULT_THEME: light
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_UID: bancada
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      mosquitto:
+        condition: service_started
+      postgres:
+        condition: service_healthy
 
 volumes:
   pgdata:
