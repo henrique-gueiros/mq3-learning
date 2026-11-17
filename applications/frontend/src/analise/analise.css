@@ -7,7 +7,8 @@
   -webkit-backdrop-filter: saturate(180%) blur(12px);
   box-shadow: 0 1px 0 var(--linha);
 }
-.barra-filtros-linha {
+/* .recipiente (index.css, carregado depois) zera o padding vertical: o seletor duplo vence. */
+.recipiente.barra-filtros-linha {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -21,7 +22,7 @@
   gap: var(--e-2);
 }
 
-.resumo {
+.recipiente.resumo {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -94,8 +95,25 @@
     animation: none;
   }
 }
+/* Âncoras da análise: além do cabeçalho (scroll-padding-top do index.css), descontar a barra fixa. */
+.analise .secao {
+  scroll-margin-top: 64px;
+}
+
 @media (max-width: 760px) {
-  .resumo {
+  .recipiente.resumo {
     gap: var(--e-8);
+  }
+  /* No celular a barra fica numa linha só, rolando para o lado, para não cobrir metade da tela. */
+  .recipiente.barra-filtros-linha {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .barra-filtros-linha > * {
+    flex-shrink: 0;
+  }
+  .barra-filtros-casos {
+    flex-wrap: nowrap;
   }
 }
