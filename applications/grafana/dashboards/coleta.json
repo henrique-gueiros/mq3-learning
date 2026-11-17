@@ -6,35 +6,14 @@
     "coleta"
   ],
   "timezone": "browser",
-  "refresh": "5s",
+  "refresh": "",
   "time": {
     "from": "now-6h",
     "to": "now"
   },
   "schemaVersion": 39,
   "annotations": {
-    "list": [
-      {
-        "name": "Sopros",
-        "enable": true,
-        "iconColor": "orange",
-        "datasource": {
-          "type": "grafana-postgresql-datasource",
-          "uid": "${ds_pg}"
-        },
-        "target": {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${ds_pg}"
-          },
-          "refId": "A",
-          "rawQuery": true,
-          "editorMode": "code",
-          "format": "table",
-          "rawSql": "select v.ts as time, 'Sopro ' || s.n as text\nfrom v_sopros s\njoin v_leituras v on v.rodada_id = s.rodada_id and v.t_ms = (\n    select min(t_ms) from leituras l where l.rodada_id = s.rodada_id and l.t_ms >= s.inicio_ms)\nwhere s.rodada_id::text = '$rodada'"
-        }
-      }
-    ]
+    "list": []
   },
   "templating": {
     "list": [
@@ -42,13 +21,15 @@
         "name": "ds_pg",
         "label": "PostgreSQL",
         "type": "datasource",
-        "query": "grafana-postgresql-datasource"
+        "query": "grafana-postgresql-datasource",
+        "hide": 2
       },
       {
         "name": "ds_mqtt",
         "label": "MQTT",
         "type": "datasource",
-        "query": "grafana-mqtt-datasource"
+        "query": "grafana-mqtt-datasource",
+        "hide": 2
       },
       {
         "name": "caso",
@@ -63,6 +44,7 @@
         "refresh": 2,
         "multi": true,
         "includeAll": true,
+        "hide": 0,
         "current": {
           "text": [
             "All"
@@ -85,6 +67,7 @@
         "refresh": 2,
         "multi": true,
         "includeAll": true,
+        "hide": 2,
         "current": {
           "text": [
             "All"
@@ -107,6 +90,7 @@
         "refresh": 2,
         "multi": false,
         "includeAll": false,
+        "hide": 0,
         "current": {}
       },
       {
@@ -114,6 +98,7 @@
         "label": "Janela",
         "type": "custom",
         "query": "arquivo,sopro",
+        "hide": 0,
         "current": {
           "text": "arquivo",
           "value": "arquivo"
@@ -136,6 +121,7 @@
         "label": "Incluir simulador",
         "type": "custom",
         "query": "nao,sim",
+        "hide": 2,
         "current": {
           "text": "nao",
           "value": "nao"
@@ -157,91 +143,11 @@
   },
   "panels": [
     {
-      "id": 1,
-      "title": "Ao vivo: leituras da placa",
-      "type": "timeseries",
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 16,
-        "h": 9
-      },
-      "datasource": {
-        "type": "grafana-mqtt-datasource",
-        "uid": "${ds_mqtt}"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-mqtt-datasource",
-            "uid": "${ds_mqtt}"
-          },
-          "refId": "A",
-          "topic": "mq3/placa01/leituras"
-        }
-      ],
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "rodada_id": true,
-              "amostra": true,
-              "t_ms": true,
-              "ppm": true,
-              "mq135_mv": true,
-              "alcool": true
-            },
-            "renameByName": {
-              "mq3_raw": "MQ-3",
-              "mq135_raw": "MQ-135",
-              "humidity_pct": "Umidade (%)",
-              "temperature_c": "Temperatura (°C)"
-            }
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "lineWidth": 2
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Umidade (%)"
-            },
-            "properties": [
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Temperatura (°C)"
-            },
-            "properties": [
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              }
-            ]
-          }
-        ]
-      },
-      "description": "Chega pelo MQTT direto do broker, via PDC. Umidade e temperatura no eixo da direita."
-    },
-    {
-      "id": 2,
       "title": "Placa",
+      "description": "Recebendo = chegou leitura no banco nos últimos 10 s.",
       "type": "stat",
       "gridPos": {
-        "x": 16,
+        "x": 0,
         "y": 0,
         "w": 8,
         "h": 3
@@ -260,7 +166,7 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "select case when max(recebido_em) > now() - interval '10 seconds'\n            then 'recebendo' else 'parada' end as \"situação\",\n       extract(epoch from now() - max(recebido_em))::int as \"s desde a última leitura\"\nfrom leituras"
+          "rawSql": "select case when max(recebido_em) > now() - interval '10 seconds' then 'recebendo' else 'parada' end as situacao\nfrom leituras"
         }
       ],
       "options": {
@@ -271,7 +177,7 @@
           "fields": "/.*/"
         },
         "colorMode": "background",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "graphMode": "none"
       },
       "fieldConfig": {
@@ -298,17 +204,17 @@
         },
         "overrides": []
       },
-      "description": "Recebendo = chegou leitura no banco nos últimos 10 s."
+      "id": 1
     },
     {
-      "id": 3,
-      "title": "Rodada atual",
-      "type": "table",
+      "title": "Rodadas",
+      "description": "Rodadas dos casos escolhidos.",
+      "type": "stat",
       "gridPos": {
-        "x": 16,
-        "y": 3,
+        "x": 8,
+        "y": 0,
         "w": 8,
-        "h": 6
+        "h": 3
       },
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -324,251 +230,41 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "select caso, participante, arquivo_sessao as arquivo,\n       case when fim is null then 'em andamento' else 'encerrada' end as situacao,\n       (select count(*) from leituras l where l.rodada_id = r.id) as leituras\nfrom rodadas r\nwhere inicio is not null\norder by inicio desc\nlimit 1"
+          "rawSql": "select count(*) as rodadas from rodadas where caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')"
         }
       ],
       "options": {
-        "showHeader": true
-      }
-    },
-    {
-      "id": 4,
-      "title": "Média por caso ($janela)",
-      "type": "table",
-      "gridPos": {
-        "x": 0,
-        "y": 9,
-        "w": 12,
-        "h": 8
-      },
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${ds_pg}"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${ds_pg}"
-          },
-          "refId": "A",
-          "rawQuery": true,
-          "editorMode": "code",
-          "format": "table",
-          "rawSql": "select caso,\n       count(*) as rodadas,\n       avg(media_mq3_raw) as \"MQ-3\", avg(media_mq135_raw) as \"MQ-135\", avg(media_humidity_pct) as \"Umidade (%)\", avg(media_temperature_c) as \"Temperatura (°C)\"\nfrom v_media_rodada\nwhere janela = '$janela' and n_leituras > 0 and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')\ngroup by caso\norder by caso"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "decimals": 1
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/"
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "rodadas"
-            },
-            "properties": [
-              {
-                "id": "decimals",
-                "value": 0
-              }
-            ]
-          }
-        ]
-      },
-      "description": "Média das médias de cada rodada (cada CSV pesa igual). 'rodadas' = quantas entraram."
-    },
-    {
-      "id": 5,
-      "title": "Média por caso: MQ-3 e MQ-135 ($janela)",
-      "type": "barchart",
-      "gridPos": {
-        "x": 12,
-        "y": 9,
-        "w": 12,
-        "h": 8
-      },
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${ds_pg}"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${ds_pg}"
-          },
-          "refId": "A",
-          "rawQuery": true,
-          "editorMode": "code",
-          "format": "table",
-          "rawSql": "select caso,\n       count(*) as rodadas,\n       avg(media_mq3_raw) as \"MQ-3\", avg(media_mq135_raw) as \"MQ-135\", avg(media_humidity_pct) as \"Umidade (%)\", avg(media_temperature_c) as \"Temperatura (°C)\"\nfrom v_media_rodada\nwhere janela = '$janela' and n_leituras > 0 and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')\ngroup by caso\norder by caso"
-        }
-      ],
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "rodadas": true,
-              "Umidade (%)": true,
-              "Temperatura (°C)": true
-            }
-          }
-        }
-      ],
-      "options": {
-        "xField": "caso",
-        "orientation": "vertical",
-        "showValue": "auto",
-        "groupWidth": 0.7
-      }
-    },
-    {
-      "id": 6,
-      "title": "Boxplot por caso ($janela)",
-      "type": "volkovlabs-echarts-panel",
-      "gridPos": {
-        "x": 0,
-        "y": 17,
-        "w": 24,
-        "h": 14
-      },
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${ds_pg}"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${ds_pg}"
-          },
-          "refId": "A",
-          "rawQuery": true,
-          "editorMode": "code",
-          "format": "table",
-          "rawSql": "select caso, mq3_raw, mq135_raw, humidity_pct, temperature_c\nfrom v_leituras\nwhere ('$janela' = 'arquivo' or em_sopro) and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')"
-        }
-      ],
-      "options": {
-        "renderer": "canvas",
-        "editorMode": "code",
-        "getOption": "const frame = context.panel.data.series[0];\nif (!frame) {\n  return { title: { text: 'Sem dados', left: 'center', top: 'middle' } };\n}\nconst coluna = (nome) => {\n  const campo = frame.fields.find((f) => f.name === nome);\n  return campo ? Array.from(campo.values) : [];\n};\n\nconst sensores = [\n  ['mq3_raw', 'MQ-3'],\n  ['mq135_raw', 'MQ-135'],\n  ['humidity_pct', 'Umidade (%)'],\n  ['temperature_c', 'Temperatura (°C)'],\n];\nconst casos = coluna('caso');\nconst nomesCasos = [...new Set(casos)].sort();\n\nconst quartis = (valores) => {\n  const v = valores.filter((x) => x !== null && !Number.isNaN(x)).sort((a, b) => a - b);\n  if (v.length === 0) {\n    return [];\n  }\n  const q = (p) => {\n    const i = (v.length - 1) * p;\n    const base = Math.floor(i);\n    return v[base] + (v[Math.min(base + 1, v.length - 1)] - v[base]) * (i - base);\n  };\n  return [v[0], q(0.25), q(0.5), q(0.75), v[v.length - 1]];\n};\n\nconst grids = [];\nconst xAxis = [];\nconst yAxis = [];\nconst title = [];\nconst series = [];\nsensores.forEach(([campo, nome], i) => {\n  const valores = coluna(campo);\n  const esquerda = i % 2 === 0 ? 6 : 54;\n  const topo = i < 2 ? 8 : 56;\n  grids.push({ left: `${esquerda}%`, top: `${topo}%`, width: '40%', height: '32%' });\n  title.push({ text: nome, left: `${esquerda}%`, top: `${topo - 6}%`, textStyle: { fontSize: 12 } });\n  xAxis.push({ type: 'category', data: nomesCasos, gridIndex: i, axisLabel: { fontSize: 10 } });\n  yAxis.push({ type: 'value', gridIndex: i, scale: true });\n  series.push({\n    name: nome,\n    type: 'boxplot',\n    xAxisIndex: i,\n    yAxisIndex: i,\n    data: nomesCasos.map((caso) => quartis(valores.filter((_, k) => casos[k] === caso))),\n  });\n});\n\nreturn { title, grid: grids, xAxis, yAxis, series, tooltip: { trigger: 'item' } };",
-        "map": "none"
-      },
-      "description": "Distribuição de todas as leituras das rodadas de cada caso."
-    },
-    {
-      "id": 7,
-      "title": "Heatmap caso × sensor ($janela)",
-      "type": "volkovlabs-echarts-panel",
-      "gridPos": {
-        "x": 0,
-        "y": 31,
-        "w": 12,
-        "h": 10
-      },
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${ds_pg}"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${ds_pg}"
-          },
-          "refId": "A",
-          "rawQuery": true,
-          "editorMode": "code",
-          "format": "table",
-          "rawSql": "select caso,\n       count(*) as rodadas,\n       avg(media_mq3_raw) as \"MQ-3\", avg(media_mq135_raw) as \"MQ-135\", avg(media_humidity_pct) as \"Umidade (%)\", avg(media_temperature_c) as \"Temperatura (°C)\"\nfrom v_media_rodada\nwhere janela = '$janela' and n_leituras > 0 and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')\ngroup by caso\norder by caso"
-        }
-      ],
-      "options": {
-        "renderer": "canvas",
-        "editorMode": "code",
-        "getOption": "const frame = context.panel.data.series[0];\nif (!frame) {\n  return { title: { text: 'Sem dados', left: 'center', top: 'middle' } };\n}\nconst coluna = (nome) => {\n  const campo = frame.fields.find((f) => f.name === nome);\n  return campo ? Array.from(campo.values) : [];\n};\n\nconst sensores = ['MQ-3', 'MQ-135', 'Umidade (%)', 'Temperatura (°C)'];\nconst casos = coluna('caso');\nconst dados = [];\nsensores.forEach((sensor, x) => {\n  const medias = coluna(sensor);\n  const validas = medias.filter((m) => m !== null);\n  const menor = Math.min(...validas);\n  const maior = Math.max(...validas);\n  medias.forEach((media, y) => {\n    if (media === null) {\n      return;\n    }\n    const normalizada = maior > menor ? (media - menor) / (maior - menor) : 0.5;\n    dados.push({ value: [x, y, normalizada], media });\n  });\n});\n\nreturn {\n  tooltip: {\n    formatter: (p) => `${casos[p.value[1]]} · ${sensores[p.value[0]]}: média ${p.data.media.toFixed(1)}`,\n  },\n  grid: { left: 110, right: 30, top: 10, bottom: 70 },\n  xAxis: { type: 'category', data: sensores, axisLabel: { interval: 0 } },\n  yAxis: { type: 'category', data: casos },\n  visualMap: {\n    min: 0, max: 1, calculable: true, orient: 'horizontal', left: 'center', bottom: 0,\n    text: ['maior média', 'menor média'],\n  },\n  series: [{\n    type: 'heatmap',\n    data: dados,\n    label: { show: true, formatter: (p) => p.data.media.toFixed(0) },\n  }],\n};",
-        "map": "none"
-      },
-      "description": "Cor = média normalizada por sensor (0 = menor caso, 1 = maior). O número é a média real."
-    },
-    {
-      "id": 8,
-      "title": "Subida por sopro: MQ-135 × MQ-3",
-      "type": "xychart",
-      "gridPos": {
-        "x": 12,
-        "y": 31,
-        "w": 12,
-        "h": 10
-      },
-      "datasource": {
-        "type": "grafana-postgresql-datasource",
-        "uid": "${ds_pg}"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "grafana-postgresql-datasource",
-            "uid": "${ds_pg}"
-          },
-          "refId": "A",
-          "rawQuery": true,
-          "editorMode": "code",
-          "format": "table",
-          "rawSql": "select caso, subida_mq3_raw as \"subida MQ-3\", subida_mq135_raw as \"subida MQ-135\"\nfrom v_sopros\nwhere caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')\n  and subida_mq3_raw is not null"
-        }
-      ],
-      "transformations": [
-        {
-          "id": "partitionByValues",
-          "options": {
-            "fields": [
-              "caso"
-            ],
-            "keepFields": false,
-            "naming": {
-              "asLabels": false
-            }
-          }
-        }
-      ],
-      "options": {
-        "mapping": "auto",
-        "series": [],
-        "legend": {
-          "showLegend": true,
-          "displayMode": "list"
-        },
-        "tooltip": {
-          "mode": "single"
-        }
+        "colorMode": "none",
+        "textMode": "value",
+        "graphMode": "none"
       },
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "show": "points",
-            "pointSize": {
-              "fixed": 8
-            }
+          "mappings": [],
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
           }
         },
         "overrides": []
       },
-      "description": "Um ponto por sopro. Subida = pico (sopro + 30 s) menos a mediana dos 15 s antes."
+      "id": 2
     },
     {
-      "id": 9,
-      "title": "Rodadas sem sopro marcado",
-      "type": "table",
+      "title": "Leituras",
+      "description": "Leituras dos casos escolhidos, dentro da janela escolhida.",
+      "type": "stat",
       "gridPos": {
-        "x": 0,
-        "y": 41,
-        "w": 12,
-        "h": 6
+        "x": 16,
+        "y": 0,
+        "w": 8,
+        "h": 3
       },
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -584,33 +280,52 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "select caso, participante, arquivo_sessao as arquivo, inicio\nfrom v_rodadas_sem_sopro\norder by inicio desc"
+          "rawSql": "select count(*) as leituras from v_leituras where ('$janela' = 'arquivo' or em_sopro) and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')"
         }
       ],
-      "description": "Ficam fora do gráfico de subidas e da janela 'sopro'."
-    },
-    {
-      "id": 10,
-      "title": "Resultado do modelo",
-      "type": "text",
-      "gridPos": {
-        "x": 12,
-        "y": 41,
-        "w": 12,
-        "h": 6
-      },
       "options": {
-        "mode": "markdown",
-        "content": "**Sem modelo treinado com dados reais.**\n\nEste painel vai mostrar a classe prevista (`sob_efeito` / `sem_efeito`) quando o serviço de inferência publicar em `mq3/<placa>/resultado`."
-      }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/"
+        },
+        "colorMode": "none",
+        "textMode": "value",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          }
+        },
+        "overrides": []
+      },
+      "id": 3
     },
     {
-      "id": 11,
-      "title": "Histórico da rodada selecionada",
-      "type": "trend",
+      "title": "Comparação entre os casos",
+      "type": "row",
+      "collapsed": false,
       "gridPos": {
         "x": 0,
-        "y": 47,
+        "y": 3,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 4
+    },
+    {
+      "title": "Distribuição das leituras por caso",
+      "description": "Caixa: do 1º ao 3º quartil, com a mediana. Linhas: percentis 5 e 95. Losango: média. Todas as leituras das rodadas de cada caso.",
+      "type": "volkovlabs-echarts-panel",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
         "w": 24,
         "h": 10
       },
@@ -628,80 +343,258 @@
           "rawQuery": true,
           "editorMode": "code",
           "format": "table",
-          "rawSql": "select tempo_s as \"Tempo (s)\", mq3_raw as \"MQ-3\", mq135_raw as \"MQ-135\",\n       humidity_pct as \"Umidade (%)\", temperature_c as \"Temperatura (°C)\",\n       case when em_sopro then 0 end as \"Janela de sopro\"\nfrom v_leituras\nwhere rodada_id::text = '$rodada'\norder by tempo_s"
+          "rawSql": "select caso, count(*) as n,\n       percentile_cont(0.05) within group (order by mq3_raw) as mq3_p5,\n       percentile_cont(0.25) within group (order by mq3_raw) as mq3_p25,\n       percentile_cont(0.5) within group (order by mq3_raw) as mq3_p50,\n       percentile_cont(0.75) within group (order by mq3_raw) as mq3_p75,\n       percentile_cont(0.95) within group (order by mq3_raw) as mq3_p95,\n       avg(mq3_raw) as mq3_media,\n       percentile_cont(0.05) within group (order by mq135_raw) as mq135_p5,\n       percentile_cont(0.25) within group (order by mq135_raw) as mq135_p25,\n       percentile_cont(0.5) within group (order by mq135_raw) as mq135_p50,\n       percentile_cont(0.75) within group (order by mq135_raw) as mq135_p75,\n       percentile_cont(0.95) within group (order by mq135_raw) as mq135_p95,\n       avg(mq135_raw) as mq135_media,\n       percentile_cont(0.05) within group (order by humidity_pct) as umid_p5,\n       percentile_cont(0.25) within group (order by humidity_pct) as umid_p25,\n       percentile_cont(0.5) within group (order by humidity_pct) as umid_p50,\n       percentile_cont(0.75) within group (order by humidity_pct) as umid_p75,\n       percentile_cont(0.95) within group (order by humidity_pct) as umid_p95,\n       avg(humidity_pct) as umid_media\nfrom v_leituras\nwhere ('$janela' = 'arquivo' or em_sopro) and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')\ngroup by caso\norder by caso"
         }
       ],
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "lineWidth": 2,
-            "axisLabel": "",
-            "spanNulls": false
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Umidade (%)"
-            },
-            "properties": [
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Temperatura (°C)"
-            },
-            "properties": [
-              {
-                "id": "custom.axisPlacement",
-                "value": "right"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Janela de sopro"
-            },
-            "properties": [
-              {
-                "id": "custom.lineWidth",
-                "value": 0
-              },
-              {
-                "id": "custom.showPoints",
-                "value": "always"
-              },
-              {
-                "id": "custom.pointSize",
-                "value": 6
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "purple"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "description": "Leituras da rodada selecionada, em segundos desde a primeira leitura. Os pontos laranja na base marcam a janela de sopro (sopro + 30 s).",
       "options": {
-        "xField": "Tempo (s)",
-        "legend": {
-          "showLegend": true,
-          "displayMode": "list",
-          "placement": "bottom"
+        "renderer": "canvas",
+        "editorMode": "code",
+        "getOption": "// Trecho comum a todos os painéis Business Charts; o montar_dashboard.py o cola antes do código de cada painel.\n\nconst PALETA = {\n  claro: { clean: '#2a78d6', drink: '#eb6834', perfume: '#1baf7a', alcohol70_spray: '#eda100', alcohol70_hands: '#e87ba4', mouthwash: '#008300', outro: '#6250d6' },\n  escuro: { clean: '#3987e5', drink: '#d95926', perfume: '#199e70', alcohol70_spray: '#c98500', alcohol70_hands: '#d55181', mouthwash: '#0ca30c', outro: '#9085e9' },\n};\nconst NOMES = {\n  clean: 'ar limpo', drink: 'bebida', perfume: 'perfume',\n  alcohol70_spray: 'álcool 70 (spray)', alcohol70_hands: 'álcool 70 (mãos)', mouthwash: 'enxaguante',\n};\n\nconst detectarEscuro = () => {\n  const tema = context.grafana && context.grafana.theme;\n  if (tema && typeof tema.isDark === 'boolean') {\n    return tema.isDark;\n  }\n  const rgb = (getComputedStyle(document.body).backgroundColor.match(/[\\d.]+/g) || []).map(Number);\n  if (rgb.length < 3 || rgb[3] === 0) {\n    return false;\n  }\n  return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] < 128;\n};\nconst escuro = detectarEscuro();\nconst tinta = escuro ? '#c3c2b7' : '#52514e';\nconst tintaForte = escuro ? '#f0efec' : '#0b0b0b';\nconst grade = escuro ? '#33332f' : '#e6e5e1';\nconst superficie = escuro ? '#1a1a19' : '#fcfcfb';\nconst cores = escuro ? PALETA.escuro : PALETA.claro;\n\nconst corDoCaso = (caso) => cores[caso] || cores.outro;\nconst nomeDoCaso = (caso) => NOMES[caso] || caso;\nconst ordenarCasos = (casos) => {\n  const ordem = Object.keys(NOMES);\n  const posicao = (c) => (ordem.indexOf(c) === -1 ? ordem.length : ordem.indexOf(c));\n  return [...new Set(casos)].sort((a, b) => posicao(a) - posicao(b) || a.localeCompare(b));\n};\nconst comAlfa = (hex, alfa) => {\n  const n = parseInt(hex.slice(1), 16);\n  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`;\n};\n\nconst quadro = context.panel.data.series[0];\nconst coluna = (nome) => {\n  const campo = quadro && quadro.fields.find((f) => f.name === nome);\n  return campo ? Array.from(campo.values) : [];\n};\nconst semDados = (mensagem) => ({\n  title: { text: mensagem, left: 'center', top: 'middle', textStyle: { color: tinta, fontSize: 13, fontWeight: 'normal' } },\n});\n\nconst eixoValor = (extra) => Object.assign({\n  type: 'value',\n  scale: true,\n  axisLine: { show: false },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n  splitLine: { lineStyle: { color: grade, width: 1 } },\n}, extra || {});\nconst eixoCategoria = (dados, extra) => Object.assign({\n  type: 'category',\n  data: dados,\n  axisLine: { lineStyle: { color: grade } },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n}, extra || {});\nconst tituloGrafico = (texto, extra) => Object.assign({\n  text: texto,\n  textStyle: { color: tintaForte, fontSize: 12, fontWeight: 600 },\n}, extra || {});\nconst dica = (formatador) => ({\n  backgroundColor: superficie,\n  borderColor: grade,\n  textStyle: { color: tintaForte, fontSize: 12 },\n  formatter: formatador,\n});\n\n// Boxplot por caso, um gráfico por sensor. Caixa = quartis; linhas = percentis 5 e 95; losango = média.\nif (!quadro || coluna('caso').length === 0) {\n  return semDados('Sem leituras para os filtros escolhidos');\n}\nconst sensores = [['mq3', 'MQ-3', 0], ['mq135', 'MQ-135', 0], ['umid', 'Umidade (%)', 1]];\nconst casos = coluna('caso');\nconst nomes = casos.map(nomeDoCaso);\nconst n = coluna('n');\nconst arredondar = (v, casas) => (v === null || v === undefined ? '–' : v.toFixed(casas));\n\nconst title = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\nsensores.forEach(([chave, rotulo, casas], i) => {\n  const esquerda = 5 + i * 32;\n  title.push(tituloGrafico(rotulo, { left: `${esquerda}%`, top: 6 }));\n  grid.push({ left: `${esquerda}%`, top: 40, width: '27%', bottom: 34, containLabel: true });\n  xAxis.push(eixoCategoria(nomes, { gridIndex: i }));\n  yAxis.push(eixoValor({ gridIndex: i }));\n  const p = (nome) => coluna(`${chave}_${nome}`);\n  const caixas = [p('p5'), p('p25'), p('p50'), p('p75'), p('p95')];\n  series.push({\n    name: rotulo,\n    type: 'boxplot',\n    xAxisIndex: i,\n    yAxisIndex: i,\n    boxWidth: [10, 40],\n    data: casos.map((caso, k) => ({\n      value: caixas.map((c) => c[k]),\n      itemStyle: { color: comAlfa(corDoCaso(caso), 0.22), borderColor: corDoCaso(caso), borderWidth: 2 },\n    })),\n    tooltip: {\n      ...dica((x) => {\n        const k = x.dataIndex;\n        return `<b>${rotulo} · ${nomes[k]}</b><br/>${n[k]} leituras<br/>`\n          + `mediana ${arredondar(caixas[2][k], casas)}<br/>quartis ${arredondar(caixas[1][k], casas)} a ${arredondar(caixas[3][k], casas)}<br/>`\n          + `percentis 5 a 95: ${arredondar(caixas[0][k], casas)} a ${arredondar(caixas[4][k], casas)}<br/>média ${arredondar(coluna(`${chave}_media`)[k], casas)}`;\n      }),\n    },\n  });\n  series.push({\n    name: `${rotulo} (média)`,\n    type: 'scatter',\n    xAxisIndex: i,\n    yAxisIndex: i,\n    symbol: 'diamond',\n    symbolSize: 11,\n    z: 10,\n    data: casos.map((caso, k) => ({\n      value: [nomes[k], coluna(`${chave}_media`)[k]],\n      itemStyle: { color: corDoCaso(caso), borderColor: superficie, borderWidth: 2 },\n    })),\n    label: { show: true, position: 'right', color: tinta, fontSize: 10, formatter: (x) => arredondar(x.value[1], casas) },\n    tooltip: { show: false },\n  });\n});\n\nreturn { title, grid, xAxis, yAxis, series, tooltip: { trigger: 'item' } };\n",
+        "map": "none"
+      },
+      "id": 5
+    },
+    {
+      "title": "Média em relação ao ar limpo",
+      "description": "Quanto a média de cada caso difere da média do ar limpo, por sensor. Precisa de rodadas de ar limpo.",
+      "type": "volkovlabs-echarts-panel",
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 10,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "with medias as (\n  select caso, avg(mq3_raw) as mq3, avg(mq135_raw) as mq135, avg(humidity_pct) as umid\n  from v_leituras\n  where ('$janela' = 'arquivo' or em_sopro) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim')\n  group by caso)\nselect m.caso,\n       (m.mq3 / b.mq3 - 1) * 100 as mq3,\n       (m.mq135 / b.mq135 - 1) * 100 as mq135,\n       (m.umid / b.umid - 1) * 100 as umid\nfrom medias m\ncross join (select * from medias where caso = 'clean') b\nwhere m.caso <> 'clean' and m.caso in ($caso)\norder by m.caso"
         }
-      }
+      ],
+      "options": {
+        "renderer": "canvas",
+        "editorMode": "code",
+        "getOption": "// Trecho comum a todos os painéis Business Charts; o montar_dashboard.py o cola antes do código de cada painel.\n\nconst PALETA = {\n  claro: { clean: '#2a78d6', drink: '#eb6834', perfume: '#1baf7a', alcohol70_spray: '#eda100', alcohol70_hands: '#e87ba4', mouthwash: '#008300', outro: '#6250d6' },\n  escuro: { clean: '#3987e5', drink: '#d95926', perfume: '#199e70', alcohol70_spray: '#c98500', alcohol70_hands: '#d55181', mouthwash: '#0ca30c', outro: '#9085e9' },\n};\nconst NOMES = {\n  clean: 'ar limpo', drink: 'bebida', perfume: 'perfume',\n  alcohol70_spray: 'álcool 70 (spray)', alcohol70_hands: 'álcool 70 (mãos)', mouthwash: 'enxaguante',\n};\n\nconst detectarEscuro = () => {\n  const tema = context.grafana && context.grafana.theme;\n  if (tema && typeof tema.isDark === 'boolean') {\n    return tema.isDark;\n  }\n  const rgb = (getComputedStyle(document.body).backgroundColor.match(/[\\d.]+/g) || []).map(Number);\n  if (rgb.length < 3 || rgb[3] === 0) {\n    return false;\n  }\n  return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] < 128;\n};\nconst escuro = detectarEscuro();\nconst tinta = escuro ? '#c3c2b7' : '#52514e';\nconst tintaForte = escuro ? '#f0efec' : '#0b0b0b';\nconst grade = escuro ? '#33332f' : '#e6e5e1';\nconst superficie = escuro ? '#1a1a19' : '#fcfcfb';\nconst cores = escuro ? PALETA.escuro : PALETA.claro;\n\nconst corDoCaso = (caso) => cores[caso] || cores.outro;\nconst nomeDoCaso = (caso) => NOMES[caso] || caso;\nconst ordenarCasos = (casos) => {\n  const ordem = Object.keys(NOMES);\n  const posicao = (c) => (ordem.indexOf(c) === -1 ? ordem.length : ordem.indexOf(c));\n  return [...new Set(casos)].sort((a, b) => posicao(a) - posicao(b) || a.localeCompare(b));\n};\nconst comAlfa = (hex, alfa) => {\n  const n = parseInt(hex.slice(1), 16);\n  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`;\n};\n\nconst quadro = context.panel.data.series[0];\nconst coluna = (nome) => {\n  const campo = quadro && quadro.fields.find((f) => f.name === nome);\n  return campo ? Array.from(campo.values) : [];\n};\nconst semDados = (mensagem) => ({\n  title: { text: mensagem, left: 'center', top: 'middle', textStyle: { color: tinta, fontSize: 13, fontWeight: 'normal' } },\n});\n\nconst eixoValor = (extra) => Object.assign({\n  type: 'value',\n  scale: true,\n  axisLine: { show: false },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n  splitLine: { lineStyle: { color: grade, width: 1 } },\n}, extra || {});\nconst eixoCategoria = (dados, extra) => Object.assign({\n  type: 'category',\n  data: dados,\n  axisLine: { lineStyle: { color: grade } },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n}, extra || {});\nconst tituloGrafico = (texto, extra) => Object.assign({\n  text: texto,\n  textStyle: { color: tintaForte, fontSize: 12, fontWeight: 600 },\n}, extra || {});\nconst dica = (formatador) => ({\n  backgroundColor: superficie,\n  borderColor: grade,\n  textStyle: { color: tintaForte, fontSize: 12 },\n  formatter: formatador,\n});\n\n// Média de cada caso em relação ao ar limpo, por sensor. Azul = abaixo, laranja = acima, cinza = igual.\nif (!quadro || coluna('caso').length === 0) {\n  return semDados('Sem ar limpo para comparar');\n}\nconst casos = ordenarCasos(coluna('caso'));\nconst casoDe = coluna('caso');\nconst sensores = [['mq3', 'MQ-3'], ['mq135', 'MQ-135'], ['umid', 'Umidade (%)']];\nconst celulas = [];\ncasos.forEach((caso, linha) => {\n  sensores.forEach(([chave], c) => {\n    const valor = coluna(chave)[casoDe.indexOf(caso)];\n    if (valor !== null && valor !== undefined) {\n      celulas.push([c, linha, Math.round(valor)]);\n    }\n  });\n});\nconst limite = Math.max(10, ...celulas.map((c) => Math.abs(c[2])));\n\nreturn {\n  grid: { left: 8, right: 16, top: 12, bottom: 56, containLabel: true },\n  xAxis: eixoCategoria(sensores.map((s) => s[1]), { splitArea: { show: false } }),\n  yAxis: eixoCategoria(casos.map(nomeDoCaso), { axisLine: { show: false } }),\n  visualMap: {\n    min: -limite,\n    max: limite,\n    orient: 'horizontal',\n    left: 'center',\n    bottom: 0,\n    calculable: false,\n    text: ['mais alto que o ar limpo', 'mais baixo'],\n    textStyle: { color: tinta },\n    inRange: { color: [cores.clean, escuro ? '#3a3a38' : '#e6e5e1', cores.drink] },\n  },\n  tooltip: dica((x) => `<b>${nomeDoCaso(casos[x.value[1]])} · ${sensores[x.value[0]][1]}</b><br/>${x.value[2] > 0 ? '+' : ''}${x.value[2]}% em relação ao ar limpo`),\n  series: [{\n    type: 'heatmap',\n    data: celulas,\n    itemStyle: { borderColor: superficie, borderWidth: 2 },\n    label: {\n      show: true,\n      formatter: (x) => `${x.value[2] > 0 ? '+' : ''}${x.value[2]}%`,\n      color: tintaForte,\n      fontSize: 12,\n    },\n  }],\n};\n",
+        "map": "none"
+      },
+      "id": 6
+    },
+    {
+      "title": "MQ-3 × MQ-135 por leitura",
+      "description": "Até 400 leituras por caso, sorteadas sempre do mesmo jeito. Se os casos formam grupos separados, os dois sensores já os distinguem.",
+      "type": "volkovlabs-echarts-panel",
+      "gridPos": {
+        "x": 10,
+        "y": 14,
+        "w": 14,
+        "h": 9
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select caso, mq3_raw, mq135_raw\nfrom (select caso, mq3_raw, mq135_raw,\n             row_number() over (partition by caso order by md5(rodada_id::text || amostra::text)) as n\n      from v_leituras\n      where ('$janela' = 'arquivo' or em_sopro) and caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim') and mq3_raw is not null and mq135_raw is not null) t\nwhere n <= 400"
+        }
+      ],
+      "options": {
+        "renderer": "canvas",
+        "editorMode": "code",
+        "getOption": "// Trecho comum a todos os painéis Business Charts; o montar_dashboard.py o cola antes do código de cada painel.\n\nconst PALETA = {\n  claro: { clean: '#2a78d6', drink: '#eb6834', perfume: '#1baf7a', alcohol70_spray: '#eda100', alcohol70_hands: '#e87ba4', mouthwash: '#008300', outro: '#6250d6' },\n  escuro: { clean: '#3987e5', drink: '#d95926', perfume: '#199e70', alcohol70_spray: '#c98500', alcohol70_hands: '#d55181', mouthwash: '#0ca30c', outro: '#9085e9' },\n};\nconst NOMES = {\n  clean: 'ar limpo', drink: 'bebida', perfume: 'perfume',\n  alcohol70_spray: 'álcool 70 (spray)', alcohol70_hands: 'álcool 70 (mãos)', mouthwash: 'enxaguante',\n};\n\nconst detectarEscuro = () => {\n  const tema = context.grafana && context.grafana.theme;\n  if (tema && typeof tema.isDark === 'boolean') {\n    return tema.isDark;\n  }\n  const rgb = (getComputedStyle(document.body).backgroundColor.match(/[\\d.]+/g) || []).map(Number);\n  if (rgb.length < 3 || rgb[3] === 0) {\n    return false;\n  }\n  return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] < 128;\n};\nconst escuro = detectarEscuro();\nconst tinta = escuro ? '#c3c2b7' : '#52514e';\nconst tintaForte = escuro ? '#f0efec' : '#0b0b0b';\nconst grade = escuro ? '#33332f' : '#e6e5e1';\nconst superficie = escuro ? '#1a1a19' : '#fcfcfb';\nconst cores = escuro ? PALETA.escuro : PALETA.claro;\n\nconst corDoCaso = (caso) => cores[caso] || cores.outro;\nconst nomeDoCaso = (caso) => NOMES[caso] || caso;\nconst ordenarCasos = (casos) => {\n  const ordem = Object.keys(NOMES);\n  const posicao = (c) => (ordem.indexOf(c) === -1 ? ordem.length : ordem.indexOf(c));\n  return [...new Set(casos)].sort((a, b) => posicao(a) - posicao(b) || a.localeCompare(b));\n};\nconst comAlfa = (hex, alfa) => {\n  const n = parseInt(hex.slice(1), 16);\n  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`;\n};\n\nconst quadro = context.panel.data.series[0];\nconst coluna = (nome) => {\n  const campo = quadro && quadro.fields.find((f) => f.name === nome);\n  return campo ? Array.from(campo.values) : [];\n};\nconst semDados = (mensagem) => ({\n  title: { text: mensagem, left: 'center', top: 'middle', textStyle: { color: tinta, fontSize: 13, fontWeight: 'normal' } },\n});\n\nconst eixoValor = (extra) => Object.assign({\n  type: 'value',\n  scale: true,\n  axisLine: { show: false },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n  splitLine: { lineStyle: { color: grade, width: 1 } },\n}, extra || {});\nconst eixoCategoria = (dados, extra) => Object.assign({\n  type: 'category',\n  data: dados,\n  axisLine: { lineStyle: { color: grade } },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n}, extra || {});\nconst tituloGrafico = (texto, extra) => Object.assign({\n  text: texto,\n  textStyle: { color: tintaForte, fontSize: 12, fontWeight: 600 },\n}, extra || {});\nconst dica = (formatador) => ({\n  backgroundColor: superficie,\n  borderColor: grade,\n  textStyle: { color: tintaForte, fontSize: 12 },\n  formatter: formatador,\n});\n\n// Cada ponto é uma leitura; a cor é o caso. Mostra se o MQ-3 e o MQ-135 juntos separam os casos.\nif (!quadro || coluna('caso').length === 0) {\n  return semDados('Sem leituras para os filtros escolhidos');\n}\nconst casoDe = coluna('caso');\nconst mq3 = coluna('mq3_raw');\nconst mq135 = coluna('mq135_raw');\nconst casos = ordenarCasos(casoDe);\n\nreturn {\n  legend: { top: 4, textStyle: { color: tinta }, icon: 'circle', itemHeight: 9 },\n  grid: { left: 8, right: 16, top: 44, bottom: 8, containLabel: true },\n  xAxis: eixoValor({ name: 'MQ-3 (leitura bruta)', nameLocation: 'middle', nameGap: 28, nameTextStyle: { color: tinta } }),\n  yAxis: eixoValor({ name: 'MQ-135 (leitura bruta)', nameLocation: 'middle', nameGap: 44, nameTextStyle: { color: tinta } }),\n  tooltip: dica((x) => `<b>${x.seriesName}</b><br/>MQ-3 ${x.value[0]}<br/>MQ-135 ${x.value[1]}`),\n  series: casos.map((caso) => ({\n    name: nomeDoCaso(caso),\n    type: 'scatter',\n    symbolSize: 7,\n    itemStyle: { color: comAlfa(corDoCaso(caso), 0.6), borderColor: superficie, borderWidth: 1 },\n    data: casoDe.map((c, k) => (c === caso ? [mq3[k], mq135[k]] : null)).filter((d) => d !== null),\n  })),\n};\n",
+        "map": "none"
+      },
+      "id": 7
+    },
+    {
+      "title": "Rodada selecionada",
+      "type": "row",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [],
+      "id": 8
+    },
+    {
+      "title": "Leituras da rodada ao longo do tempo",
+      "description": "Um gráfico por sensor. A faixa cinza é a janela de sopro (sopro + 30 s), quando há sopro marcado.",
+      "type": "volkovlabs-echarts-panel",
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 16
+      },
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${ds_pg}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "refId": "A",
+          "rawQuery": true,
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "select tempo_s, mq3_raw, mq135_raw, humidity_pct, em_sopro, caso\nfrom v_leituras\nwhere rodada_id::text = '$rodada'\norder by tempo_s"
+        }
+      ],
+      "options": {
+        "renderer": "canvas",
+        "editorMode": "code",
+        "getOption": "// Trecho comum a todos os painéis Business Charts; o montar_dashboard.py o cola antes do código de cada painel.\n\nconst PALETA = {\n  claro: { clean: '#2a78d6', drink: '#eb6834', perfume: '#1baf7a', alcohol70_spray: '#eda100', alcohol70_hands: '#e87ba4', mouthwash: '#008300', outro: '#6250d6' },\n  escuro: { clean: '#3987e5', drink: '#d95926', perfume: '#199e70', alcohol70_spray: '#c98500', alcohol70_hands: '#d55181', mouthwash: '#0ca30c', outro: '#9085e9' },\n};\nconst NOMES = {\n  clean: 'ar limpo', drink: 'bebida', perfume: 'perfume',\n  alcohol70_spray: 'álcool 70 (spray)', alcohol70_hands: 'álcool 70 (mãos)', mouthwash: 'enxaguante',\n};\n\nconst detectarEscuro = () => {\n  const tema = context.grafana && context.grafana.theme;\n  if (tema && typeof tema.isDark === 'boolean') {\n    return tema.isDark;\n  }\n  const rgb = (getComputedStyle(document.body).backgroundColor.match(/[\\d.]+/g) || []).map(Number);\n  if (rgb.length < 3 || rgb[3] === 0) {\n    return false;\n  }\n  return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] < 128;\n};\nconst escuro = detectarEscuro();\nconst tinta = escuro ? '#c3c2b7' : '#52514e';\nconst tintaForte = escuro ? '#f0efec' : '#0b0b0b';\nconst grade = escuro ? '#33332f' : '#e6e5e1';\nconst superficie = escuro ? '#1a1a19' : '#fcfcfb';\nconst cores = escuro ? PALETA.escuro : PALETA.claro;\n\nconst corDoCaso = (caso) => cores[caso] || cores.outro;\nconst nomeDoCaso = (caso) => NOMES[caso] || caso;\nconst ordenarCasos = (casos) => {\n  const ordem = Object.keys(NOMES);\n  const posicao = (c) => (ordem.indexOf(c) === -1 ? ordem.length : ordem.indexOf(c));\n  return [...new Set(casos)].sort((a, b) => posicao(a) - posicao(b) || a.localeCompare(b));\n};\nconst comAlfa = (hex, alfa) => {\n  const n = parseInt(hex.slice(1), 16);\n  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`;\n};\n\nconst quadro = context.panel.data.series[0];\nconst coluna = (nome) => {\n  const campo = quadro && quadro.fields.find((f) => f.name === nome);\n  return campo ? Array.from(campo.values) : [];\n};\nconst semDados = (mensagem) => ({\n  title: { text: mensagem, left: 'center', top: 'middle', textStyle: { color: tinta, fontSize: 13, fontWeight: 'normal' } },\n});\n\nconst eixoValor = (extra) => Object.assign({\n  type: 'value',\n  scale: true,\n  axisLine: { show: false },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n  splitLine: { lineStyle: { color: grade, width: 1 } },\n}, extra || {});\nconst eixoCategoria = (dados, extra) => Object.assign({\n  type: 'category',\n  data: dados,\n  axisLine: { lineStyle: { color: grade } },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n}, extra || {});\nconst tituloGrafico = (texto, extra) => Object.assign({\n  text: texto,\n  textStyle: { color: tintaForte, fontSize: 12, fontWeight: 600 },\n}, extra || {});\nconst dica = (formatador) => ({\n  backgroundColor: superficie,\n  borderColor: grade,\n  textStyle: { color: tintaForte, fontSize: 12 },\n  formatter: formatador,\n});\n\n// Uma rodada: um gráfico por sensor, mesmo eixo de tempo. A faixa cinza é a janela de sopro (sopro + 30 s).\nif (!quadro || coluna('tempo_s').length === 0) {\n  return semDados('Escolha uma rodada com leituras');\n}\nconst tempo = coluna('tempo_s');\nconst emSopro = coluna('em_sopro');\nconst cor = corDoCaso(coluna('caso')[0]);\nconst sensores = [['mq3_raw', 'MQ-3'], ['mq135_raw', 'MQ-135'], ['humidity_pct', 'Umidade (%)']];\n\nconst faixas = [];\nlet inicio = null;\nemSopro.forEach((dentro, k) => {\n  if (dentro && inicio === null) {\n    inicio = tempo[k];\n  }\n  if (!dentro && inicio !== null) {\n    faixas.push([{ xAxis: inicio }, { xAxis: tempo[k - 1] }]);\n    inicio = null;\n  }\n});\nif (inicio !== null) {\n  faixas.push([{ xAxis: inicio }, { xAxis: tempo[tempo.length - 1] }]);\n}\n\nconst title = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\nsensores.forEach(([campo, rotulo], i) => {\n  const topo = 4 + i * 29;\n  title.push(tituloGrafico(rotulo, { left: 8, top: `${topo}%` }));\n  grid.push({ left: 8, right: 16, top: `${topo + 5}%`, height: '17%', containLabel: true });\n  xAxis.push(eixoValor({\n    gridIndex: i,\n    scale: false,\n    min: 0,\n    splitLine: { show: false },\n    axisLabel: { show: i === sensores.length - 1, color: tinta, fontSize: 11 },\n    name: i === sensores.length - 1 ? 'segundos desde a primeira leitura' : '',\n    nameLocation: 'middle',\n    nameGap: 26,\n    nameTextStyle: { color: tinta },\n  }));\n  yAxis.push(eixoValor({ gridIndex: i }));\n  const valores = coluna(campo);\n  series.push({\n    name: rotulo,\n    type: 'line',\n    xAxisIndex: i,\n    yAxisIndex: i,\n    showSymbol: false,\n    lineStyle: { color: cor, width: 2 },\n    itemStyle: { color: cor },\n    data: tempo.map((t, k) => [t, valores[k]]),\n    markArea: { silent: true, itemStyle: { color: comAlfa(tinta, 0.14) }, data: faixas },\n  });\n});\n\nreturn {\n  title,\n  grid,\n  xAxis,\n  yAxis,\n  series,\n  axisPointer: { link: [{ xAxisIndex: 'all' }] },\n  tooltip: { trigger: 'axis', ...dica((lista) => `${Math.round(lista[0].value[0])} s<br/>${lista.map((s) => `${s.seriesName}: ${s.value[1]}`).join('<br/>')}`) },\n};\n",
+        "map": "none"
+      },
+      "id": 9
+    },
+    {
+      "title": "Sopros marcados",
+      "type": "row",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "title": "Subida por sopro",
+          "description": "Um ponto por sopro: pico (sopro + 30 s) menos a mediana dos 15 s antes. Aparece quando há sopros em attempts.csv ou marcados na ponte.",
+          "type": "volkovlabs-echarts-panel",
+          "gridPos": {
+            "x": 0,
+            "y": 41,
+            "w": 12,
+            "h": 9
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "${ds_pg}"
+              },
+              "refId": "A",
+              "rawQuery": true,
+              "editorMode": "code",
+              "format": "table",
+              "rawSql": "select caso, subida_mq3_raw as subida_mq3, subida_mq135_raw as subida_mq135\nfrom v_sopros\nwhere caso in ($caso) and participante in ($participante) and (coalesce(origem, '') <> 'simulador' or '$incluir_simulador' = 'sim') and subida_mq3_raw is not null and subida_mq135_raw is not null"
+            }
+          ],
+          "options": {
+            "renderer": "canvas",
+            "editorMode": "code",
+            "getOption": "// Trecho comum a todos os painéis Business Charts; o montar_dashboard.py o cola antes do código de cada painel.\n\nconst PALETA = {\n  claro: { clean: '#2a78d6', drink: '#eb6834', perfume: '#1baf7a', alcohol70_spray: '#eda100', alcohol70_hands: '#e87ba4', mouthwash: '#008300', outro: '#6250d6' },\n  escuro: { clean: '#3987e5', drink: '#d95926', perfume: '#199e70', alcohol70_spray: '#c98500', alcohol70_hands: '#d55181', mouthwash: '#0ca30c', outro: '#9085e9' },\n};\nconst NOMES = {\n  clean: 'ar limpo', drink: 'bebida', perfume: 'perfume',\n  alcohol70_spray: 'álcool 70 (spray)', alcohol70_hands: 'álcool 70 (mãos)', mouthwash: 'enxaguante',\n};\n\nconst detectarEscuro = () => {\n  const tema = context.grafana && context.grafana.theme;\n  if (tema && typeof tema.isDark === 'boolean') {\n    return tema.isDark;\n  }\n  const rgb = (getComputedStyle(document.body).backgroundColor.match(/[\\d.]+/g) || []).map(Number);\n  if (rgb.length < 3 || rgb[3] === 0) {\n    return false;\n  }\n  return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] < 128;\n};\nconst escuro = detectarEscuro();\nconst tinta = escuro ? '#c3c2b7' : '#52514e';\nconst tintaForte = escuro ? '#f0efec' : '#0b0b0b';\nconst grade = escuro ? '#33332f' : '#e6e5e1';\nconst superficie = escuro ? '#1a1a19' : '#fcfcfb';\nconst cores = escuro ? PALETA.escuro : PALETA.claro;\n\nconst corDoCaso = (caso) => cores[caso] || cores.outro;\nconst nomeDoCaso = (caso) => NOMES[caso] || caso;\nconst ordenarCasos = (casos) => {\n  const ordem = Object.keys(NOMES);\n  const posicao = (c) => (ordem.indexOf(c) === -1 ? ordem.length : ordem.indexOf(c));\n  return [...new Set(casos)].sort((a, b) => posicao(a) - posicao(b) || a.localeCompare(b));\n};\nconst comAlfa = (hex, alfa) => {\n  const n = parseInt(hex.slice(1), 16);\n  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`;\n};\n\nconst quadro = context.panel.data.series[0];\nconst coluna = (nome) => {\n  const campo = quadro && quadro.fields.find((f) => f.name === nome);\n  return campo ? Array.from(campo.values) : [];\n};\nconst semDados = (mensagem) => ({\n  title: { text: mensagem, left: 'center', top: 'middle', textStyle: { color: tinta, fontSize: 13, fontWeight: 'normal' } },\n});\n\nconst eixoValor = (extra) => Object.assign({\n  type: 'value',\n  scale: true,\n  axisLine: { show: false },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n  splitLine: { lineStyle: { color: grade, width: 1 } },\n}, extra || {});\nconst eixoCategoria = (dados, extra) => Object.assign({\n  type: 'category',\n  data: dados,\n  axisLine: { lineStyle: { color: grade } },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n}, extra || {});\nconst tituloGrafico = (texto, extra) => Object.assign({\n  text: texto,\n  textStyle: { color: tintaForte, fontSize: 12, fontWeight: 600 },\n}, extra || {});\nconst dica = (formatador) => ({\n  backgroundColor: superficie,\n  borderColor: grade,\n  textStyle: { color: tintaForte, fontSize: 12 },\n  formatter: formatador,\n});\n\n// Um ponto por sopro marcado: quanto cada sensor subiu em relação à linha de base de antes do sopro.\nif (!quadro || coluna('caso').length === 0) {\n  return semDados('Nenhum sopro marcado ainda');\n}\nconst casoDe = coluna('caso');\nconst mq3 = coluna('subida_mq3');\nconst mq135 = coluna('subida_mq135');\n\nreturn {\n  legend: { top: 4, textStyle: { color: tinta }, icon: 'circle', itemHeight: 9 },\n  grid: { left: 8, right: 16, top: 44, bottom: 8, containLabel: true },\n  xAxis: eixoValor({ name: 'subida do MQ-3', nameLocation: 'middle', nameGap: 28, nameTextStyle: { color: tinta } }),\n  yAxis: eixoValor({ name: 'subida do MQ-135', nameLocation: 'middle', nameGap: 44, nameTextStyle: { color: tinta } }),\n  tooltip: dica((x) => `<b>${x.seriesName}</b><br/>MQ-3 +${x.value[0]}<br/>MQ-135 +${x.value[1]}`),\n  series: ordenarCasos(casoDe).map((caso) => ({\n    name: nomeDoCaso(caso),\n    type: 'scatter',\n    symbolSize: 12,\n    itemStyle: { color: corDoCaso(caso), borderColor: superficie, borderWidth: 2 },\n    data: casoDe.map((c, k) => (c === caso ? [mq3[k], mq135[k]] : null)).filter((d) => d !== null),\n  })),\n};\n",
+            "map": "none"
+          },
+          "id": 11
+        },
+        {
+          "title": "Rodadas sem sopro marcado",
+          "description": "Ficam fora do gráfico de subidas e da janela 'sopro'.",
+          "type": "table",
+          "gridPos": {
+            "x": 12,
+            "y": 41,
+            "w": 12,
+            "h": 9
+          },
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${ds_pg}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-postgresql-datasource",
+                "uid": "${ds_pg}"
+              },
+              "refId": "A",
+              "rawQuery": true,
+              "editorMode": "code",
+              "format": "table",
+              "rawSql": "select caso, participante, arquivo_sessao as arquivo, inicio\nfrom v_rodadas_sem_sopro\norder by inicio desc"
+            }
+          ],
+          "id": 12
+        }
+      ],
+      "id": 10
+    },
+    {
+      "title": "Ao vivo (placa)",
+      "type": "row",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 41,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "title": "Leituras que chegam da placa",
+          "description": "Chega pelo MQTT, direto do broker. Fica vazio enquanto nenhuma placa publica.",
+          "type": "volkovlabs-echarts-panel",
+          "gridPos": {
+            "x": 0,
+            "y": 42,
+            "w": 24,
+            "h": 11
+          },
+          "datasource": {
+            "type": "grafana-mqtt-datasource",
+            "uid": "${ds_mqtt}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "grafana-mqtt-datasource",
+                "uid": "${ds_mqtt}"
+              },
+              "refId": "A",
+              "topic": "mq3/placa01/leituras"
+            }
+          ],
+          "options": {
+            "renderer": "canvas",
+            "editorMode": "code",
+            "getOption": "// Trecho comum a todos os painéis Business Charts; o montar_dashboard.py o cola antes do código de cada painel.\n\nconst PALETA = {\n  claro: { clean: '#2a78d6', drink: '#eb6834', perfume: '#1baf7a', alcohol70_spray: '#eda100', alcohol70_hands: '#e87ba4', mouthwash: '#008300', outro: '#6250d6' },\n  escuro: { clean: '#3987e5', drink: '#d95926', perfume: '#199e70', alcohol70_spray: '#c98500', alcohol70_hands: '#d55181', mouthwash: '#0ca30c', outro: '#9085e9' },\n};\nconst NOMES = {\n  clean: 'ar limpo', drink: 'bebida', perfume: 'perfume',\n  alcohol70_spray: 'álcool 70 (spray)', alcohol70_hands: 'álcool 70 (mãos)', mouthwash: 'enxaguante',\n};\n\nconst detectarEscuro = () => {\n  const tema = context.grafana && context.grafana.theme;\n  if (tema && typeof tema.isDark === 'boolean') {\n    return tema.isDark;\n  }\n  const rgb = (getComputedStyle(document.body).backgroundColor.match(/[\\d.]+/g) || []).map(Number);\n  if (rgb.length < 3 || rgb[3] === 0) {\n    return false;\n  }\n  return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2] < 128;\n};\nconst escuro = detectarEscuro();\nconst tinta = escuro ? '#c3c2b7' : '#52514e';\nconst tintaForte = escuro ? '#f0efec' : '#0b0b0b';\nconst grade = escuro ? '#33332f' : '#e6e5e1';\nconst superficie = escuro ? '#1a1a19' : '#fcfcfb';\nconst cores = escuro ? PALETA.escuro : PALETA.claro;\n\nconst corDoCaso = (caso) => cores[caso] || cores.outro;\nconst nomeDoCaso = (caso) => NOMES[caso] || caso;\nconst ordenarCasos = (casos) => {\n  const ordem = Object.keys(NOMES);\n  const posicao = (c) => (ordem.indexOf(c) === -1 ? ordem.length : ordem.indexOf(c));\n  return [...new Set(casos)].sort((a, b) => posicao(a) - posicao(b) || a.localeCompare(b));\n};\nconst comAlfa = (hex, alfa) => {\n  const n = parseInt(hex.slice(1), 16);\n  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alfa})`;\n};\n\nconst quadro = context.panel.data.series[0];\nconst coluna = (nome) => {\n  const campo = quadro && quadro.fields.find((f) => f.name === nome);\n  return campo ? Array.from(campo.values) : [];\n};\nconst semDados = (mensagem) => ({\n  title: { text: mensagem, left: 'center', top: 'middle', textStyle: { color: tinta, fontSize: 13, fontWeight: 'normal' } },\n});\n\nconst eixoValor = (extra) => Object.assign({\n  type: 'value',\n  scale: true,\n  axisLine: { show: false },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n  splitLine: { lineStyle: { color: grade, width: 1 } },\n}, extra || {});\nconst eixoCategoria = (dados, extra) => Object.assign({\n  type: 'category',\n  data: dados,\n  axisLine: { lineStyle: { color: grade } },\n  axisTick: { show: false },\n  axisLabel: { color: tinta, fontSize: 11 },\n}, extra || {});\nconst tituloGrafico = (texto, extra) => Object.assign({\n  text: texto,\n  textStyle: { color: tintaForte, fontSize: 12, fontWeight: 600 },\n}, extra || {});\nconst dica = (formatador) => ({\n  backgroundColor: superficie,\n  borderColor: grade,\n  textStyle: { color: tintaForte, fontSize: 12 },\n  formatter: formatador,\n});\n\n// Leituras que chegam pelo MQTT, um gráfico por sensor, no mesmo eixo de tempo.\nconst tempoCampo = quadro && quadro.fields.find((f) => f.type === 'time');\nif (!quadro || !tempoCampo || tempoCampo.values.length === 0) {\n  return semDados('Aguardando leituras da placa');\n}\nconst tempo = Array.from(tempoCampo.values);\nconst sensores = [['mq3_raw', 'MQ-3'], ['mq135_raw', 'MQ-135'], ['humidity_pct', 'Umidade (%)']];\nconst cor = cores.outro;\n\nconst title = [];\nconst grid = [];\nconst xAxis = [];\nconst yAxis = [];\nconst series = [];\nsensores.forEach(([campo, rotulo], i) => {\n  const topo = 4 + i * 29;\n  title.push(tituloGrafico(rotulo, { left: 8, top: `${topo}%` }));\n  grid.push({ left: 8, right: 16, top: `${topo + 5}%`, height: '17%', containLabel: true });\n  xAxis.push({\n    type: 'time',\n    gridIndex: i,\n    axisLine: { lineStyle: { color: grade } },\n    axisTick: { show: false },\n    splitLine: { show: false },\n    axisLabel: { show: i === sensores.length - 1, color: tinta, fontSize: 11 },\n  });\n  yAxis.push(eixoValor({ gridIndex: i }));\n  const valores = coluna(campo);\n  series.push({\n    name: rotulo,\n    type: 'line',\n    xAxisIndex: i,\n    yAxisIndex: i,\n    showSymbol: false,\n    lineStyle: { color: cor, width: 2 },\n    itemStyle: { color: cor },\n    data: tempo.map((t, k) => [t, valores[k]]),\n  });\n});\n\nreturn {\n  title,\n  grid,\n  xAxis,\n  yAxis,\n  series,\n  animation: false,\n  axisPointer: { link: [{ xAxisIndex: 'all' }] },\n  tooltip: { trigger: 'axis', ...dica((lista) => lista.map((s) => `${s.seriesName}: ${s.value[1]}`).join('<br/>')) },\n};\n",
+            "map": "none"
+          },
+          "id": 14
+        }
+      ],
+      "id": 13
     }
   ]
 }

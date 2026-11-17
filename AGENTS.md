@@ -141,7 +141,7 @@ O worker assina `leituras`, `eventos` e `status` e grava no PostgreSQL, ignorand
 
 ### 7.3 Dashboard (Grafana Cloud)
 
-Grafana Cloud no plano gratuito: o Grafana não roda no Compose. O agente PDC (serviço `pdc`, perfil `cloud`) abre um túnel de saída para a stack consultar o PostgreSQL e assinar o Mosquitto locais. O dashboard é versionado em `applications/grafana/dashboards/coleta.json` e publicado com `applications/grafana/publicar.py`; a configuração da stack está em `applications/grafana/README.md`.
+Grafana Cloud no plano gratuito. Para ver o dashboard sem a conta, o Compose tem um Grafana local (perfil `local`, http://localhost:3000). No Cloud, o Grafana não roda no Compose: o agente PDC (serviço `pdc`, perfil `cloud`) abre um túnel de saída para a stack consultar o PostgreSQL e assinar o Mosquitto locais. O dashboard usa só Business Charts, é gerado por `applications/grafana/montar_dashboard.py` (JavaScript em `applications/grafana/paineis/`), versionado em `applications/grafana/dashboards/coleta.json` e publicado com `applications/grafana/publicar.py`; a configuração da stack está em `applications/grafana/README.md`.
 
 - **PostgreSQL** (nativo): médias por caso, boxplot, heatmap, subidas por sopro, histórico e situação da placa. A lógica fica nas views do banco; os painéis só fazem `SELECT`.
 - **MQTT** (`grafana-mqtt-datasource`): curvas ao vivo.

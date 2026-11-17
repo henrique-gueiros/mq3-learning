@@ -5,8 +5,8 @@ notebook, então o agente PDC (serviço `pdc` do `docker-compose.yml`) abre um
 túnel de saída até a stack. Por ele o Cloud consulta o PostgreSQL e assina o
 Mosquitto que rodam no Compose. Nenhuma porta do roteador é aberta.
 
-O dashboard está versionado em `dashboards/coleta.json` e é publicado por
-`publicar.py`. Ele não usa uid fixo de data source: os seletores
+O dashboard está versionado em `dashboards/coleta.json` (gerado por
+`montar_dashboard.py`) e é publicado por `publicar.py`. Ele não usa uid fixo de data source: os seletores
 **PostgreSQL** e **MQTT** no topo escolhem os data sources da stack.
 
 Para ver o mesmo dashboard num Grafana local, sem conta, use o perfil `local` do
@@ -50,12 +50,11 @@ Compose (veja `applications/README.md`).
 ## Se algo não funcionar no Cloud
 
 - **MQTT via PDC falhou no plano Free:** troque o data source do painel
-  "Ao vivo" para o PostgreSQL com a consulta abaixo e atualização de 5 s. Os
+  "Leituras que chegam da placa" para o PostgreSQL com a consulta abaixo e atualização de 5 s. Os
   dados passam a vir do banco, alguns segundos atrasados.
 
   ```sql
-  select ts as time, mq3_raw as "MQ-3", mq135_raw as "MQ-135",
-         humidity_pct as "Umidade (%)", temperature_c as "Temperatura (°C)"
+  select ts as time, mq3_raw, mq135_raw, humidity_pct
   from v_leituras
   where rodada_id = (select id from rodadas where inicio is not null order by inicio desc limit 1)
   order by ts
@@ -67,23 +66,38 @@ Compose (veja `applications/README.md`).
 
 ## Painéis
 
-| Painel | Fonte |
-| --- | --- |
-| Ao vivo: leituras da placa | MQTT `mq3/placa01/leituras` |
-| Placa (recebendo/parada) e rodada atual | PostgreSQL |
-| Média por caso (tabela e barras) | `v_media_rodada`: média das médias de cada rodada |
-| Boxplot por caso | `v_leituras` (Business Charts) |
-| Heatmap caso × sensor | `v_media_rodada` (Business Charts), cor normalizada por sensor |
-| Subida por sopro: MQ-135 × MQ-3 | `v_sopros` (XY chart nativo), um ponto por sopro |
-| Rodadas sem sopro marcado | `v_rodadas_sem_sopro` |
-| Histórico da rodada selecionada | `v_leituras`, em segundos desde a primeira leitura, com a janela de sopro em pontos |
-| Resultado do modelo | reservado |
+Todos os gráficos são Business Charts (Apache ECharts); os três números do topo
+são o único uso de painéis nativos, porque um número não precisa de gráfico.
 
-A variável **Janela** escolhe entre o arquivo inteiro e só as janelas de
-sopro (sopro + 30 s). **Incluir simulador** fica em `nao` por padrão, para
-que demonstrações não se misturem com a coleta.
+| Painel | Por que esse gráfico | Fonte |
+| --- | --- | --- |
+| Placa, Rodadas, Leituras | Um número só: indicador, não gráfico | PostgreSQL |
+| Distribuição das leituras por caso | Boxplot por sensor: mostra mediana, quartis e dispersão, que uma barra de média esconde. Losango = média | `v_leituras` |
+| Média em relação ao ar limpo | Heatmap divergente (azul abaixo, laranja acima, cinza igual): uma grade caso × sensor com a mesma unidade (%) | `v_leituras` |
+| MQ-3 × MQ-135 por leitura | Dispersão: responde se os dois sensores juntos separam os casos | `v_leituras` |
+| Leituras da rodada ao longo do tempo | Uma linha por sensor, cada um com sua escala (nunca dois eixos no mesmo gráfico) | `v_leituras` |
+| Subida por sopro | Dispersão, um ponto por sopro marcado | `v_sopros` |
+| Rodadas sem sopro marcado | Lista: são nomes de arquivos, não números | `v_rodadas_sem_sopro` |
+| Leituras que chegam da placa | Linhas ao vivo, um gráfico por sensor | MQTT `mq3/placa01/leituras` |
 
-Editou o dashboard na interface? Exporte o JSON (**Share → Export → Save to
-file**, sem marcar *Export for sharing externally*) para
-`dashboards/coleta.json` antes de publicar de novo, senão a edição é
-sobrescrita.
+Cada caso tem sempre a mesma cor em todos os gráficos (paleta validada, ver
+`paineis/comum.js`). Só aparecem os seletores **Caso**, **Rodada** e **Janela**;
+os demais ficam ocultos (`var-incluir_simulador=sim` na URL mostra as rodadas do
+simulador). A variável **Janela** escolhe entre o arquivo inteiro e só as janelas
+de sopro (sopro + 30 s).
+
+## Alterar um painel
+
+O JavaScript de cada gráfico fica em `paineis/*.js` e as consultas em
+`montar_dashboard.py`. Depois de mudar qualquer um dos dois:
+
+```bash
+python applications/grafana/montar_dashboard.py
+cd applications && python -m pytest coleta/tests/test_dashboard.py
+```
+
+O teste confere que o `dashboards/coleta.json` versionado é o que o script gera e
+que cada gráfico monta com dados e sem dados (precisa de `node`).
+
+Não edite o `coleta.json` à mão nem só na interface: publicar de novo sobrescreve
+qualquer edição. Mude os arquivos acima e gere o JSON.
