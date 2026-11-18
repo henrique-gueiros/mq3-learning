@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SerieSobreposta } from '../api/consultas'
 import { corDoCaso } from '../dominio/casos'
-import { opcoesSobrepostas } from './sobrepostas'
+import { fimDoZoom, opcoesSobrepostas } from './sobrepostas'
 import { CORES_TESTE as cores } from './testes/cores'
 
 const dados: SerieSobreposta[] = [
@@ -42,6 +42,18 @@ describe('opcoesSobrepostas', () => {
     expect(texto).toContain('Umidade (%) · bebida: 55,0')
     expect(texto).toContain('MQ-135 · bebida: 420')
     expect(texto).toContain('PPM · bebida: 0,50')
+  })
+
+  it('a janela inicial ignora a rodada longa de ambiente e arredonda ao minuto, com mínimo de 5 min', () => {
+    const longas: SerieSobreposta[] = [
+      { rodada: 'amb', caso: 'clean', pontos: [[0, 40, 200, 0.3], [11251, 40, 200, 0.3]] },
+      { rodada: 'beb', caso: 'drink', pontos: [[0, 50, 400, 0.4], [368, 80, 600, 1]] },
+      { rodada: 'curta', caso: 'perfume', pontos: [[0, 50, 400, 0.4], [138, 50, 400, 0.4]] },
+    ]
+    expect(fimDoZoom(longas)).toBe(420)
+    expect(opcoesSobrepostas({ dados: longas, cores, tema: 'escuro' }).dataZoom[0].endValue).toBe(420)
+    expect(fimDoZoom([{ rodada: 'a', caso: 'clean', pontos: [[0, 1, 1, 1], [90, 1, 1, 1]] }])).toBe(300)
+    expect(fimDoZoom([{ rodada: 'a', caso: 'clean', pontos: [[0, 1, 1, 1], [400, 1, 1, 1]] }])).toBe(420)
   })
 
   it('reduz pontos com lttb e começa com o zoom em 0–300 s, ligado nas três grades', () => {

@@ -18,8 +18,21 @@ const MEDIDAS = [
   { rotulo: 'PPM', indice: 3, casas: 2 },
 ] as const
 
-/** Zoom inicial: os primeiros 300 s, onde estão os sopros de quase toda rodada. */
-export const ZOOM_INICIAL_S = 300
+/** Mínimo da janela inicial: os sopros cabem nos primeiros 5 min. */
+export const ZOOM_MINIMO_S = 300
+
+/**
+ * Fim do zoom inicial, em segundos: o fim da rodada mais longa que não é ambiente,
+ * arredondado para cima ao minuto, nunca abaixo de 5 min. Uma rodada de ambiente de
+ * horas não manda na janela (continua no gráfico; a barra mostra o resto). Sem
+ * rodada fora do ambiente, usa todas.
+ */
+export function fimDoZoom(dados: SerieSobreposta[]): number {
+  const fora = dados.filter((r) => r.caso !== 'clean')
+  const base = fora.length ? fora : dados
+  const fim = base.reduce((maior, r) => Math.max(maior, ...r.pontos.map((p) => p[0])), 0)
+  return Math.max(ZOOM_MINIMO_S, Math.ceil(fim / 60) * 60)
+}
 
 const LINHAS_NA_DICA = 8
 
@@ -54,7 +67,7 @@ export function opcoesSobrepostas({ dados, cores, tema, animar = true }: Entrada
     })),
   )
 
-  const zoom = { xAxisIndex: todas, startValue: 0, endValue: ZOOM_INICIAL_S, filterMode: 'none' }
+  const zoom = { xAxisIndex: todas, startValue: 0, endValue: fimDoZoom(dados), filterMode: 'none' }
 
   return {
     ...animacao(animar),

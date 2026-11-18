@@ -14,13 +14,14 @@ describe('SecaoRodadas', () => {
   it('desenha as rodadas sobrepostas e diz quantas são', async () => {
     apiFalsa({
       '/api/sobrepostas': [
-        { rodada: 'r1', caso: 'drink', pontos: [[0, 50, 400, 0.4]] },
+        { rodada: 'r1', caso: 'drink', pontos: [[0, 50, 400, 0.4], [368, 80, 600, 1]] },
         { rodada: 'r2', caso: 'clean', pontos: [[0, 45, 300, 0.3]] },
       ],
     })
     montar(<SecaoRodadas filtros={FILTROS_PADRAO} aoMudarFiltros={() => {}} />)
     expect(screen.getByRole('heading', { name: 'Todas as rodadas juntas.' })).toBeInTheDocument()
     expect(await screen.findByRole('img', { name: /2 rodadas sobrepostas/i })).toBeInTheDocument()
+    expect(screen.getByText(/Mostra até 7:00/)).toBeInTheDocument()
   })
 
   it('sem rodadas mostra o vazio', async () => {

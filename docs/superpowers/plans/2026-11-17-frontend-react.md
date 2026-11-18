@@ -19,7 +19,7 @@ etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
 | 4. e2e da análise (parte da 3B) | feito (`e2e/analise.spec.ts`) | mesmo commit |
 | 4. Conferência dos números com o Grafana (resto da 3B) | feita: tudo igual (ver "3B — conferência com o Grafana") | ver `git log` |
 | 5b. Animações, acabamento e revisão de design (3A) — parte 1 | feita (ver "3A — acabamento: parte 1 feita") | ver `git log` |
-| 5b. Animações, acabamento e revisão de design (3A) — parte 2 | **próxima** (lista em "3A — o que falta") | |
+| 5b. Animações, acabamento e revisão de design (3A) — parte 2 | em andamento: zoom das rodadas feito (`fimDoZoom`); o resto está em "3A — o que falta" | |
 | 6b. Documentação (3C) | a fazer | |
 | 7. Remoção do Grafana | a fazer; **perguntar à equipe antes** (apaga pastas e serviços) | |
 
@@ -265,7 +265,7 @@ Achados que ficaram para depois:
 | A 390 px a barra de filtros rola para o lado sem pista visual de que há mais (o segmentado fica cortado) | 3A |
 | A marca "Sopro Seguro" quebra em duas linhas a 390 px (já era assim) | 3A |
 | ~~Bundle de 1,4 MB num chunk só~~: feito na 3A, parte 1 (ver lá os números; o chunk principal ainda passa de 500 kB) | — |
-| Zoom inicial das rodadas sobrepostas (0–300 s) vira ~3% da barra por causa de uma rodada de ambiente de 3 h. **Recomendação** (aguardando o usuário/equipe): o zoom inicial vai de 0 até o fim da rodada mais longa que **não** é de ambiente, arredondado para cima ao minuto e com mínimo de 300 s (hoje: bebida de 368 s → 0–7:00); a descrição do cartão passa a dizer o intervalo. A rodada de 3 h fica no gráfico (dado sem edição), e vale a equipe conferir se aquela sessão de ambiente foi mesmo planejada com 3 h | 3A (decisão da equipe) |
+| ~~Zoom inicial das rodadas sobrepostas~~: feito na 3A, parte 2 (opção 1, `fimDoZoom`) | — |
 | "Rodadas sem sopro": hoje são as 12; quando houver `attempts.csv`, conferir se a tabela continua útil ou vira só uma contagem | 3A |
 | 4 avisos do `oxlint`: 3 de antes (`TemaProvider`, `Aviso`, `GraficoAoVivo`) e 1 novo em `GraficoECharts` (`setState` no efeito: é a regra "cores lidas num `useEffect`", aceito) | 3A |
 | ~~O texto de exemplo do "Ao vivo" aponta um arquivo inexistente~~: achado errado, `esp32-esp8266/leituras.csv` existe (conferido 17/11) | — |
@@ -294,7 +294,7 @@ no Vite e no nginx (8080), screenshots das quatro seções a 1280 px nos dois te
 - **2A** `distribuicao.ts` (boxplot; abaixo de 640 px as três grades empilham, altura 720),
   `heatmap.ts` (`celulasHeatmap`, `limiteHeatmap`, rótulo com sinal `+81%`/`−3%`),
   `dispersao.ts`; `SecaoComparacao.tsx`.
-- **2B** `sobrepostas.ts` (`ZOOM_INICIAL_S = 300`, série `id = rodada-grade`, dica com até 8
+- **2B** `sobrepostas.ts` (zoom inicial por `fimDoZoom`, série `id = rodada-grade`, dica com até 8
   linhas e "+N rodadas"); `SecaoRodadas.tsx` (altura 560; a descrição diz que o PPM só é exibido).
 - **2C** `rodada.ts` (`faixasDeSopro`, `markArea` cinza); `src/analise/rodadas.ts`
   (`rodadasVisiveis`, `rotuloRodada` = `bebida · p01 · 06/11/2026 14:00 [· simulador]`,
@@ -313,8 +313,8 @@ no Vite e no nginx (8080), screenshots das quatro seções a 1280 px nos dois te
 
 **Ajustes vindos dos screenshots:** nome do eixo y da dispersão cortado (grid `left: 28`);
 barra de zoom das rodadas sobrepostas sem contraste (agora preenchida e com alças na cor da
-tinta). Uma rodada de ambiente tem **3 h** (11.251 s), então 0–300 s ocupa ~3% da barra: o dado
-está certo, mas vale a equipe decidir se o zoom inicial deve ser outro (anotado para a 3A).
+tinta). Uma rodada de ambiente tem **3 h** (11.251 s). O zoom inicial não usa mais 0–300 s
+fixos: `fimDoZoom` vai até a rodada mais longa fora do ambiente (ver 3A, parte 2).
 
 **Revisão de código (padrões + plano), corrigido antes do commit:**
 - Dica das rodadas sobrepostas usava as casas decimais da primeira grade para todas; agora cada
@@ -362,7 +362,6 @@ Verificado: 181 testes do Vitest, `tsc -b`, e2e (4) no Vite e no nginx (8080).
 
 | Item | Notas |
 | --- | --- |
-| **Zoom das rodadas sobrepostas** | Aguardando escolha da equipe (ver opções abaixo). Hoje 0–300 s num eixo de ~3 h deixa a alça da barra minúscula. |
 | Entrada orquestrada na carga | Cabeçalho → ao vivo → números; sem fade em cada seção. |
 | Tween dos números (≤ 200 ms) | Ao vivo e resumo. |
 | Transição skeleton → gráfico | Só na primeira carga (opacidade). |
@@ -374,15 +373,12 @@ Verificado: 181 testes do Vitest, `tsc -b`, e2e (4) no Vite e no nginx (8080).
 | `/impeccable`, `review-animations`, `web-design-guidelines` | Rodar e corrigir. |
 | Contraste AA + foco + teclado; Lighthouse a11y ≥ 95 | Aceite da Etapa 5. |
 
-**Zoom — opções (escolher uma antes de implementar):**
-
-1. **Recomendada:** zoom inicial de 0 até o fim da rodada mais longa que **não** é de ambiente,
-   arredondado para cima ao minuto, mínimo 300 s (hoje: bebida de 368 s → **0–7:00**). A rodada
-   de 3 h de ambiente continua no gráfico; a barra deixa de ser 3%. A descrição do cartão diz
-   o intervalo. A equipe deve conferir se aquela sessão de ambiente de 3 h foi planejada assim.
-2. **Limitar o eixo a 10 min:** seleção 0–300 s, eixo/barra até 600 s. Mais simples; a rodada
-   de 3 h só aparece em "Rodada selecionada".
-3. **Manter 0–300 s no eixo inteiro:** só melhora o contraste da alça; o problema dos 3% fica.
+**Zoom das rodadas sobrepostas — opção 1 aplicada.** `fimDoZoom` (`sobrepostas.ts`): 0 até o
+fim da rodada mais longa que não é ambiente, arredondado para cima ao minuto, mínimo 300 s.
+Com o banco de 17/11 a bebida de 368 s vira **0–7:00**; a rodada de ambiente de 3 h continua
+no gráfico e a barra deixa de ocupar ~3%. A descrição do cartão diz o intervalo ("Mostra até
+7:00"). Sem rodada fora do ambiente, a janela usa a mais longa de todas, ainda com o mínimo
+de 5 min. A equipe ainda deve conferir se aquela sessão de ambiente de 3 h foi planejada assim.
 
 ### 3B — conferência com o Grafana: feita (17/11)
 
@@ -510,8 +506,8 @@ Componente `src/analise/SecaoComparacao.tsx`: grade com o boxplot em largura tot
 
 ### 4.4 "Todas as rodadas juntas"
 
-- [x] `sobrepostas.ts` → linhas sobrepostas em 3 grades empilhadas (Umidade %, MQ-135, PPM), uma linha por rodada na cor do caso, `sampling: 'lttb'`, `dataZoom` (inside + slider) começando em 0–300 s, ponteiro ligado entre as grades, legenda por caso (não por rodada).
-  - Testes: uma série por rodada × grade; cor pela rodada/caso; zoom inicial 0–300.
+- [x] `sobrepostas.ts` → linhas sobrepostas em 3 grades empilhadas (Umidade %, MQ-135, PPM), uma linha por rodada na cor do caso, `sampling: 'lttb'`, `dataZoom` (inside + slider), ponteiro ligado entre as grades, legenda por caso (não por rodada).
+  - Testes: uma série por rodada × grade; cor pela rodada/caso; zoom inicial por `fimDoZoom` (mínimo 0–300 s; ignora rodada longa de ambiente e arredonda ao minuto).
 
 ### 4.5 "Rodada selecionada"
 
