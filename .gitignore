@@ -1,7 +1,10 @@
 .env
-.impeccable/hook.cache.json
-.impeccable/config.local.json
 .superpowers/
 .DS_Store
 __pycache__/
 node_modules/
+
+# Configuração local de agentes e skills (não vai para o repositório)
+.claude/
+.cursor/
+.impeccable/
