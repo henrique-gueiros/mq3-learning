@@ -28,6 +28,8 @@ export interface CoresGrafico {
   recuperando: string
   fonte: string
   fonteMono: string
+  /** Meio neutro das escalas divergentes (heatmap). */
+  neutro?: string
 }
 
 type Marca = Record<string, unknown>

@@ -15,7 +15,14 @@ def test_filtros_lista_casos_participantes_e_rodadas(pg):
     assert resposta["participantes"] == ["p01", "p02"]
     assert [r["id"] for r in resposta["rodadas"]] == [nova, antiga]
     assert resposta["rodadas"][0]["caso"] == "drink"
-    assert resposta["rodadas"][0]["rotulo"].startswith("drink · p01 · 06/11")
+    assert resposta["rodadas"][0]["participante"] == "p01"
+    assert resposta["rodadas"][0]["inicio"].isoformat() == "2026-11-06T09:30:00+00:00"
+
+
+def test_filtros_diz_a_origem_de_cada_rodada(pg):
+    rodada(pg, "clean", origem="simulador", inicio="2026-11-06T09:30:00+00:00")
+    rodada(pg, "drink", origem="ponte", inicio="2026-11-05T09:30:00+00:00")
+    assert [r["origem"] for r in consultas.filtros(pg)["rodadas"]] == ["simulador", "ponte"]
 
 
 def test_resumo_conta_rodadas_e_leituras_sem_o_simulador(pg):

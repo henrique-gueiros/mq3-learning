@@ -18,6 +18,7 @@ export function coresDoTema(linhaSerie?: string): CoresGrafico {
     recuperando: lerToken('ambar'),
     fonte: lerToken('fonte'),
     fonteMono: lerToken('fonte-mono'),
+    neutro: lerToken('neutro-grafico'),
   }
 }
 

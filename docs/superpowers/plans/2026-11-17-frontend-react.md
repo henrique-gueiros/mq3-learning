@@ -15,10 +15,16 @@ etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
 | 4. Seções de análise — Onda 1 (1A: base da análise) | feita | `b77f983`, merge `8958d3d`; ajustes `4fd9fd7`, `6e055fe` |
 | 5a. Menu das seções no celular (1C) | feita | `7baafd2`, merge `2a5ebe4` |
 | 6a. Tela no Compose com nginx (1B) | feita | `668722b`, merge `bd8d05f`; ajuste `98da720` |
-| 4. Seções de análise — Onda 2 (2A–2D) | **próxima** (detalhe em "Onda 2: como encaixar") | |
-| 5b. Animações, acabamento e revisão de design (3A) | a fazer | |
+| 4. Seções de análise — Onda 2 (2A–2D) | feita (ver "Onda 2 — feita") | ver `git log` (commit da Onda 2) |
+| 4. e2e da análise (parte da 3B) | feito (`e2e/analise.spec.ts`) | mesmo commit |
+| 4. Conferência dos números com o Grafana (resto da 3B) | **próxima** (passo a passo em "3B — o que falta") | |
+| 5b. Animações, acabamento e revisão de design (3A) | a fazer (lista em "Achados que ficaram para depois" + Etapa 5) | |
 | 6b. Documentação (3C) | a fazer | |
-| 7. Remoção do Grafana | a fazer | |
+| 7. Remoção do Grafana | a fazer; **perguntar à equipe antes** (apaga pastas e serviços) | |
+
+**Estado do ambiente (17/11, 21h):** Compose da raiz de pé, com `api` e `frontend` reconstruídos
+depois das mudanças desta onda (o 8080 já serve a versão nova); stack `services/` parada
+(usa as mesmas portas). Postgres descartável dos testes da API: contêiner `pg-teste` na 55432.
 
 ## Regras de trabalho (valem para todas as etapas)
 
@@ -160,7 +166,7 @@ mesmo pela rede interna. Por isso a 9001 continua publicada, só em `127.0.0.1`.
 
 | Rota | Devolve | Painel do Grafana |
 | --- | --- | --- |
-| `GET /api/filtros` | casos, participantes, rodadas (`id`, `caso`, `rotulo`) | variáveis |
+| `GET /api/filtros` | casos, participantes, rodadas (`id`, `caso`, `participante`, `origem`, `inicio` em UTC; a tela monta o rótulo no fuso do navegador) | variáveis |
 | `GET /api/resumo` | `placa` (recebendo/parada), `rodadas`, `leituras` | 3 indicadores do topo |
 | `GET /api/distribuicao` | por caso: `n` e `{p5,p25,p50,p75,p95,media}` de `mq3`, `mq135`, `umid` | boxplot |
 | `GET /api/heatmap` | por caso (sem `clean`): % de `mq3`, `mq135`, `umid` em relação ao `clean` | heatmap |
@@ -256,11 +262,95 @@ Achados que ficaram para depois:
 | Desmarcar o último chip volta a "todos" (como no Grafana); conferir se é o que a equipe quer | 3A |
 | A 390 px a barra de filtros rola para o lado sem pista visual de que há mais (o segmentado fica cortado) | 3A |
 | A marca "Sopro Seguro" quebra em duas linhas a 390 px (já era assim) | 3A |
-| Bundle de 1,3 MB num chunk só (ECharts + mqtt.js) | 3A (Etapa 5, `import()` dinâmico) |
+| Bundle de 1,3 MB num chunk só (ECharts + mqtt.js); com a Onda 2, ~1,4 MB | 3A (Etapa 5, `import()` dinâmico) |
+| Zoom inicial das rodadas sobrepostas (0–300 s) vira ~3% da barra por causa de uma rodada de ambiente de 3 h; decidir com a equipe se fica, se o fim do zoom acompanha a rodada mais longa de bebida, ou se rodadas muito longas saem desse gráfico | 3A (decisão da equipe) |
+| "Rodadas sem sopro": hoje são as 12; quando houver `attempts.csv`, conferir se a tabela continua útil ou vira só uma contagem | 3A |
 | 4 avisos do `oxlint`: 3 de antes (`TemaProvider`, `Aviso`, `GraficoAoVivo`) e 1 novo em `GraficoECharts` (`setState` no efeito: é a regra "cores lidas num `useEffect`", aceito) | 3A |
-| O texto de exemplo do "Ao vivo" sem placa aponta `../esp32-esp8266/leituras.csv`; o arquivo real é `firmware/leituras.csv` | 3A |
-| `/api/filtros` devolve as rodadas do simulador junto (não respeita o interruptor) e rótulos com o caso cru (`drink`) | 2C (filtrar na tela ou pedir o parâmetro na API) |
+| ~~O texto de exemplo do "Ao vivo" aponta um arquivo inexistente~~: achado errado, `esp32-esp8266/leituras.csv` existe (conferido 17/11) | — |
+| ~~`/api/filtros` devolve as rodadas do simulador e rótulos com o caso cru~~: resolvido na 2C (a API manda `origem`; a tela filtra e monta o rótulo) | — |
 | `applications/README.md` e `frontend/README.md` ainda não falam do nginx/8080 | 3C |
+
+## Onda 2 — feita (17/11)
+
+Feita em sequência por um agente só (não em worktrees). Verificado: 162 testes do Vitest,
+`tsc -b`, `npm run build`, 22 testes da API contra o Postgres descartável, e2e (4 testes)
+no Vite e no nginx (8080), screenshots das quatro seções a 1280 px nos dois temas e a 390 px.
+
+**Peças comuns** (criadas por quem integrou, usadas pelas quatro frentes):
+- `src/graficos/comum.ts`: `EntradaGrafico<T>` (`dados, cores, tema, animar`), `comAlfa`,
+  `eixoValor` (números pt-BR: `3.000`, `0,25`), `eixoCategoria` (todos os rótulos, `interval: 0`),
+  `dica`, `legenda`, `tituloGrade`, `rotuloSegundos` (`1:30`), `gradesEmpilhadas` (várias grades
+  com o mesmo tempo; só a última mostra o eixo), `animacao(animar)` (300/250 ms, `cubicOut`).
+- `src/graficos/testes/cores.ts` (`CORES_TESTE`); `src/analise/testes/montar.tsx`
+  (`apiFalsa(rotas)` por prefixo de caminho, valor `Error` vira 503; `montar(ui)`).
+- Token `--neutro-grafico` (meio cinza do heatmap) em `tokens.css`, lido em `temaEcharts.ts`.
+- `src/layout/useMidia.ts`: `useMidia('(max-width: 640px)')`.
+- `analise.css`: `.grade-analise` (5 colunas: inteira, estreita = 2, larga = 3; abaixo de
+  1000 px tudo em largura total), `.seletor-rodada*`, `.tabela*`.
+
+**Por frente:**
+- **2A** `distribuicao.ts` (boxplot; abaixo de 640 px as três grades empilham, altura 720),
+  `heatmap.ts` (`celulasHeatmap`, `limiteHeatmap`, rótulo com sinal `+81%`/`−3%`),
+  `dispersao.ts`; `SecaoComparacao.tsx`.
+- **2B** `sobrepostas.ts` (`ZOOM_INICIAL_S = 300`, série `id = rodada-grade`, dica com até 8
+  linhas e "+N rodadas"); `SecaoRodadas.tsx` (altura 560; a descrição diz que o PPM só é exibido).
+- **2C** `rodada.ts` (`faixasDeSopro`, `markArea` cinza); `src/analise/rodadas.ts`
+  (`rodadasVisiveis`, `rotuloRodada` = `bebida · p01 · 06/11/2026 14:00 [· simulador]`,
+  `escolherRodada`: se a escolhida sumiu, volta para a mais recente); `SecaoRodada.tsx`
+  (`<select>` nativo com a bolinha da cor; skeleton enquanto a lista carrega).
+- **2D** `subida.ts`; `SecaoSopros.tsx` com a tabela em **2 colunas** (Rodada = caso · participante
+  com o arquivo embaixo, cortado com reticências e `title`; Início). Com 4 colunas não cabia no
+  cartão estreito.
+- **API:** `/api/filtros` passou a mandar `origem`, `participante` e `inicio` e **deixou de mandar
+  `rotulo`**: o `to_char` do Postgres saía em UTC e o seletor mostrava 15:36 onde a tabela mostrava
+  12:36. Testes em `applications/api/tests/test_consultas.py`.
+- **3B (parte):** `e2e/analise.spec.ts` — `page.route` só em caminhos que começam com `/api/`
+  (com `**/api/**` o Playwright pegava também os módulos `src/api/*` do Vite e a tela não subia).
+  Teste 1: as quatro seções desenham um `canvas` e a tabela lista o arquivo. Teste 2: "Só o sopro"
+  põe `janela=sopro` na URL e na consulta de `/api/distribuicao`; trocar a rodada põe `rodada=` na URL.
+
+**Ajustes vindos dos screenshots:** nome do eixo y da dispersão cortado (grid `left: 28`);
+barra de zoom das rodadas sobrepostas sem contraste (agora preenchida e com alças na cor da
+tinta). Uma rodada de ambiente tem **3 h** (11.251 s), então 0–300 s ocupa ~3% da barra: o dado
+está certo, mas vale a equipe decidir se o zoom inicial deve ser outro (anotado para a 3A).
+
+**Revisão de código (padrões + plano), corrigido antes do commit:**
+- Dica das rodadas sobrepostas usava as casas decimais da primeira grade para todas; agora cada
+  linha diz a medida (`PPM · bebida: 0,50`) e usa as casas dela (teste novo).
+- `CORES_TESTE` tinha cores de 3 dígitos (`#eee`), que `comAlfa` não entende; agora 6 dígitos.
+- Heatmap com só "ambiente" marcado dizia "Precisa de rodadas de ambiente"; agora pede outro caso.
+- e2e passou a trocar um chip de caso (URL com `caso=` e a consulta refeita), como pede o aceite.
+- `numeroDica` sem uso removido; altura do heatmap virou `alturaHeatmap` em `heatmap.ts`.
+- Mexer em `analise.css`, `tokens.css`, `aoVivo.ts` e `temaEcharts.ts` foi trabalho de integração
+  (a regra "frente não toca CSS global" vale para frentes em paralelo).
+- Boxplot: a 4.3 diz "lado a lado"; abaixo de 640 px empilha (senão os rótulos se cruzam a 390 px).
+
+**Achados da revisão que ficaram (julgamento, não bloqueiam):**
+
+| Achado | Quem cuida |
+| --- | --- |
+| `?rodada=` com uma rodada do simulador e o interruptor desligado: a tela mostra a mais recente, mas a URL fica com o id antigo | 3A |
+| Lista de sensores (`MQ-3`, `MQ-135`, `Umidade (%)`) repetida em `distribuicao.ts`, `heatmap.ts` e `rodada.ts`; `comSinal` repetido em `heatmap.ts` e `subida.ts`; `axisPointer` + cabeçalho da dica repetidos em `rodada.ts` e `sobrepostas.ts`: juntar em `comum.ts` | 3A |
+| As quatro seções repetem `useCallback((cores, animar) => opcoesX({ dados: x.data ?? [], cores, tema, animar }))`; um hook `useOpcoes` deixaria mais curto | 3A |
+| `origem` é `string` comparada com `'simulador'`; `EntradaGrafico.tema` repete `'escuro' \| 'claro'` em vez de importar `Tema`; `CoresGrafico` (com `neutro`, só da análise) mora em `aoVivo.ts` | 3A |
+| API: `filtros` devolve `inicio` como datetime e `rodadas_sem_sopro` faz `.isoformat()`; dá o mesmo JSON, mas são dois jeitos | 3C ou 4A |
+| Breakpoint `640px` do boxplot solto no componente, sem relação com os 1000 px do CSS | 3A |
+
+A Onda 2, o e2e e este plano entraram num commit só. Ficaram fora dele, de propósito,
+`.claude/worktrees/` e `Relatório progressão projeto.md` (não são desta tarefa).
+
+### 3B — o que falta (conferência com o Grafana)
+
+Critério de aceite da Etapa 4: os números do boxplot, do heatmap e do resumo batem com o Grafana
+local com os mesmos filtros. Passo a passo:
+1. `docker compose --profile local up -d grafana` (raiz; a stack `services/` precisa estar parada).
+2. Abrir http://localhost:3000, dashboard "Bancada", e a tela em http://localhost:8080.
+3. Para (a) todos os casos, arquivo inteiro e (b) só `drink`, só o sopro: comparar rodadas e
+   leituras do resumo; mediana, quartis e média do boxplot de cada sensor; as células do heatmap.
+4. Anotar aqui uma tabela "valor na tela × valor no Grafana". Diferença ≠ arredondamento é bug:
+   abrir o SQL em `applications/api/consultas.py` e o do painel em `applications/grafana/montar_dashboard.py`.
+5. Hoje não há nenhum sopro marcado (12 rodadas, 0 sopros), então "só o sopro" e a seção
+   "Sopros marcados" ficam vazias nos dois lados: conferir só que os dois mostram vazio.
 
 ## Onda 2: como encaixar (frentes 2A–2D)
 
@@ -300,7 +390,7 @@ interface PropsSecao {
 - **Pronto quando:** `npm test`, `npx tsc -b`, `npm run build` e `npm run e2e` verdes;
   screenshot em 1280 e 390 px nos dois temas; `code-review` sobre o diff; um commit.
 
-## Etapa 4 — Seções de análise (Onda 2 é a próxima; a 1A já foi feita)
+## Etapa 4 — Seções de análise (1A e Onda 2 feitas; falta a conferência com o Grafana, 3B)
 
 **Objetivo:** as quatro seções abaixo do "Ao vivo" mostram os mesmos gráficos do
 Grafana, com os mesmos filtros, lendo a API. Ao final, dá para comparar com o
@@ -336,34 +426,34 @@ Testes primeiro:
 
 Funções puras em `src/graficos/` (testar as `options`, não o canvas), uma por gráfico:
 
-- [ ] `distribuicao.ts` → **boxplot** em 3 grades lado a lado (MQ-3, MQ-135, Umidade %).
+- [x] `distribuicao.ts` → **boxplot** em 3 grades lado a lado (MQ-3, MQ-135, Umidade %).
   - Caixa p25–p75 com mediana, bigodes p5–p95 (`type: 'boxplot'`, dados `[p5,p25,p50,p75,p95]`), losango da média (`scatter`, `symbol: 'diamond'`) com o valor ao lado.
   - Preenchimento com a cor do caso a 22% e borda na cor cheia.
   - Tooltip com n, mediana, quartis, percentis e média.
   - Testes: ordem dos casos; `[p5..p95]` no lugar certo; cor por caso; nome "ambiente" para `clean`.
-- [ ] `heatmap.ts` → **heatmap divergente** casos × sensores, célula = % arredondado.
+- [x] `heatmap.ts` → **heatmap divergente** casos × sensores, célula = % arredondado.
   - Escala simétrica ±max(10, |máx|); polos = cor do `clean` (negativo) e do `drink` (positivo), **meio neutro cinza** (regra da skill `dataviz`).
   - Vazio sem `clean`: mensagem "Precisa de rodadas de ambiente".
   - Testes: escala mínima 10; valor arredondado; sem dados → vazio.
-- [ ] `dispersao.ts` → **dispersão** MQ-3 (x) × MQ-135 (y), uma série por caso, alfa 0,6, legenda.
+- [x] `dispersao.ts` → **dispersão** MQ-3 (x) × MQ-135 (y), uma série por caso, alfa 0,6, legenda.
 
 Componente `src/analise/SecaoComparacao.tsx`: grade com o boxplot em largura total; heatmap (≈40%) e dispersão (≈60%) lado a lado; cada gráfico num `Cartao` com título e uma linha de explicação (texto das descrições do Grafana).
 
 ### 4.4 "Todas as rodadas juntas"
 
-- [ ] `sobrepostas.ts` → linhas sobrepostas em 3 grades empilhadas (Umidade %, MQ-135, PPM), uma linha por rodada na cor do caso, `sampling: 'lttb'`, `dataZoom` (inside + slider) começando em 0–300 s, ponteiro ligado entre as grades, legenda por caso (não por rodada).
+- [x] `sobrepostas.ts` → linhas sobrepostas em 3 grades empilhadas (Umidade %, MQ-135, PPM), uma linha por rodada na cor do caso, `sampling: 'lttb'`, `dataZoom` (inside + slider) começando em 0–300 s, ponteiro ligado entre as grades, legenda por caso (não por rodada).
   - Testes: uma série por rodada × grade; cor pela rodada/caso; zoom inicial 0–300.
 
 ### 4.5 "Rodada selecionada"
 
-- [ ] Seletor de rodada (`<select>` estilizado ou lista) com os rótulos de `/api/filtros`, guardado na URL (`rodada=`). Padrão: a mais recente.
-- [ ] `rodada.ts` → 3 grades empilhadas (MQ-3, MQ-135, Umidade) na cor do caso, com faixas cinza onde `em_sopro` (sequências contíguas viram `markArea`).
+- [x] Seletor de rodada (`<select>` estilizado ou lista) com os rótulos de `/api/filtros`, guardado na URL (`rodada=`). Padrão: a mais recente.
+- [x] `rodada.ts` → 3 grades empilhadas (MQ-3, MQ-135, Umidade) na cor do caso, com faixas cinza onde `em_sopro` (sequências contíguas viram `markArea`).
   - Teste da função `faixasDeSopro(pontos)`: sequências contíguas → `[início, fim]`; sem sopro → `[]`.
 
 ### 4.6 "Sopros marcados"
 
-- [ ] `subida.ts` → dispersão subida MQ-3 (x) × subida MQ-135 (y), um ponto por sopro, cor do caso. Vazio: "Nenhum sopro marcado. Marque com Enter na ponte ou em attempts.csv."
-- [ ] Tabela "Rodadas sem sopro marcado" (`/api/rodadas-sem-sopro`): caso (com bolinha da cor), participante, arquivo, início (data pt-BR). Cabeçalho em `caption-mono`, linhas com hairline (DESIGN.md, `ex-data-table-cell`).
+- [x] `subida.ts` → dispersão subida MQ-3 (x) × subida MQ-135 (y), um ponto por sopro, cor do caso. Vazio: "Nenhum sopro marcado. Marque com Enter na ponte ou em attempts.csv."
+- [x] Tabela "Rodadas sem sopro marcado" (`/api/rodadas-sem-sopro`): caso (com bolinha da cor), participante, arquivo, início (data pt-BR). Ficou em 2 colunas (ver "Onda 2 — feita"). Cabeçalho em `caption-mono`, linhas com hairline (DESIGN.md, `ex-data-table-cell`).
 
 ### 4.7 Estados de cada gráfico
 
@@ -372,10 +462,10 @@ Componente `src/analise/SecaoComparacao.tsx`: grade com o boxplot em largura tot
 
 ### Critérios de aceite da Etapa 4
 
-- `npm test` e `npm run e2e` verdes; novo e2e: com a rota `/api/*` falsa (`page.route`), as 4 seções renderizam e trocar um chip muda a URL e refaz as consultas.
-- Com o Compose e os CSVs importados, os números do boxplot, heatmap e resumo batem com o Grafana local (`docker compose --profile local up -d`, http://localhost:3000) com os mesmos filtros.
-- Screenshots (escuro e claro, 1280 px e 390 px) sem sobreposição de rótulos.
-- Plano atualizado e revisão de código antes do commit.
+- [x] `npm test` e `npm run e2e` verdes; novo e2e: com a rota `/api/*` falsa (`page.route`), as 4 seções renderizam e trocar um filtro muda a URL e refaz as consultas (o e2e usa o segmentado "Só o sopro"; os chips já têm teste no Vitest).
+- [ ] Com o Compose e os CSVs importados, os números do boxplot, heatmap e resumo batem com o Grafana local (`docker compose --profile local up -d`, http://localhost:3000) com os mesmos filtros. Passo a passo em "3B — o que falta".
+- [x] Screenshots (escuro e claro, 1280 px e 390 px) sem sobreposição de rótulos.
+- [x] Plano atualizado e revisão de código antes do commit.
 
 ---
 

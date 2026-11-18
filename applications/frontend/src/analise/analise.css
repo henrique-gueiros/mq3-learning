@@ -50,6 +50,133 @@
   margin-bottom: var(--e-3);
 }
 
+/* Cartões das seções: largura total, ou estreito (≈40%) + largo (≈60%) lado a lado. */
+.grade-analise {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--e-6);
+}
+.grade-inteira {
+  grid-column: 1 / -1;
+}
+.grade-estreita {
+  grid-column: span 2;
+}
+.grade-larga {
+  grid-column: span 3;
+}
+@media (max-width: 1000px) {
+  .grade-estreita,
+  .grade-larga {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Seletor da rodada: select nativo (teclado e leitor de tela de graça) com a cor do caso. */
+.seletor-rodada {
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-1);
+  min-width: 0;
+}
+.seletor-rodada-rotulo {
+  font-size: 13px;
+  color: var(--corpo);
+}
+.seletor-rodada-caixa {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.seletor-rodada-cor {
+  position: absolute;
+  left: var(--e-3);
+  opacity: 1;
+  pointer-events: none;
+}
+.seletor-rodada select {
+  appearance: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  height: 36px;
+  max-width: min(360px, 100%);
+  padding: 0 var(--e-8) 0 28px;
+  border-radius: var(--raio-sm);
+  border: 1px solid var(--linha);
+  background: var(--cartao)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%238f8f8f' stroke-width='1.5'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5'/%3E%3C/svg%3E")
+    no-repeat right 12px center;
+  color: var(--tinta);
+  cursor: pointer;
+  text-overflow: ellipsis;
+  transition: border-color var(--rapido) var(--sair);
+}
+.seletor-rodada select:hover {
+  border-color: var(--linha-forte);
+}
+
+/* Tabela (DESIGN.md, ex-data-table-cell): cabeçalho em caption-mono, linhas com hairline. */
+.tabela-rolagem {
+  max-height: 320px;
+  overflow: auto;
+  border-radius: var(--raio-md);
+  box-shadow: inset 0 0 0 1px var(--linha);
+}
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 20px;
+}
+.tabela th {
+  position: sticky;
+  top: 0;
+  background: var(--insercao);
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--mudo);
+  text-align: left;
+  padding: var(--e-2) var(--e-3);
+}
+.tabela td {
+  padding: var(--e-2) var(--e-3);
+  border-top: 1px solid var(--linha);
+  color: var(--tinta);
+  white-space: nowrap;
+}
+.tabela td.mono {
+  font-size: 13px;
+  color: var(--corpo);
+}
+.tabela-rodada {
+  max-width: 0;
+  width: 100%;
+}
+.tabela-arquivo {
+  display: block;
+  margin-top: 2px;
+  padding-left: calc(8px + var(--e-2));
+  font-family: var(--fonte-mono);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--mudo);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tabela-caso {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-2);
+}
+.tabela-cor {
+  opacity: 1;
+}
+
 .grafico-estado {
   display: flex;
   flex-direction: column;

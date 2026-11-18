@@ -44,6 +44,8 @@
   --ambar-suave: #3a2604;
   --verde: #45dec5;
   --rosa: #ff4d94;
+  /* meio neutro das escalas divergentes dos gráficos */
+  --neutro-grafico: #3a3a38;
 
   /* gradiente da marca: o único elemento decorativo, só em escala grande */
   --grad-desenvolver-1: #007cf0;
@@ -116,6 +118,7 @@
   --ambar-suave: #ffefcf;
   --verde: #0a7d6b;
   --rosa: #d6006b;
+  --neutro-grafico: #e6e5e1;
 
   --anel: 0 0 0 1px #00000014;
   --sombra-2: var(--anel), 0 1px 1px #00000005, 0 2px 2px #0000000a;

@@ -7,6 +7,14 @@ export function formatarNumero(valor: number | null | undefined, casas = 0): str
   return valor.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })
 }
 
+/** `DD/MM/AAAA HH:MM` no fuso do navegador; texto que não é data vira traço. */
+export function formatarDataHora(iso: string | null | undefined): string {
+  const d = iso ? new Date(iso) : null
+  if (!d || Number.isNaN(d.getTime())) return TRACO
+  const dois = (n: number) => String(n).padStart(2, '0')
+  return `${dois(d.getDate())}/${dois(d.getMonth() + 1)}/${d.getFullYear()} ${dois(d.getHours())}:${dois(d.getMinutes())}`
+}
+
 /** Variação em %, sempre com sinal (o menos é o sinal tipográfico, não o hífen). */
 export function formatarVariacao(valor: number | null | undefined): string {
   if (valor == null || Number.isNaN(valor)) return TRACO

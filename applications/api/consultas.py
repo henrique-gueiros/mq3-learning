@@ -57,15 +57,20 @@ def _linhas(con: psycopg.Connection, sql: str, parametros: Optional[Dict[str, An
 
 
 def filtros(con: psycopg.Connection) -> Dict[str, Any]:
-    """Opções da barra de filtros: casos, participantes e rodadas (mais nova primeiro)."""
+    """Opções da barra de filtros: casos, participantes e rodadas (mais nova primeiro).
+
+    Cada rodada traz a ``origem`` para a tela esconder as do simulador quando o
+    interruptor "incluir simulador" está desligado. O rótulo é montado na tela, que
+    mostra o ``inicio`` no fuso do navegador (o do banco é UTC).
+    """
     casos = _linhas(con, "select distinct caso from rodadas where caso is not null order by 1")
     participantes = _linhas(
         con, "select distinct participante from rodadas where participante is not null order by 1"
     )
     rodadas = _linhas(
         con,
-        """select id::text as id, caso,
-                  caso || ' · ' || participante || ' · ' || to_char(inicio, 'DD/MM HH24:MI') as rotulo
+        """select id::text as id, caso, coalesce(participante, '') as participante,
+                  coalesce(origem, '') as origem, inicio
            from rodadas
            where inicio is not null and caso is not null
            order by inicio desc""",

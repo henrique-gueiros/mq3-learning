@@ -6,7 +6,17 @@ import { buscar, type FiltrosApi } from './cliente'
 export interface OpcoesFiltros {
   casos: string[]
   participantes: string[]
-  rodadas: { id: string; caso: string; rotulo: string }[]
+  rodadas: RodadaOpcao[]
+}
+
+export interface RodadaOpcao {
+  id: string
+  caso: string
+  participante: string
+  /** `'simulador'`, `'ponte'`, `'importador'`… (vazio se desconhecida). */
+  origem: string
+  /** ISO 8601, em UTC. */
+  inicio: string
 }
 
 export interface ResumoApi {
