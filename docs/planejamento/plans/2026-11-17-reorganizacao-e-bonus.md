@@ -39,11 +39,11 @@ Dica do professor: usar o GitHub Projects para as tarefas. Datas: relatório e r
 | 6. Esquemático: arquivo-fonte (com quem desenhou) | a fazer | |
 | 7. Relatório CSBC em `docs/relatorio/` | a fazer (vence 03/12) | |
 | 8. GitHub Projects e organização do repositório | a fazer (com o Henrique, dono do repo) | |
-| 9. Unificar `services/` com `applications/` | a fazer (aprovado em 05/11 para depois da coleta) | |
-| 10. Remover o Grafana (Etapa 7 do plano da tela) | a fazer; **perguntar à equipe antes** | |
+| 9. Unificar `services/` com `applications/` | **depois do modelo treinado** (decisão de 17/11) | |
+| 10. Remover o Grafana (Etapa 7 do plano da tela) | **manter por enquanto** (decisão de 17/11); fica como dashboard de apoio | |
 | 11. Bônus: alertas (Telegram + e-mail) | **não implementar até a equipe confirmar** | |
 | 12. Bônus: IPv6 no Compose | **não implementar: a equipe não confirmou** (decisão de 17/11) | |
-| 13. Merge na `main` e aviso à equipe | a fazer, depois das etapas 4 a 6 | |
+| 13. Merge na `main` e aviso à equipe | **aguardando a equipe** (17/11: "ainda não") | |
 
 ## Feito
 
@@ -191,6 +191,5 @@ avisar a equipe para `git pull` e recriar o `applications/ml/.venv`; banco criad
 
 ## Limpeza do espaço de trabalho (não versionado)
 
-- `Relatório progressão projeto.md` e `Copy of Checkpoint Embarcados.docx` estão soltos na raiz, sem versionar: decidir com a
-  equipe (o relatório de progressão pode virar insumo de `docs/relatorio/`).
+- `Relatório progressão projeto.md` e `Copy of Checkpoint Embarcados.docx` ficam soltos na raiz e agora estão no `.gitignore` (decisão de 17/11: só ignorar).
 - `.claude/`, `.cursor/` e `.impeccable/` estão no `.gitignore` (configuração local de agentes).
