@@ -1,8 +1,7 @@
 # Sopro Seguro
 
-Detector de álcool para carros com machine learning. O mapa do sistema está em [`ARCHITECTURE.md`](ARCHITECTURE.md) e o estado do projeto em [`docs/roadmap.md`](docs/roadmap.md).
-
-Projeto acadêmico para dizer se a pessoa **bebeu** ou **não bebeu**, a partir do MQ-3, do MQ-135 e do DHT11 numa ESP32.
+Detector de álcool para carros, com ESP32, sensores MQ-3, MQ-135 e DHT11 e machine learning. Projeto
+das disciplinas de **Sistemas Embarcados** e **Machine Learning** (CESAR School, grupo 15).
 
 Cada sopro recebe uma classe:
 
@@ -11,138 +10,83 @@ Cada sopro recebe uma classe:
 | `sob_efeito` | A pessoa bebeu (`drink`) |
 | `sem_efeito` | A pessoa não bebeu: ar do carro, perfume, álcool em gel, borrifo ou enxaguante |
 
-A classe vem do que foi feito no teste, anotado pela equipe. O modelo não mede mg/L e não é um etilômetro. `sob_efeito` significa "bebeu nas condições do experimento".
+A classe vem do que foi feito no teste, anotado pela equipe. O sistema não mede mg/L e **não é um
+etilômetro**: `sob_efeito` significa "bebeu nas condições do experimento".
 
-Há dois momentos. Primeiro a equipe junta CSVs e treina. Depois, com o arquivo do modelo na mão, um teste novo pode entrar ao vivo pelo MQTT.
+## Equipe
 
-```text
-1. Coleta (CSV na placa)
-        |
-        v
-2. Anotar o sopro e treinar no computador
-        |
-        v
-   ml/models/sob_efeito.joblib
-        |
-        v
-3. Docker no computador da bancada
-   ESP32 --MQTT--> Mosquitto --> worker --> Postgres
-                                    |
-                                    +--> servidor do modelo --> mq3/<placa>/resultado
-```
+| Integrante | GitHub | Responsabilidade |
+| --- | --- | --- |
+| Luis Felipe Perylo Benicio | `LFPerylo` | Decisões do projeto, dashboard e coleta de dados |
+| Henrique Wanderley Gueiros | `henrique-gueiros` | Dashboard e coleta de dados |
+| Artur Barros Dowsley | `Artur-Dowsley` | Circuito, firmware e coleta de dados |
+| Samuel Lucas de Abreu Gouveia | `sam-abreu` | Circuito, documentação e coleta de dados |
+| Felipe Barros de Carvalho | `fbclipe` | Coleta de dados |
 
-A placa só conversa com o Mosquitto. O Mosquitto é o programa que entrega as mensagens MQTT (porta 1883). O worker e o servidor do modelo também falam com ele. Os três ficam no Docker, no computador que está na mesma rede da ESP32.
-
-## 1. Captar os dados
-
-A ESP32 já grava uma linha por segundo num CSV da sessão (`leituras_N.csv`), do ligar até o reiniciar. Cada linha tem o tempo `t_ms` e as leituras dos três sensores. A placa não descobre sozinha quando alguém soprou. Quem conduz o teste anota isso.
-
-Para cada bateria (30 s ou 60 s, por exemplo):
-
-1. Ligue a placa e deixe gravando.
-2. Faça um cenário só.
-3. Se alguém soprar, anote o segundo de início e o de fim. Numa sessão de 60 s em que o sopro foi do 30 ao 50, a marcação é 30 e 50.
-4. Anote a condição, uma destas: `clean`, `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash`, `drink`.
-5. Copie o CSV para `ml/data/raw/sessions/` sem editar. Como a numeração recomeça em cada placa, use um nome único, por exemplo `2026-11-05_p01_leituras_3.csv`.
-6. Acrescente uma linha em `ml/data/raw/attempts.csv` (o cabeçalho está em `ml/templates/attempts_template.csv`).
-
-Exemplo de três cenários:
-
-| O que aconteceu | `condition` | Classe | Intervalo |
-| --- | --- | --- | --- |
-| A pessoa bebeu e soprou | `drink` | `sob_efeito` | do segundo em que começou ao segundo em que parou |
-| A pessoa soprou sem ter bebido | `clean` | `sem_efeito` | o mesmo |
-| Só o ambiente do carro, sem sopro | `clean` | `sem_efeito` | a sessão inteira, para o modelo ver o carro parado |
-
-`participant_id` é um código anônimo (`p01`), nunca o nome da pessoa.
-
-Uma linha do `attempts.csv`:
+## Como funciona
 
 ```text
-attempt_id,session_file,participant_id,condition,blow_start_s,blow_end_s,reference_mg_l,notes
-p01-drink-1,2026-11-05_p01_leituras_3.csv,p01,drink,30,50,,bebeu e soprou do 30 ao 50
+ESP32 ──USB──▶ ponte serial ──MQTT──▶ Mosquitto ──▶ ingestor ──▶ PostgreSQL ──▶ API ──▶ tela React
+ MQ-3 · MQ-135 · DHT11                  (1883 · ws 9001)                                   (ao vivo por /mqtt)
 ```
 
-Perfume, gel, borrifo e enxaguante também são `sem_efeito`. Eles entram na coleta para o modelo aprender a não tratar esse vapor como motorista que bebeu.
+A ESP32 grava um CSV por sessão. Hoje a ponte serial (ou o simulador) publica as leituras no MQTT no
+lugar dela; a ESP32 ainda não tem Wi-Fi/MQTT. O ingestor grava no PostgreSQL, a API (somente leitura)
+alimenta os gráficos de análise e a tela recebe as leituras ao vivo direto do broker. O diagrama
+completo, os contratos e as decisões estão em [`ARCHITECTURE.md`](ARCHITECTURE.md); o estado do
+projeto e os próximos passos, em [`docs/roadmap.md`](docs/roadmap.md).
 
-As colunas `ppm` e `alcool` do CSV ficam no arquivo e não entram no treino. As duas são calculadas pelo próprio firmware a partir do MQ-3.
+## Requisitos
 
-## 2. O que fazer com esses dados
+- **Hardware:** ESP32 DevKit (`esp32dev`), sensor MQ-3, sensor MQ-135, DHT11, protoboard e fios;
+  esquemático e foto em [`schematics/`](schematics/).
+- **Software:** Docker com Compose; Python 3.12+ (coleta, API e ML); Node 22 (tela, para desenvolver);
+  PlatformIO (firmware).
 
-Dentro de `ml/`, com o ambiente ligado (`python3 -m venv .venv`, `source .venv/bin/activate`, `pip install -r requirements.txt`):
+## Como rodar
 
 ```bash
-python -m src.cli validate
-python -m src.cli all
+cp .env.example .env            # troque as senhas
+docker compose up -d --build    # Mosquitto, PostgreSQL, ingestor, API e tela
 ```
 
-`validate` confere os CSVs e as linhas do `attempts.csv`. `all` faz o resto:
+Abra **http://localhost:8080**. Para ver o dashboard antigo do Grafana: `docker compose --profile local up -d`
+(http://localhost:3000). O Compose de `applications/services/` usa as mesmas portas: não suba os dois juntos.
 
-1. Recorta cada sopro: 15 s antes, o intervalo anotado e 30 s depois.
-2. Resume esse recorte numa linha de features (valor de antes, pico, subida, tempo até o pico, recuperação, e o que a umidade fez junto).
-3. Separa treino e teste por pessoa. A mesma pessoa não fica dos dois lados.
-4. Compara os modelos e grava `ml/models/sob_efeito.joblib`.
-
-Esse arquivo é o modelo. Ele ainda não existe: falta coleta das duas classes, com várias pessoas. Três sessões de uma pessoa só não fecham o treino. Os detalhes dos comandos estão em `ml/README.md`.
-
-## 3. Rodar o modelo
-
-Há dois jeitos, e os dois usam o mesmo `.joblib`.
-
-**Num CSV já gravado**, de dentro de `ml/`:
+Com os CSVs já coletados, no ambiente Python (`applications/ml/.venv`, criado como em `applications/ml/README.md`):
 
 ```bash
-python -m src.cli predict --session data/raw/sessions/2026-11-05_p01_leituras_3.csv --blow-start-s 30 --blow-end-s 50
+cd applications
+python -m coleta.lote           # importa o lote de 12 CSVs válidos para o banco
+python -m pytest                # testes (os de banco precisam de PG_DSN; veja applications/AGENTS.md)
 ```
 
-A resposta sai no terminal: `sob_efeito` ou `sem_efeito`.
+Dia de coleta, com a placa ligada por USB e sopros marcados: `applications/README.md`.
+Passo a passo de rotulagem, treino e do servidor do modelo: [`docs/guia-coleta-e-ml.md`](docs/guia-coleta-e-ml.md).
 
-**Ao vivo**, o servidor do modelo é o container `model` do Docker. O código está em `services/mq3mqtt/model_server.py`. Ele lê `ml/models/sob_efeito.joblib`. Enquanto esse arquivo não existir, a resposta publicada é `sem_modelo` e a classe fica vazia.
+## Estrutura
 
-## 4. Como o MQTT funciona
-
-MQTT é o protocolo. Mosquitto é o programa que recebe e entrega essas mensagens. Sobe junto com o banco, o worker e o servidor do modelo:
-
-```bash
-cd services
-docker compose up --build
+```text
+├── README.md              # Descrição do projeto, requisitos e instruções
+├── ARCHITECTURE.md        # Mapa do sistema e contratos
+├── docs/                  # requisitos/, relatorio/ (PDF CSBC-ABNT2), imagens/, planejamento/, roadmap.md
+├── applications/          # Código de back-end, front-end e ML
+│   ├── coleta/            #   ponte serial, ingestor, simulador, importador e lote de CSVs
+│   ├── db/                #   esquema, views e migrações do PostgreSQL
+│   ├── api/               #   API FastAPI somente leitura
+│   ├── frontend/          #   tela React (ao vivo + análise)
+│   ├── ml/                #   pipeline de ML: validação, features, treino, inferência
+│   ├── services/          #   fluxo paralelo: worker e servidor do modelo
+│   └── grafana/, pdc/     #   dashboard antigo e túnel do Grafana Cloud
+├── esp32-esp8266/         # Firmware da ESP32 (PlatformIO); leituras/ guarda os CSVs gravados
+└── schematics/            # Esquemático e foto da montagem
 ```
 
-Num teste novo, com a placa ligada na mesma rede:
+## Limitações
 
-1. Cada segundo a ESP32 publica uma leitura em `mq3/<placa>/leituras`, com as mesmas colunas do CSV.
-2. No começo do sopro publica `sopro_inicio` em `mq3/<placa>/eventos`. No fim, `sopro_fim`.
-3. O worker recebe essas mensagens e grava no PostgreSQL. A mesma amostra, da mesma placa e da mesma sessão, não entra duas vezes.
-4. Gravado o fim do sopro, o worker avisa o servidor em `mq3/<placa>/sopro_pronto`.
-5. O servidor lê as linhas daquela sessão no banco, recorta o sopro como no treino e publica em `mq3/<placa>/resultado`.
+- A ESP32 ainda não publica no MQTT; o modelo de ML ainda não foi treinado com dados reais (a tela mostra
+  só o detector ambiente × sopro, uma heurística).
+- O Mosquitto aceita conexões sem senha: use só na rede local da coleta.
+- Os dados coletados têm poucas pessoas e poucos casos; as métricas só valem depois da coleta rotulada.
 
-Os CSVs usados no treino não passam de novo pelo MQTT. O MQTT leva o teste que está acontecendo agora.
-
-A ESP32 ainda não publica. Até o firmware fazer isso, o simulador republica um CSV que a placa já gravou. Os segundos do sopro são os que você passar no comando, os mesmos do `attempts.csv`:
-
-```bash
-cd services
-source ../ml/.venv/bin/activate
-pip install -r requirements.txt
-python -m mq3mqtt.simulator \
-  --csv ../esp32-esp8266/leituras.csv \
-  --placa bancada \
-  --sessao leituras_1.csv \
-  --blow-start-s 30 \
-  --blow-end-s 50 \
-  --interval 0
-```
-
-Troque o CSV e os segundos pelos do teste de vocês. O passo a passo do broker, dos tópicos e da senha local do banco está em `services/README.md`.
-
-## Onde está cada coisa
-
-| Pasta | Função |
-| --- | --- |
-| `esp32-esp8266/` | ESP32. Grava o CSV. Ainda não publica MQTT. |
-| `ml/` | Validação, recorte, treino e previsão nos arquivos. |
-| `services/` | Mosquitto, Postgres, worker, servidor do modelo e simulador. |
-| `docs/` | Requisitos das disciplinas e o PDF de decisões. |
-| `AGENTS.md` | Regras para quem continua o projeto. |
-
-O PDF em `docs/decisoes_projeto_ml.pdf` está velho nas classes. Vale a tabela do começo deste arquivo.
+Regras para quem continua o projeto: [`AGENTS.md`](AGENTS.md).
