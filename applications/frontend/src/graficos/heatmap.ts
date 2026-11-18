@@ -80,6 +80,7 @@ export function opcoesHeatmap({ dados, cores, tema, animar = true }: EntradaGraf
     }),
     series: [
       {
+        id: 'variacao',
         type: 'heatmap',
         data: celulas,
         itemStyle: { borderColor: cores.cartao, borderWidth: 2, borderRadius: 4 },

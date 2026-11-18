@@ -58,6 +58,7 @@ export function opcoesRodada({ dados, cores, tema, animar = true }: EntradaGrafi
       },
     }),
     series: SENSORES.map((s, i) => ({
+      id: s.campo,
       name: s.rotulo,
       type: 'line',
       xAxisIndex: i,

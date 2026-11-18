@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { buscar, type FiltrosApi } from './cliente'
 
 /** Tipos espelhando as respostas de `applications/api/app.py`. */
@@ -101,20 +101,19 @@ const soApi = ({ casos, janela, simulador }: FiltrosApi): FiltrosApi => ({ casos
 /** Opções da barra de filtros: casos, participantes e rodadas (a mais nova primeiro). */
 export const useFiltros = () => useQuery({ queryKey: ['filtros'], queryFn: () => buscar<OpcoesFiltros>('/filtros') })
 
-export const useResumo = (f: FiltrosApi) =>
-  useQuery({ queryKey: ['resumo', soApi(f)], queryFn: () => buscar<ResumoApi>('/resumo', soApi(f)) })
+/**
+ * Consulta que depende dos filtros. Ao trocar de filtro, os dados do anterior ficam na tela
+ * (`isPlaceholderData`) até os novos chegarem: o gráfico não some e anima até o valor novo.
+ */
+const usePorFiltro = <T,>(nome: string, f: FiltrosApi) =>
+  useQuery({ queryKey: [nome, soApi(f)], queryFn: () => buscar<T>(`/${nome}`, soApi(f)), placeholderData: keepPreviousData })
 
-export const useDistribuicao = (f: FiltrosApi) =>
-  useQuery({ queryKey: ['distribuicao', soApi(f)], queryFn: () => buscar<DistribuicaoCaso[]>('/distribuicao', soApi(f)) })
-
-export const useHeatmap = (f: FiltrosApi) =>
-  useQuery({ queryKey: ['heatmap', soApi(f)], queryFn: () => buscar<CelulaHeatmap[]>('/heatmap', soApi(f)) })
-
-export const useDispersao = (f: FiltrosApi) =>
-  useQuery({ queryKey: ['dispersao', soApi(f)], queryFn: () => buscar<PontoDispersao[]>('/dispersao', soApi(f)) })
-
-export const useSobrepostas = (f: FiltrosApi) =>
-  useQuery({ queryKey: ['sobrepostas', soApi(f)], queryFn: () => buscar<SerieSobreposta[]>('/sobrepostas', soApi(f)) })
+export const useResumo = (f: FiltrosApi) => usePorFiltro<ResumoApi>('resumo', f)
+export const useDistribuicao = (f: FiltrosApi) => usePorFiltro<DistribuicaoCaso[]>('distribuicao', f)
+export const useHeatmap = (f: FiltrosApi) => usePorFiltro<CelulaHeatmap[]>('heatmap', f)
+export const useDispersao = (f: FiltrosApi) => usePorFiltro<PontoDispersao[]>('dispersao', f)
+export const useSobrepostas = (f: FiltrosApi) => usePorFiltro<SerieSobreposta[]>('sobrepostas', f)
+export const useSopros = (f: FiltrosApi) => usePorFiltro<Sopro[]>('sopros', f)
 
 /** Leituras de uma rodada; sem `id` a consulta fica parada. Não depende dos filtros. */
 export const useLeiturasRodada = (id: string | null | undefined) =>
@@ -122,10 +121,8 @@ export const useLeiturasRodada = (id: string | null | undefined) =>
     queryKey: ['rodada', id],
     queryFn: () => buscar<LeiturasRodada>(`/rodadas/${encodeURIComponent(id ?? '')}/leituras`),
     enabled: !!id,
+    placeholderData: keepPreviousData,
   })
-
-export const useSopros = (f: FiltrosApi) =>
-  useQuery({ queryKey: ['sopros', soApi(f)], queryFn: () => buscar<Sopro[]>('/sopros', soApi(f)) })
 
 export const useRodadasSemSopro = () =>
   useQuery({ queryKey: ['rodadas-sem-sopro'], queryFn: () => buscar<RodadaSemSopro[]>('/rodadas-sem-sopro') })

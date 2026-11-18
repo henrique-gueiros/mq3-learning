@@ -11,7 +11,7 @@ import './analise.css'
  */
 export function BarraFiltros({ filtros, aoMudar }: { filtros: Filtros; aoMudar: (mudanca: Partial<Filtros>) => void }) {
   const { tema } = useTema()
-  const { data } = useFiltros()
+  const { data, isError, refetch } = useFiltros()
   const casos = ordenarCasos(data?.casos ?? [])
   const ativo = (c: string) => filtros.casos.length === 0 || filtros.casos.includes(c)
 
@@ -29,6 +29,14 @@ export function BarraFiltros({ filtros, aoMudar }: { filtros: Filtros; aoMudar: 
           {casos.map((c) => (
             <Chip key={c} rotulo={nomeDoCaso(c)} cor={corDoCaso(c, tema)} ativo={ativo(c)} aoAlternar={() => alternar(c)} />
           ))}
+          {isError && !data && (
+            <span className="barra-filtros-erro" role="alert">
+              <span className="corpo-sm">Casos indisponíveis.</span>
+              <button type="button" className="botao-tentar" onClick={() => void refetch()}>
+                Tentar de novo
+              </button>
+            </span>
+          )}
         </div>
         <Segmentado
           rotulo="Janela"

@@ -68,6 +68,7 @@ export function opcoesDistribuicao({
     yAxis.push(eixoValor(cores, { gridIndex: i, scale: true, splitNumber: 4 }))
     const f = (v: number | null) => formatarNumero(v, casas)
     series.push({
+      id: `caixa-${chave}`,
       name: rotulo,
       type: 'boxplot',
       xAxisIndex: i,
@@ -92,6 +93,7 @@ export function opcoesDistribuicao({
       },
     })
     series.push({
+      id: `media-${chave}`,
       name: `${rotulo} (média)`,
       type: 'scatter',
       xAxisIndex: i,

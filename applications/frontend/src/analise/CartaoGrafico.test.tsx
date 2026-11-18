@@ -16,6 +16,15 @@ describe('CartaoGrafico', () => {
     expect(screen.queryByText('conteúdo')).not.toBeInTheDocument()
   })
 
+  it('o skeleton reserva a altura do gráfico (a página não pula quando os dados chegam)', () => {
+    render(
+      <CartaoGrafico titulo="Rodadas" consulta={{ ...ok, isLoading: true }} altura={560}>
+        <p>conteúdo</p>
+      </CartaoGrafico>,
+    )
+    expect(screen.getByRole('status', { name: /carregando/i })).toHaveStyle({ minHeight: '560px' })
+  })
+
   it('vazio mostra a mensagem no lugar do conteúdo', () => {
     render(
       <CartaoGrafico titulo="Sopros" consulta={ok} vazio="Nenhum sopro marcado.">
@@ -49,6 +58,16 @@ describe('CartaoGrafico', () => {
     )
     expect(screen.getByText('conteúdo')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('com dados de antes do filtro novo (placeholder) mostra o conteúdo marcado como atualizando', () => {
+    render(
+      <CartaoGrafico titulo="Boxplot" consulta={{ ...ok, data: [1], isPlaceholderData: true }}>
+        <p>conteúdo</p>
+      </CartaoGrafico>,
+    )
+    expect(screen.getByText('conteúdo')).toBeInTheDocument()
+    expect(screen.getByText('conteúdo').closest('[aria-busy]')).toHaveAttribute('aria-busy', 'true')
   })
 
   it('com dados mostra título, descrição e conteúdo', () => {

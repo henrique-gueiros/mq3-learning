@@ -10,6 +10,8 @@ import { useTema } from '../tema/TemaProvider'
 import { CartaoGrafico } from './CartaoGrafico'
 import type { PropsSecao } from './tipos'
 
+const ALTURA = 320
+
 /** Frente 2D: subida por sopro e rodadas sem sopro (plano, 4.6). */
 export function SecaoSopros({ filtros }: PropsSecao) {
   const { tema } = useTema()
@@ -29,8 +31,9 @@ export function SecaoSopros({ filtros }: PropsSecao) {
           descricao="Um ponto por sopro: pico (sopro + 30 s) menos a mediana dos 15 s antes."
           consulta={sopros}
           vazio={sopros.data?.length === 0 ? 'Nenhum sopro marcado. Marque com Enter na ponte ou em attempts.csv.' : undefined}
+          altura={ALTURA}
         >
-          <GraficoECharts opcoes={fSubida} rotulo="Dispersão da subida por sopro: MQ-3 × MQ-135, colorida pelo caso" altura={320} />
+          <GraficoECharts opcoes={fSubida} rotulo="Dispersão da subida por sopro: MQ-3 × MQ-135, colorida pelo caso" altura={ALTURA} />
         </CartaoGrafico>
         <CartaoGrafico
           className="grade-estreita"

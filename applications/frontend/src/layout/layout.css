@@ -137,3 +137,22 @@
     padding: var(--e-12) 0;
   }
 }
+
+/* Parte da tela que quebrou (LimiteDeErro): o resto continua no ar. */
+.limite-erro {
+  display: flex;
+  align-items: center;
+  gap: var(--e-4);
+  padding-block: var(--e-12);
+  color: var(--corpo);
+}
+.botao-recarregar {
+  font: inherit;
+  font-size: 14px;
+  padding: var(--e-1) var(--e-4);
+  border: 0;
+  border-radius: var(--raio-pilula);
+  background: var(--primaria);
+  color: var(--sobre-primaria);
+  cursor: pointer;
+}

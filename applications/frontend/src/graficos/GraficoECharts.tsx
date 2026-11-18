@@ -38,6 +38,11 @@ echarts.use([
 
 type Opcoes = Parameters<ReturnType<typeof echarts.init>['setOption']>[0]
 
+// Trocados a cada desenho: as séries mudam com os casos do filtro, e grades e títulos mudam de
+// layout no boxplot empilhado (no merge comum sobrariam séries velhas e o `width` antigo da grade).
+// Eixos e zoom seguem no merge comum, que preserva o zoom escolhido ao trocar de filtro.
+const SUBSTITUIR = ['series', 'grid', 'title']
+
 /**
  * Gráfico genérico. `opcoes` é uma função pura (de `src/graficos/`) que recebe as cores
  * do tema atual e diz se pode animar; ela deve ter identidade estável (módulo ou
@@ -64,7 +69,14 @@ export function GraficoECharts({
   const option = useMemo(() => opcoes(cores, !semMovimento()), [opcoes, cores])
   return (
     <div role="img" aria-label={rotulo} style={{ height: altura, width: '100%' }}>
-      <ReactEChartsCore echarts={echarts} option={option} style={{ height: '100%', width: '100%' }} notMerge lazyUpdate />
+      <ReactEChartsCore
+        echarts={echarts}
+        option={option}
+        style={{ height: '100%', width: '100%' }}
+        notMerge={false}
+        replaceMerge={SUBSTITUIR}
+        lazyUpdate
+      />
     </div>
   )
 }

@@ -54,6 +54,22 @@ describe('SecaoRodada', () => {
     expect(await screen.findByRole('option', { name: /bebida · p00 · 07\/11\/2026 10:00 · simulador/ })).toBeInTheDocument()
   })
 
+  it('rodada da URL que sumiu da lista (simulador desligado) sai da URL', async () => {
+    apiFalsa({ '/api/filtros': opcoes, '/api/rodadas/': leituras('nova', 'drink') })
+    const aoMudar = vi.fn()
+    montar(<SecaoRodada filtros={{ ...FILTROS_PADRAO, rodada: 'sim' }} aoMudarFiltros={aoMudar} />)
+    expect(await screen.findByRole('combobox', { name: 'Rodada' })).toHaveValue('nova')
+    expect(aoMudar).toHaveBeenCalledWith({ rodada: null })
+  })
+
+  it('rodada da URL que está na lista fica', async () => {
+    apiFalsa({ '/api/filtros': opcoes, '/api/rodadas/': leituras('antiga', 'clean') })
+    const aoMudar = vi.fn()
+    montar(<SecaoRodada filtros={{ ...FILTROS_PADRAO, rodada: 'antiga' }} aoMudarFiltros={aoMudar} />)
+    expect(await screen.findByRole('combobox', { name: 'Rodada' })).toHaveValue('antiga')
+    expect(aoMudar).not.toHaveBeenCalled()
+  })
+
   it('sem rodadas explica o vazio', async () => {
     apiFalsa({ '/api/filtros': { ...opcoes, rodadas: [] } })
     montar(<SecaoRodada filtros={FILTROS_PADRAO} aoMudarFiltros={() => {}} />)

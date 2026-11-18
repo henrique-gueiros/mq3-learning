@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useFiltros, useLeiturasRodada } from '../api/consultas'
 import { corDoCaso } from '../dominio/casos'
 import type { CoresGrafico } from '../graficos/aoVivo'
@@ -10,6 +10,8 @@ import { CartaoGrafico } from './CartaoGrafico'
 import { escolherRodada, rodadasVisiveis, rotuloRodada } from './rodadas'
 import type { PropsSecao } from './tipos'
 
+const ALTURA = 480
+
 /** Frente 2C: rodada selecionada, guardada em `filtros.rodada` (plano, 4.5). */
 export function SecaoRodada({ filtros, aoMudarFiltros }: PropsSecao) {
   const { tema } = useTema()
@@ -18,6 +20,12 @@ export function SecaoRodada({ filtros, aoMudarFiltros }: PropsSecao) {
   const id = escolherRodada(filtros.rodada, visiveis)
   const escolhida = visiveis.find((r) => r.id === id)
   const leituras = useLeiturasRodada(id)
+
+  // a escolhida saiu da lista (ex.: era do simulador e o interruptor desligou): a URL volta à mais recente
+  const sumiu = opcoes.data !== undefined && filtros.rodada !== null && filtros.rodada !== id
+  useEffect(() => {
+    if (sumiu) aoMudarFiltros({ rodada: null })
+  }, [sumiu, aoMudarFiltros])
 
   const fRodada = useCallback(
     (cores: CoresGrafico, animar: boolean) =>
@@ -60,11 +68,12 @@ export function SecaoRodada({ filtros, aoMudarFiltros }: PropsSecao) {
         descricao="Um gráfico por sensor. A faixa cinza é a janela de sopro (sopro + 30 s), quando há sopro marcado."
         consulta={opcoes.data === undefined || semRodadas ? opcoes : leituras}
         vazio={vazio}
+        altura={ALTURA}
       >
         <GraficoECharts
           opcoes={fRodada}
           rotulo={`Leituras de MQ-3, MQ-135 e umidade da rodada ${escolhida ? rotuloRodada(escolhida) : ''}`}
-          altura={480}
+          altura={ALTURA}
         />
       </CartaoGrafico>
     </Secao>

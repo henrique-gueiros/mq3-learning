@@ -12,6 +12,7 @@ import { CartaoGrafico } from './CartaoGrafico'
 import type { PropsSecao } from './tipos'
 
 const SEM_LEITURAS = 'Sem leituras para os filtros escolhidos.'
+const ALTURA_DISPERSAO = 320
 
 /** O heatmap compara com o ambiente: vazio porque falta ambiente, ou porque só ele está marcado. */
 const vazioHeatmap = (casos: string[]) =>
@@ -55,6 +56,7 @@ export function SecaoComparacao({ filtros }: PropsSecao) {
           descricao="Caixa: do 1º ao 3º quartil, com a mediana. Linhas: percentis 5 e 95. Losango: média."
           consulta={distribuicao}
           vazio={distribuicao.data?.length === 0 ? SEM_LEITURAS : undefined}
+          altura={alturaDistribuicao(estreita)}
         >
           <GraficoECharts opcoes={fDistribuicao} rotulo="Boxplot da distribuição de MQ-3, MQ-135 e umidade por caso" altura={alturaDistribuicao(estreita)} />
         </CartaoGrafico>
@@ -64,6 +66,7 @@ export function SecaoComparacao({ filtros }: PropsSecao) {
           descricao="Quanto a média de cada caso difere da do ambiente (ar sem álcool), por sensor."
           consulta={heatmap}
           vazio={heatmap.data?.length === 0 ? vazioHeatmap(filtros.casos) : undefined}
+          altura={alturaHeatmap(heatmap.data?.length ?? 0)}
         >
           <GraficoECharts
             opcoes={fHeatmap}
@@ -77,8 +80,9 @@ export function SecaoComparacao({ filtros }: PropsSecao) {
           descricao="Até 400 leituras por caso. Se os casos formam grupos separados, os dois sensores já os distinguem."
           consulta={dispersao}
           vazio={dispersao.data?.length === 0 ? SEM_LEITURAS : undefined}
+          altura={ALTURA_DISPERSAO}
         >
-          <GraficoECharts opcoes={fDispersao} rotulo="Dispersão MQ-3 × MQ-135 por leitura, colorida pelo caso" altura={320} />
+          <GraficoECharts opcoes={fDispersao} rotulo="Dispersão MQ-3 × MQ-135 por leitura, colorida pelo caso" altura={ALTURA_DISPERSAO} />
         </CartaoGrafico>
       </div>
     </Secao>

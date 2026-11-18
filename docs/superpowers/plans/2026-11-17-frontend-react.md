@@ -18,7 +18,8 @@ etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
 | 4. Seções de análise — Onda 2 (2A–2D) | feita (ver "Onda 2 — feita") | ver `git log` (commit da Onda 2) |
 | 4. e2e da análise (parte da 3B) | feito (`e2e/analise.spec.ts`) | mesmo commit |
 | 4. Conferência dos números com o Grafana (resto da 3B) | feita: tudo igual (ver "3B — conferência com o Grafana") | ver `git log` |
-| 5b. Animações, acabamento e revisão de design (3A) | **próxima** (lista em "Achados que ficaram para depois", na tabela da revisão da Onda 2 e na Etapa 5) | |
+| 5b. Animações, acabamento e revisão de design (3A) — parte 1 | feita (ver "3A — acabamento: parte 1 feita") | ver `git log` |
+| 5b. Animações, acabamento e revisão de design (3A) — parte 2 | **próxima** (lista em "3A — o que falta") | |
 | 6b. Documentação (3C) | a fazer | |
 | 7. Remoção do Grafana | a fazer; **perguntar à equipe antes** (apaga pastas e serviços) | |
 
@@ -258,13 +259,13 @@ Achados que ficaram para depois:
 
 | Achado | Quem cuida |
 | --- | --- |
-| `GraficoECharts` usa `notMerge`: trocar filtro redesenha sem animar (a Etapa 5 pede `notMerge: false`) | 3A |
-| `BarraFiltros` some em silêncio se `/api/filtros` falhar (sem chips, sem erro) | 3A |
+| ~~`GraficoECharts` usa `notMerge`: trocar filtro redesenha sem animar~~: feito na 3A, parte 1 | — |
+| ~~`BarraFiltros` some em silêncio se `/api/filtros` falhar~~: feito na 3A, parte 1 ("Casos indisponíveis." + "Tentar de novo") | — |
 | Desmarcar o último chip volta a "todos" (como no Grafana); conferir se é o que a equipe quer | 3A |
 | A 390 px a barra de filtros rola para o lado sem pista visual de que há mais (o segmentado fica cortado) | 3A |
 | A marca "Sopro Seguro" quebra em duas linhas a 390 px (já era assim) | 3A |
-| Bundle de 1,3 MB num chunk só (ECharts + mqtt.js); com a Onda 2, ~1,4 MB | 3A (Etapa 5, `import()` dinâmico) |
-| Zoom inicial das rodadas sobrepostas (0–300 s) vira ~3% da barra por causa de uma rodada de ambiente de 3 h; decidir com a equipe se fica, se o fim do zoom acompanha a rodada mais longa de bebida, ou se rodadas muito longas saem desse gráfico | 3A (decisão da equipe) |
+| ~~Bundle de 1,4 MB num chunk só~~: feito na 3A, parte 1 (ver lá os números; o chunk principal ainda passa de 500 kB) | — |
+| Zoom inicial das rodadas sobrepostas (0–300 s) vira ~3% da barra por causa de uma rodada de ambiente de 3 h. **Recomendação** (aguardando o usuário/equipe): o zoom inicial vai de 0 até o fim da rodada mais longa que **não** é de ambiente, arredondado para cima ao minuto e com mínimo de 300 s (hoje: bebida de 368 s → 0–7:00); a descrição do cartão passa a dizer o intervalo. A rodada de 3 h fica no gráfico (dado sem edição), e vale a equipe conferir se aquela sessão de ambiente foi mesmo planejada com 3 h | 3A (decisão da equipe) |
 | "Rodadas sem sopro": hoje são as 12; quando houver `attempts.csv`, conferir se a tabela continua útil ou vira só uma contagem | 3A |
 | 4 avisos do `oxlint`: 3 de antes (`TemaProvider`, `Aviso`, `GraficoAoVivo`) e 1 novo em `GraficoECharts` (`setState` no efeito: é a regra "cores lidas num `useEffect`", aceito) | 3A |
 | ~~O texto de exemplo do "Ao vivo" aponta um arquivo inexistente~~: achado errado, `esp32-esp8266/leituras.csv` existe (conferido 17/11) | — |
@@ -330,7 +331,7 @@ está certo, mas vale a equipe decidir se o zoom inicial deve ser outro (anotado
 
 | Achado | Quem cuida |
 | --- | --- |
-| `?rodada=` com uma rodada do simulador e o interruptor desligado: a tela mostra a mais recente, mas a URL fica com o id antigo | 3A |
+| ~~`?rodada=` com uma rodada do simulador e o interruptor desligado fica velho na URL~~: feito na 3A, parte 1 (a seção limpa o `rodada=`) | — |
 | Lista de sensores (`MQ-3`, `MQ-135`, `Umidade (%)`) repetida em `distribuicao.ts`, `heatmap.ts` e `rodada.ts`; `comSinal` repetido em `heatmap.ts` e `subida.ts`; `axisPointer` + cabeçalho da dica repetidos em `rodada.ts` e `sobrepostas.ts`: juntar em `comum.ts` | 3A |
 | As quatro seções repetem `useCallback((cores, animar) => opcoesX({ dados: x.data ?? [], cores, tema, animar }))`; um hook `useOpcoes` deixaria mais curto | 3A |
 | `origem` é `string` comparada com `'simulador'`; `EntradaGrafico.tema` repete `'escuro' \| 'claro'` em vez de importar `Tema`; `CoresGrafico` (com `neutro`, só da análise) mora em `aoVivo.ts` | 3A |
@@ -339,6 +340,49 @@ está certo, mas vale a equipe decidir se o zoom inicial deve ser outro (anotado
 
 A Onda 2, o e2e e este plano entraram num commit só. Ficaram fora dele, de propósito,
 `.claude/worktrees/` e `Relatório progressão projeto.md` (não são desta tarefa).
+
+## 3A — acabamento: parte 1 feita (17/11)
+
+Verificado: 181 testes do Vitest, `tsc -b`, e2e (4) no Vite e no nginx (8080).
+
+- **Bundle:** `Analise` e `/design-system` entram com `lazy` + `Suspense`; `LimiteDeErro`
+  isola a análise se o chunk falhar. O Vite separa `react`, `mqtt` e o runtime. O chunk
+  principal ainda passa de 500 kB (React + ECharts do ao vivo); a análise só baixa quando
+  a página precisa dela.
+- **Animação ao filtrar:** `GraficoECharts` com `notMerge: false` e `replaceMerge` nas séries
+  (cada série tem `id` estável). Enquanto a consulta nova chega, o cartão esmaece o gráfico
+  antigo (não some o canvas).
+- **BarraFiltros:** se `/api/filtros` falhar, mostra "Casos indisponíveis." + "Tentar de novo".
+- **Âncora:** com a análise lazy, `/#sopros` não achava o alvo na carga; `Analise` rola de novo
+  quando as primeiras consultas terminam (só se a pessoa não rolou no meio-tempo).
+- **URL:** se `?rodada=` aponta uma rodada do simulador e o interruptor está desligado, a seção
+  limpa o `rodada=` ao escolher a mais recente visível.
+
+## 3A — o que falta (parte 2)
+
+| Item | Notas |
+| --- | --- |
+| **Zoom das rodadas sobrepostas** | Aguardando escolha da equipe (ver opções abaixo). Hoje 0–300 s num eixo de ~3 h deixa a alça da barra minúscula. |
+| Entrada orquestrada na carga | Cabeçalho → ao vivo → números; sem fade em cada seção. |
+| Tween dos números (≤ 200 ms) | Ao vivo e resumo. |
+| Transição skeleton → gráfico | Só na primeira carga (opacidade). |
+| Interações 150–250 ms com `--sair` | `prefers-reduced-motion` já desliga o global. |
+| Pista visual na barra de filtros a 390 px | Rola para o lado sem indicar que há mais. |
+| Marca "Sopro Seguro" em duas linhas a 390 px | Já era assim. |
+| Desmarcar o último chip = "todos" | Como no Grafana; confirmar com a equipe. |
+| Duplicações da revisão | Lista de sensores, `comSinal`, `useOpcoes`, tipos `origem`/`Tema`, `CoresGrafico` fora do ao vivo, breakpoint 640 px. |
+| `/impeccable`, `review-animations`, `web-design-guidelines` | Rodar e corrigir. |
+| Contraste AA + foco + teclado; Lighthouse a11y ≥ 95 | Aceite da Etapa 5. |
+
+**Zoom — opções (escolher uma antes de implementar):**
+
+1. **Recomendada:** zoom inicial de 0 até o fim da rodada mais longa que **não** é de ambiente,
+   arredondado para cima ao minuto, mínimo 300 s (hoje: bebida de 368 s → **0–7:00**). A rodada
+   de 3 h de ambiente continua no gráfico; a barra deixa de ser 3%. A descrição do cartão diz
+   o intervalo. A equipe deve conferir se aquela sessão de ambiente de 3 h foi planejada assim.
+2. **Limitar o eixo a 10 min:** seleção 0–300 s, eixo/barra até 600 s. Mais simples; a rodada
+   de 3 h só aparece em "Rodada selecionada".
+3. **Manter 0–300 s no eixo inteiro:** só melhora o contraste da alça; o problema dos 3% fica.
 
 ### 3B — conferência com o Grafana: feita (17/11)
 
@@ -500,10 +544,11 @@ Skills: `emil-design-eng`, `animate`, `review-animations`, `impeccable`, `web-de
 
 - [ ] Uma única entrada orquestrada na carga da página (cabeçalho → estado ao vivo → números), nada de fade em cada seção.
 - [ ] Números do ao vivo com tween curto (≤ 200 ms) ao mudar; contagens do resumo idem.
-- [ ] Transição skeleton → gráfico (opacidade), e animação do ECharts ao trocar filtro (`notMerge: false`).
+- [x] Animação do ECharts ao trocar filtro (`notMerge: false` + `replaceMerge`), com os dados anteriores esmaecidos enquanto os novos chegam (3A, parte 1).
+- [ ] Transição skeleton → gráfico (opacidade) na primeira carga.
 - [ ] Interações 150–250 ms com `--sair`; `prefers-reduced-motion` desliga tudo (já há a regra global em `index.css`).
 - [x] **(5a, frente 1C)** Menu das seções no celular (hoje os atalhos somem abaixo de 760 px): botão no cabeçalho que abre a lista de seções; fecha ao escolher, com Esc e ao tocar fora; foco preso enquanto aberto.
-- [ ] O build avisa bundle > 500 kB (ECharts + mqtt.js): separar com `import()` dinâmico os gráficos de análise e a página `/design-system` (skill `vercel-react-best-practices`, regras de bundle).
+- [x] O build avisa bundle > 500 kB (ECharts + mqtt.js): separar com `import()` dinâmico os gráficos de análise e a página `/design-system` (3A, parte 1; o aviso continua para o chunk principal, ver lá).
 - [ ] Rodar `/impeccable critique` e `/impeccable audit`, `review-animations` e `web-design-guidelines` sobre a tela; corrigir.
 - [ ] Contraste AA de todo texto nos dois temas; foco visível em todos os controles; navegação por teclado.
 - Aceite: screenshots antes/depois anexados ao PR; Lighthouse de acessibilidade ≥ 95.

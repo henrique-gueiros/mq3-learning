@@ -8,14 +8,13 @@ import { FILTROS_PADRAO, type Filtros } from './filtros'
 
 afterEach(() => vi.unstubAllGlobals())
 
-function montar(filtros: Filtros = FILTROS_PADRAO) {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ casos: ['drink', 'clean', 'perfume'], participantes: ['equipe'], rodadas: [] }),
-    }),
-  )
+const RESPOSTA_OK = {
+  ok: true,
+  json: async () => ({ casos: ['drink', 'clean', 'perfume'], participantes: ['equipe'], rodadas: [] }),
+}
+
+function montar(filtros: Filtros = FILTROS_PADRAO, fetchFalso = vi.fn().mockResolvedValue(RESPOSTA_OK)) {
+  vi.stubGlobal('fetch', fetchFalso)
   const aoMudar = vi.fn()
   render(
     <TemaProvider>
@@ -58,6 +57,17 @@ describe('BarraFiltros', () => {
     const aoMudar = montar()
     await userEvent.click(screen.getByRole('switch', { name: 'Incluir simulador' }))
     expect(aoMudar).toHaveBeenCalledWith({ simulador: true })
+  })
+
+  it('sem /api/filtros avisa que os casos não vieram e tenta de novo', async () => {
+    const fetchFalso = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({ detail: 'Banco fora do ar.' }) })
+      .mockResolvedValue(RESPOSTA_OK)
+    montar(FILTROS_PADRAO, fetchFalso)
+    expect(await screen.findByText('Casos indisponíveis.')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(await screen.findByRole('button', { name: 'bebida' })).toBeInTheDocument()
   })
 
   it('não oferece filtro de participante', () => {

@@ -21,6 +21,13 @@
   flex-wrap: wrap;
   gap: var(--e-2);
 }
+.barra-filtros-erro {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--e-3);
+  white-space: nowrap;
+  color: var(--corpo);
+}
 
 .recipiente.resumo {
   display: flex;
@@ -175,6 +182,17 @@
 }
 .tabela-cor {
   opacity: 1;
+}
+
+.grafico-corpo,
+.resumo {
+  transition: opacity var(--rapido) var(--sair);
+}
+/* o atraso evita piscar quando a resposta nova chega logo */
+.grafico-corpo.atualizando,
+.resumo.atualizando {
+  opacity: 0.55;
+  transition-delay: 150ms;
 }
 
 .grafico-estado {

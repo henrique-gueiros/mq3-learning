@@ -6,9 +6,11 @@ import { Resumo } from './Resumo'
 
 afterEach(() => vi.unstubAllGlobals())
 
+const cliente = () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
 const montar = () =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={cliente()}>
       <Resumo filtros={FILTROS_PADRAO} />
     </QueryClientProvider>,
   )
@@ -24,6 +26,31 @@ describe('Resumo', () => {
     expect(screen.getByText('12')).toBeInTheDocument()
     expect(screen.getByText('Rodadas')).toBeInTheDocument()
     expect(screen.getByText('Leituras')).toBeInTheDocument()
+  })
+
+  it('ao trocar o filtro os números antigos ficam marcados como atualizando', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) =>
+        url.includes('caso=drink')
+          ? new Promise(() => {})
+          : Promise.resolve({ ok: true, json: async () => ({ placa: 'parada', rodadas: 12, leituras: 11941 }) }),
+      ),
+    )
+    const c = cliente()
+    const { rerender } = render(
+      <QueryClientProvider client={c}>
+        <Resumo filtros={FILTROS_PADRAO} />
+      </QueryClientProvider>,
+    )
+    const numero = await screen.findByText('11.941')
+    expect(numero.closest('.resumo')).toHaveAttribute('aria-busy', 'false')
+    rerender(
+      <QueryClientProvider client={c}>
+        <Resumo filtros={{ ...FILTROS_PADRAO, casos: ['drink'] }} />
+      </QueryClientProvider>,
+    )
+    expect(screen.getByText('11.941').closest('.resumo')).toHaveAttribute('aria-busy', 'true')
   })
 
   it('carregando mostra traço e nenhum erro', () => {

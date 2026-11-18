@@ -107,6 +107,11 @@ button {
   }
 }
 
+/* lugar da análise enquanto o módulo dela carrega (fica aqui porque o analise.css vem junto com ele) */
+.analise-carregando {
+  min-height: 100vh;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

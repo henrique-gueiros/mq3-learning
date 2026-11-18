@@ -8,6 +8,8 @@ import { useTema } from '../tema/TemaProvider'
 import { CartaoGrafico } from './CartaoGrafico'
 import type { PropsSecao } from './tipos'
 
+const ALTURA = 560
+
 /** Frente 2B: rodadas sobrepostas (plano, 4.4). */
 export function SecaoRodadas({ filtros }: PropsSecao) {
   const { tema } = useTema()
@@ -24,8 +26,9 @@ export function SecaoRodadas({ filtros }: PropsSecao) {
         descricao={`Umidade, MQ-135 e PPM de cada rodada desde a primeira leitura. Mostra os primeiros ${ZOOM_INICIAL_S} s; arraste a barra de baixo para ver o resto. O PPM é calculado pelo firmware e só aparece aqui, não decide nada.`}
         consulta={sobrepostas}
         vazio={n === 0 ? 'Sem leituras para os filtros escolhidos.' : undefined}
+        altura={ALTURA}
       >
-        <GraficoECharts opcoes={opcoes} rotulo={`${n} rodadas sobrepostas: umidade, MQ-135 e PPM ao longo do tempo`} altura={560} />
+        <GraficoECharts opcoes={opcoes} rotulo={`${n} rodadas sobrepostas: umidade, MQ-135 e PPM ao longo do tempo`} altura={ALTURA} />
       </CartaoGrafico>
     </Secao>
   )

@@ -1,4 +1,6 @@
 import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { FILTROS_PADRAO } from './filtros'
 import { SecaoComparacao } from './SecaoComparacao'
@@ -38,6 +40,36 @@ describe('SecaoComparacao', () => {
     montar(<SecaoComparacao filtros={{ ...FILTROS_PADRAO, casos: ['clean'] }} aoMudarFiltros={() => {}} />)
     expect(await screen.findByText(/Marque outro caso além de ambiente/)).toBeInTheDocument()
     expect(screen.queryByText(/Precisa de rodadas de ambiente/)).not.toBeInTheDocument()
+  })
+
+  it('ao trocar o filtro o gráfico anterior fica na tela (atualizando) até a resposta nova', async () => {
+    const respostas: Record<string, unknown> = {
+      '/api/distribuicao': [{ caso: 'clean', n: 10, mq3: p, mq135: p, umid: p }],
+      '/api/heatmap': [{ caso: 'drink', mq3: 50, mq135: 20, umid: 30 }],
+      '/api/dispersao': [{ caso: 'clean', mq3_raw: 800, mq135_raw: 300 }],
+    }
+    const fetchFalso = vi.fn((url: string) => {
+      if (url.includes('caso=drink')) return new Promise(() => {}) // resposta nova que não chega
+      const corpo = respostas[new URL(url, 'http://local').pathname]
+      return Promise.resolve({ ok: true, status: 200, json: async () => corpo })
+    })
+    vi.stubGlobal('fetch', fetchFalso)
+    function ComFiltro() {
+      const [casos, setCasos] = useState<string[]>([])
+      return (
+        <>
+          <button onClick={() => setCasos(['drink'])}>só bebida</button>
+          <SecaoComparacao filtros={{ ...FILTROS_PADRAO, casos }} aoMudarFiltros={() => {}} />
+        </>
+      )
+    }
+    montar(<ComFiltro />)
+    await screen.findByRole('img', { name: /distribuição/i })
+    await userEvent.click(screen.getByRole('button', { name: 'só bebida' }))
+    expect(fetchFalso).toHaveBeenCalledWith(expect.stringMatching(/^\/api\/distribuicao\?.*caso=drink/))
+    const grafico = screen.getByRole('img', { name: /distribuição/i })
+    expect(screen.queryByRole('status', { name: /carregando/i })).not.toBeInTheDocument()
+    expect(grafico.closest('[aria-busy]')).toHaveAttribute('aria-busy', 'true')
   })
 
   it('erro de uma rota fica só no cartão dela', async () => {

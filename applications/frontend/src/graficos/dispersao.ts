@@ -32,6 +32,7 @@ export function opcoesDispersao({ dados, cores, tema, animar = true }: EntradaGr
         `<b>${x.seriesName}</b><br/>MQ-3 ${formatarNumero(x.value[0])}<br/>MQ-135 ${formatarNumero(x.value[1])}`,
     }),
     series: casos.map((caso) => ({
+      id: caso,
       name: nomeDoCaso(caso),
       type: 'scatter',
       symbolSize: 6,

@@ -32,6 +32,7 @@ export function opcoesSubida({ dados, cores, tema, animar = true }: EntradaGrafi
         `<b>${x.seriesName}</b><br/>MQ-3 ${comSinal(x.value[0])}<br/>MQ-135 ${comSinal(x.value[1])}`,
     }),
     series: ordenarCasos(dados.map((d) => d.caso)).map((caso) => ({
+      id: caso,
       name: nomeDoCaso(caso),
       type: 'scatter',
       symbolSize: 12,
