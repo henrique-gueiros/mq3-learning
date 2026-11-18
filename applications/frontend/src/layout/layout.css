@@ -127,6 +127,15 @@
 }
 
 @media (max-width: 760px) {
+  .marca {
+    flex-shrink: 0;
+    font-size: 15px;
+    letter-spacing: -0.4px;
+    white-space: nowrap;
+  }
+  .cabecalho-linha {
+    gap: var(--e-3);
+  }
   .cabecalho-nav {
     display: none;
   }

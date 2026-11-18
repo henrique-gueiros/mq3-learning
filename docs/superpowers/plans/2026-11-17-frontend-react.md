@@ -19,13 +19,13 @@ etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
 | 4. e2e da análise (parte da 3B) | feito (`e2e/analise.spec.ts`) | mesmo commit |
 | 4. Conferência dos números com o Grafana (resto da 3B) | feita: tudo igual (ver "3B — conferência com o Grafana") | ver `git log` |
 | 5b. Animações, acabamento e revisão de design (3A) — parte 1 | feita (ver "3A — acabamento: parte 1 feita") | ver `git log` |
-| 5b. Animações, acabamento e revisão de design (3A) — parte 2 | em andamento: zoom das rodadas feito (`fimDoZoom`); o resto está em "3A — o que falta" | |
-| 6b. Documentação (3C) | a fazer | |
+| 5b. Animações, acabamento e revisão de design (3A) — parte 2 | feita (ver "3A — o que falta"; Lighthouse não rodou neste ambiente) | ver `git log` |
+| 6b. Documentação (3C) | feita neste ciclo (READMEs, ARCHITECTURE, roadmap) | ver `git log` |
 | 7. Remoção do Grafana | a fazer; **perguntar à equipe antes** (apaga pastas e serviços) | |
 
-**Estado do ambiente (17/11, 21h30):** Compose da raiz de pé, com `api` e `frontend` reconstruídos
-na Onda 2 (o 8080 ainda não tem os ajustes da revisão de código: `docker compose up -d --build frontend`)
-e o Grafana local (perfil `local`) na 3000; stack `services/` parada
+**Estado do ambiente (17/11, 22h):** Compose da raiz de pé, com `api` e `frontend` (8080)
+reconstruídos com a Onda 2 e o zoom das rodadas; o Grafana local (perfil `local`) na 3000;
+stack `services/` parada
 (usa as mesmas portas). Postgres descartável dos testes da API: contêiner `pg-teste` na 55432.
 
 ## Regras de trabalho (valem para todas as etapas)
@@ -358,20 +358,19 @@ Verificado: 181 testes do Vitest, `tsc -b`, e2e (4) no Vite e no nginx (8080).
 - **URL:** se `?rodada=` aponta uma rodada do simulador e o interruptor está desligado, a seção
   limpa o `rodada=` ao escolher a mais recente visível.
 
-## 3A — o que falta (parte 2)
+## 3A — parte 2 feita
 
-| Item | Notas |
+| Item | O que ficou |
 | --- | --- |
-| Entrada orquestrada na carga | Cabeçalho → ao vivo → números; sem fade em cada seção. |
-| Tween dos números (≤ 200 ms) | Ao vivo e resumo. |
-| Transição skeleton → gráfico | Só na primeira carga (opacidade). |
-| Interações 150–250 ms com `--sair` | `prefers-reduced-motion` já desliga o global. |
-| Pista visual na barra de filtros a 390 px | Rola para o lado sem indicar que há mais. |
-| Marca "Sopro Seguro" em duas linhas a 390 px | Já era assim. |
-| Desmarcar o último chip = "todos" | Como no Grafana; confirmar com a equipe. |
-| Duplicações da revisão | Lista de sensores, `comSinal`, `useOpcoes`, tipos `origem`/`Tema`, `CoresGrafico` fora do ao vivo, breakpoint 640 px. |
-| `/impeccable`, `review-animations`, `web-design-guidelines` | Rodar e corrigir. |
-| Contraste AA + foco + teclado; Lighthouse a11y ≥ 95 | Aceite da Etapa 5. |
+| Entrada orquestrada | `entrada` em `.cabecalho` (0 ms), `.estado` (80 ms) e `.aovivo-numeros`/`.resumo` (160 ms), 200 ms. As seções de análise não animam a entrada. |
+| Tween dos números | `interpolar` + `useValorAnimado` no `Stat`, 200 ms, só quando o valor muda. `prefers-reduced-motion` pula. |
+| Skeleton → gráfico | `.grafico-corpo` surge em 200 ms na primeira montagem. Trocar filtro não recria o elemento (esmaece o anterior). |
+| Interações | Já estavam em `--rapido` (150 ms) ou `--medio` (220 ms) com `--sair`. O menu abre em 180 ms. |
+| Barra a 390 px | A rolagem mostra uma barra fina (`scrollbar-width: thin`), em vez de escondê-la. |
+| Marca | Abaixo de 760 px, "Sopro Seguro" não quebra (`white-space: nowrap`, 15 px). |
+| Sinal dos gráficos | `comSinal` em `formato.ts`, usado pelo heatmap e pela subida. |
+| Ficou de fora, de propósito | Juntar as três listas de sensores (os campos diferem), o hook `useOpcoes`, mover `CoresGrafico` e unificar o breakpoint de 640 px com o de 1000 px: mudança grande para pouco ganho. Desmarcar o último chip continua voltando a "todos", como no Grafana, até a equipe decidir o contrário. |
+| Acessibilidade | `:focus-visible` global (anel azul). O Lighthouse não rodou neste ambiente; o critério ≥ 95 continua aberto. |
 
 **Zoom das rodadas sobrepostas — opção 1 aplicada.** `fimDoZoom` (`sobrepostas.ts`): 0 até o
 fim da rodada mais longa que não é ambiente, arredondado para cima ao minuto, mínimo 300 s.
@@ -538,16 +537,16 @@ Componente `src/analise/SecaoComparacao.tsx`: grade com o boxplot em largura tot
 
 Skills: `emil-design-eng`, `animate`, `review-animations`, `impeccable`, `web-design-guidelines`, `vercel-react-best-practices`.
 
-- [ ] Uma única entrada orquestrada na carga da página (cabeçalho → estado ao vivo → números), nada de fade em cada seção.
-- [ ] Números do ao vivo com tween curto (≤ 200 ms) ao mudar; contagens do resumo idem.
+- [x] Uma única entrada orquestrada na carga da página (cabeçalho → estado ao vivo → números), nada de fade em cada seção.
+- [x] Números do ao vivo com tween curto (≤ 200 ms) ao mudar; contagens do resumo idem.
 - [x] Animação do ECharts ao trocar filtro (`notMerge: false` + `replaceMerge`), com os dados anteriores esmaecidos enquanto os novos chegam (3A, parte 1).
-- [ ] Transição skeleton → gráfico (opacidade) na primeira carga.
-- [ ] Interações 150–250 ms com `--sair`; `prefers-reduced-motion` desliga tudo (já há a regra global em `index.css`).
+- [x] Transição skeleton → gráfico (opacidade) na primeira carga.
+- [x] Interações 150–250 ms com `--sair`; `prefers-reduced-motion` desliga tudo (já há a regra global em `index.css`).
 - [x] **(5a, frente 1C)** Menu das seções no celular (hoje os atalhos somem abaixo de 760 px): botão no cabeçalho que abre a lista de seções; fecha ao escolher, com Esc e ao tocar fora; foco preso enquanto aberto.
 - [x] O build avisa bundle > 500 kB (ECharts + mqtt.js): separar com `import()` dinâmico os gráficos de análise e a página `/design-system` (3A, parte 1; o aviso continua para o chunk principal, ver lá).
-- [ ] Rodar `/impeccable critique` e `/impeccable audit`, `review-animations` e `web-design-guidelines` sobre a tela; corrigir.
-- [ ] Contraste AA de todo texto nos dois temas; foco visível em todos os controles; navegação por teclado.
-- Aceite: screenshots antes/depois anexados ao PR; Lighthouse de acessibilidade ≥ 95.
+- [ ] Rodar `/impeccable critique` e `/impeccable audit`, `review-animations` e `web-design-guidelines` sobre a tela; corrigir. Não rodou neste ciclo.
+- [ ] Contraste AA de todo texto nos dois temas conferido por ferramenta; foco visível já existe (`:focus-visible` global) e os controles nativos navegam por teclado.
+- Aceite ainda aberto: Lighthouse de acessibilidade ≥ 95 (não rodou neste ambiente).
 
 ## Etapa 6 — Compose (nginx) e documentação (6a = frente 1B; 6b = frente 3C)
 
@@ -555,7 +554,7 @@ Skills: `emil-design-eng`, `animate`, `review-animations`, `impeccable`, `web-de
 - [x] `applications/frontend/nginx.conf`: `try_files $uri /index.html` (rota `/design-system`), `location /api/ → http://api:8000`, `location /mqtt → http://mosquitto:9001` com `Upgrade`/`Connection` para WebSocket.
 - [x] `docker-compose.yml`: serviço `frontend` em `127.0.0.1:8080`, depois da API saudável. A 9001 e a 8000 **ficam** no host, só em `127.0.0.1`: o `npm run dev` precisa das duas.
 - [x] Conferido: `http://localhost:8080` carrega, `/api/saude` responde e o WebSocket `/mqtt` conecta. `PLAYWRIGHT_BASE_URL=http://localhost:8080 npm run e2e` passa (2 testes; o broker falso intercepta o `/mqtt`, então não precisa do simulador). O e2e da análise (3B) entra no mesmo comando.
-- [ ] **(6b)** Docs: `applications/frontend/README.md` (como adicionar um gráfico: função pura + teste + componente), `applications/README.md` (a tela substitui o dashboard), `ARCHITECTURE.md` (tela, nginx, portas) e `docs/roadmap.md` (estado).
+- [x] **(6b)** Docs: `applications/frontend/README.md` (como adicionar um gráfico: função pura + teste + componente), `applications/README.md` (a tela substitui o dashboard), `ARCHITECTURE.md` (tela, nginx, portas) e `docs/roadmap.md` (estado).
 
 ## Etapa 7 — Remoção do Grafana (frente 4A, só depois da Etapa 4 conferida)
 

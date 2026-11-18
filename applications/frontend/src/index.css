@@ -46,6 +46,24 @@ button {
   outline-offset: 2px;
 }
 
+/* Entrada única: cabeçalho, depois o estado ao vivo, depois os números. As seções não entram. */
+@keyframes entrada {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.cabecalho {
+  animation: entrada 200ms var(--sair) both;
+}
+.estado {
+  animation: entrada 200ms var(--sair) 80ms both;
+}
+.aovivo-numeros,
+.resumo {
+  animation: entrada 200ms var(--sair) 160ms both;
+}
+
 /* escala tipográfica do DESIGN.md */
 .display-xl {
   font-size: 48px;

@@ -15,6 +15,23 @@ export function formatarDataHora(iso: string | null | undefined): string {
   return `${dois(d.getDate())}/${dois(d.getMonth() + 1)}/${d.getFullYear()} ${dois(d.getHours())}:${dois(d.getMinutes())}`
 }
 
+/** Prefixa `+` ou o menos tipográfico. O zero fica sem sinal. */
+export function comSinal(valor: number, texto: string): string {
+  if (valor > 0) return `+${texto}`
+  if (valor < 0) return `−${texto}`
+  return texto
+}
+
+/** Quanto o número andou entre dois valores, com desaceleração no fim. `t` vai de 0 a 1. */
+export function interpolar(de: number, para: number, t: number): number {
+  const x = Math.min(1, Math.max(0, t))
+  const suave = 1 - (1 - x) ** 3
+  return de + (para - de) * suave
+}
+
+/** Duração do tween dos números da tela. */
+export const TWEEN_MS = 200
+
 /** Variação em %, sempre com sinal (o menos é o sinal tipográfico, não o hífen). */
 export function formatarVariacao(valor: number | null | undefined): string {
   if (valor == null || Number.isNaN(valor)) return TRACO

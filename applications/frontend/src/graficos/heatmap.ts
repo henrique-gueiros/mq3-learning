@@ -7,6 +7,7 @@
 
 import type { CelulaHeatmap } from '../api/consultas'
 import { corDoCaso, nomeDoCaso, ordenarCasos } from '../dominio/casos'
+import { comSinal } from '../dominio/formato'
 import { animacao, dica, eixoCategoria, type EntradaGrafico, type Marca } from './comum'
 
 const SENSORES: { chave: 'mq3' | 'mq135' | 'umid'; rotulo: string }[] = [
@@ -41,7 +42,7 @@ export function limiteHeatmap(celulas: Celula[]): number {
 export const alturaHeatmap = (casos: number) => Math.max(220, 96 + 44 * casos)
 
 /** `+81%`, `−3%` (sinal tipográfico), `0%`. */
-const comSinal = (v: number) => (v > 0 ? `+${v}%` : v < 0 ? `−${Math.abs(v)}%` : '0%')
+const rotuloPercentual = (v: number) => comSinal(v, `${Math.abs(v)}%`)
 
 export interface OpcoesHeatmap {
   xAxis: Marca & { data: string[] }
@@ -76,7 +77,7 @@ export function opcoesHeatmap({ dados, cores, tema, animar = true }: EntradaGraf
     },
     tooltip: dica(cores, {
       formatter: (x: { value: Celula }) =>
-        `<b>${nomeDoCaso(casos[x.value[1]])} · ${SENSORES[x.value[0]].rotulo}</b><br/>${comSinal(x.value[2])} em relação ao ambiente`,
+        `<b>${nomeDoCaso(casos[x.value[1]])} · ${SENSORES[x.value[0]].rotulo}</b><br/>${rotuloPercentual(x.value[2])} em relação ao ambiente`,
     }),
     series: [
       {
@@ -90,7 +91,7 @@ export function opcoesHeatmap({ dados, cores, tema, animar = true }: EntradaGraf
           color: cores.tinta,
           fontFamily: cores.fonteMono,
           fontSize: 12,
-          formatter: (x: { value: Celula }) => comSinal(x.value[2]),
+          formatter: (x: { value: Celula }) => rotuloPercentual(x.value[2]),
         },
       },
     ],

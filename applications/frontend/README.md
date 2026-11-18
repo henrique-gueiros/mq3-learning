@@ -3,7 +3,7 @@
 Tela única do sistema: leituras ao vivo da placa e os gráficos de análise de
 todas as coletas. Substitui o dashboard do Grafana quando cobrir todos os painéis.
 
-- React + TypeScript (Vite), gráficos em ECharts, animações com Motion.
+- React + TypeScript (Vite), gráficos em ECharts.
 - Design system: [`DESIGN.md`](DESIGN.md) (Vercel / Geist), traduzido em
   `src/styles/tokens.css`. A referência viva fica em `/design-system`.
 - Ao vivo: MQTT por WebSocket (`/mqtt`). Análise: a API de `../api` (`/api`).
@@ -19,6 +19,10 @@ npm run dev        # http://localhost:5173
 ```
 
 O `vite.config.ts` manda `/api` para `127.0.0.1:8000` e `/mqtt` para `127.0.0.1:9001`.
+
+O Compose também serve a tela pronta, com nginx, em http://localhost:8080
+(`Dockerfile` + `nginx.conf`: `/api/` vai para a API e `/mqtt` para o Mosquitto).
+Reconstruir depois de mudar a tela: `docker compose up -d --build frontend`, na raiz.
 
 ## Testes
 
@@ -44,9 +48,22 @@ só mostrado, nunca usado na decisão.
 | `src/dominio` | Regras sem tela: casos (nome, cor, ordem), formato dos números |
 | `src/tema` | Tema escuro/claro (padrão escuro), guardado no navegador |
 | `src/componentes` | Blocos base: cartão, número, filtros, selo da placa |
-| `src/layout` | Cabeçalho e seções |
+| `src/layout` | Cabeçalho, seções e menu do celular |
 | `src/paginas` | Páginas além da tela principal (`/design-system`) |
 | `src/aovivo` | Seção "Ao vivo": MQTT (`useAoVivo`), estado (`estado.ts`), detector ambiente × sopro (`detector.ts`) e componentes |
+| `src/analise` | Filtros na URL, resumo e as quatro seções de análise |
 | `src/graficos` | Opções do ECharts como funções puras (testadas) e leitura das cores do tema |
+
+## Como adicionar um gráfico
+
+1. Função pura em `src/graficos/`, recebendo `{ dados, cores, tema, animar }` e
+   devolvendo as opções do ECharts. Reaproveite `src/graficos/comum.ts` (eixos,
+   dica, legenda). O PPM pode aparecer; não entra em regra nenhuma.
+2. Teste ao lado (`*.test.ts`) com `CORES_TESTE`: confira séries, cores e textos,
+   não o canvas.
+3. Um `CartaoGrafico` na seção (`src/analise/Secao*.tsx`) com
+   `<GraficoECharts opcoes={fn} rotulo="..." />`. A `fn` vem de um `useCallback`
+   para o gráfico não redesenhar à toa. Se a rota da API ainda não existe, ela
+   entra em `applications/api/consultas.py` e o hook em `src/api/consultas.ts`.
 | `e2e` | Testes ponta a ponta com Playwright |
 | `src/styles` | Tokens e fontes Geist |

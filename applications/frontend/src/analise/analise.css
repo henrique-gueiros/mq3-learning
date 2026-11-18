@@ -188,6 +188,15 @@
 .resumo {
   transition: opacity var(--rapido) var(--sair);
 }
+/* Só na primeira vez que o gráfico aparece (trocar filtro não recria o elemento). */
+@keyframes surgir {
+  from {
+    opacity: 0;
+  }
+}
+.grafico-corpo {
+  animation: surgir 200ms var(--sair);
+}
 /* o atraso evita piscar quando a resposta nova chega logo */
 .grafico-corpo.atualizando,
 .resumo.atualizando {
@@ -253,7 +262,15 @@
   .recipiente.barra-filtros-linha {
     flex-wrap: nowrap;
     overflow-x: auto;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--mudo) transparent;
+  }
+  .barra-filtros-linha::-webkit-scrollbar {
+    height: 3px;
+  }
+  .barra-filtros-linha::-webkit-scrollbar-thumb {
+    background: var(--mudo);
+    border-radius: 3px;
   }
   .barra-filtros-linha > * {
     flex-shrink: 0;

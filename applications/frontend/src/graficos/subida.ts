@@ -6,7 +6,7 @@
 
 import type { Sopro } from '../api/consultas'
 import { corDoCaso, nomeDoCaso, ordenarCasos } from '../dominio/casos'
-import { formatarNumero } from '../dominio/formato'
+import { comSinal, formatarNumero } from '../dominio/formato'
 import { animacao, dica, eixoValor, legenda, type EntradaGrafico, type Marca } from './comum'
 
 export interface OpcoesSubida {
@@ -16,7 +16,7 @@ export interface OpcoesSubida {
   [k: string]: unknown
 }
 
-const comSinal = (v: number) => `${v >= 0 ? '+' : '−'}${formatarNumero(Math.abs(v))}`
+const rotuloSubida = (v: number) => comSinal(v, formatarNumero(Math.abs(v)))
 
 /** Opções da dispersão da seção "Sopros marcados". */
 export function opcoesSubida({ dados, cores, tema, animar = true }: EntradaGrafico<Sopro[]>): OpcoesSubida {
@@ -29,7 +29,7 @@ export function opcoesSubida({ dados, cores, tema, animar = true }: EntradaGrafi
     yAxis: eixoValor(cores, { name: 'subida do MQ-135', nameLocation: 'middle', nameGap: 48 }),
     tooltip: dica(cores, {
       formatter: (x: { seriesName: string; value: [number, number] }) =>
-        `<b>${x.seriesName}</b><br/>MQ-3 ${comSinal(x.value[0])}<br/>MQ-135 ${comSinal(x.value[1])}`,
+        `<b>${x.seriesName}</b><br/>MQ-3 ${rotuloSubida(x.value[0])}<br/>MQ-135 ${rotuloSubida(x.value[1])}`,
     }),
     series: ordenarCasos(dados.map((d) => d.caso)).map((caso) => ({
       id: caso,
