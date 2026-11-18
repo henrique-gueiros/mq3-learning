@@ -1,4 +1,6 @@
 .env
+.impeccable/hook.cache.json
+.impeccable/config.local.json
 .superpowers/
 .DS_Store
 __pycache__/

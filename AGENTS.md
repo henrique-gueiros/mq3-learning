@@ -24,14 +24,16 @@ Cada **tentativa de sopro** recebe uma classe:
 | `sem_efeito` | Não bebeu: ar limpo, perfume, álcool em gel, borrifo, enxaguante |
 
 Perfume, álcool 70% e enxaguante estão na coleta para o modelo separar vapor no
-ambiente de motorista que bebeu. O sistema não mede mg/L: `sob_efeito` é "bebeu nas
-condições do experimento", não laudo. O que fazer depois de uma detecção (alerta,
-bloqueio) ainda não foi decidido.
+ambiente de motorista que bebeu. O sistema não mede mg/L: a tela mostra o PPM do
+MQ-3, o MQ-135 e a umidade. `sob_efeito` é "bebeu nas condições do experimento",
+não laudo. Depois de uma detecção, a tela mostra o resultado e dá um alerta.
+Bloqueio do carro não faz parte do protótipo.
 
 ## Regras invioláveis
 
 - **Dados só da coleta da equipe**: nada de datasets da internet nem dados sintéticos em treino ou teste. Os CSVs de sessão ficam **sem edição**; derivados vão para `ml/data/processed/`.
-- `ppm` e `alcool` são calculados pelo firmware a partir do MQ-3: ficam **fora** de rótulos, features e regras de decisão (podem ser exibidos). O rótulo vem da `condition` anotada.
+- A tela mostra o PPM do MQ-3, o MQ-135 e a umidade. Não mostra mg/L. O rótulo de treino continua vindo da `condition` anotada, não de um limiar.
+- O PPM calculado pelo firmware pode aparecer e entra no modelo futuro: quem decide se a pessoa bebeu é o conjunto PPM, MQ-135 e umidade, no machine learning que ainda não existe. Até lá, nenhuma regra solta de PPM decide. `alcool` (o outro número do firmware) fica fora de rótulo, feature e decisão.
 - Medições, calibração, limiares, resultados e fontes vêm de dados ou documentos reais; o que ainda não foi medido é tratado como hipótese, e está escrito assim.
 - Métricas de testes automatizados (curvas montadas à mão) não são desempenho real.
 - Relatório da disciplina: a equipe escreve. Agentes só revisam texto da equipe e produzem código, figuras e tabelas de resultados.
