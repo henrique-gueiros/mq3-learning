@@ -1,8 +1,8 @@
-"""Consultas da tela de análise: as mesmas do dashboard do Grafana, com parâmetros.
+"""Consultas da tela de análise.
 
-O SQL de referência está em ``grafana/montar_dashboard.py``. Lá os filtros eram
-variáveis do Grafana coladas no texto; aqui viram parâmetros do psycopg, então
-nenhum valor vindo do navegador entra no SQL como texto.
+A conta dos agregados (percentis, variação em relação ao ambiente, amostra da dispersão) fica no
+banco, nas funções ``f_*`` de ``db/01-schema.sql``; aqui só há ``SELECT`` com os filtros como
+parâmetros do psycopg, então nenhum valor vindo do navegador entra no SQL como texto.
 
 Cada função recebe uma conexão aberta e devolve dados prontos para virar JSON.
 """
@@ -98,19 +98,14 @@ def resumo(con: psycopg.Connection, f: Filtros) -> Dict[str, Any]:
     return {"placa": placa["situacao"], "rodadas": rodadas["n"], "leituras": leituras["n"]}
 
 
+def _chamada(funcao: str, f: Filtros, extra: str = "") -> str:
+    return f"select * from {funcao}(%(casos)s::text[], %(participantes)s::text[], %(janela)s, %(simulador)s{extra})"
+
+
 def distribuicao(con: psycopg.Connection, f: Filtros) -> List[Dict[str, Any]]:
-    """Percentis 5, 25, 50, 75 e 95 e a média de cada sensor, por caso (boxplot)."""
-    colunas = []
-    for prefixo, campo in SENSORES:
-        for rotulo, q in PERCENTIS:
-            colunas.append(f"percentile_cont({q}) within group (order by {campo}) as {prefixo}_{rotulo}")
-        colunas.append(f"avg({campo})::float8 as {prefixo}_media")
-    sql = (
-        f"select caso, count(*) as n, {', '.join(colunas)} "
-        f"from v_leituras where {LEITURAS_ESCOLHIDAS} group by caso order by caso"
-    )
+    """Percentis 5, 25, 50, 75 e 95 e a média de cada sensor, por caso (boxplot): ``f_distribuicao``."""
     resposta = []
-    for linha in _linhas(con, sql, f.parametros()):
+    for linha in _linhas(con, _chamada("f_distribuicao", f), f.parametros()):
         item: Dict[str, Any] = {"caso": linha["caso"], "n": linha["n"]}
         for prefixo, _ in SENSORES:
             chaves = [r for r, _ in PERCENTIS] + ["media"]
@@ -120,38 +115,13 @@ def distribuicao(con: psycopg.Connection, f: Filtros) -> List[Dict[str, Any]]:
 
 
 def heatmap(con: psycopg.Connection, f: Filtros) -> List[Dict[str, Any]]:
-    """Diferença (%) da média de cada caso em relação à do ambiente (``clean``).
-
-    O ambiente entra no cálculo mesmo fora do filtro de casos: ele é a referência.
-    """
-    sql = f"""
-        with medias as (
-          select caso, avg(mq3_raw) as mq3, avg(mq135_raw) as mq135, avg(humidity_pct) as umid
-          from v_leituras
-          where (%(janela)s = 'arquivo' or em_sopro) and caso is not null and {PARTICIPANTES} and {SIMULADOR}
-          group by caso)
-        select m.caso,
-               ((m.mq3 / nullif(b.mq3, 0) - 1) * 100)::float8 as mq3,
-               ((m.mq135 / nullif(b.mq135, 0) - 1) * 100)::float8 as mq135,
-               ((m.umid / nullif(b.umid, 0) - 1) * 100)::float8 as umid
-        from medias m
-        cross join (select * from medias where caso = 'clean') b
-        where m.caso <> 'clean' and (%(casos)s::text[] is null or m.caso = any(%(casos)s))
-        order by m.caso"""
-    return _linhas(con, sql, f.parametros())
+    """Diferença (%) da média de cada caso em relação à do ambiente (``clean``): ``f_heatmap``."""
+    return _linhas(con, _chamada("f_heatmap", f), f.parametros())
 
 
 def dispersao(con: psycopg.Connection, f: Filtros, limite: int = 400) -> List[Dict[str, Any]]:
-    """Até ``limite`` leituras por caso (MQ-3 × MQ-135), sorteadas sempre do mesmo jeito."""
-    sql = f"""
-        select caso, mq3_raw, mq135_raw
-        from (select caso, mq3_raw, mq135_raw,
-                     row_number() over (partition by caso order by md5(rodada_id::text || amostra::text)) as n
-              from v_leituras
-              where {LEITURAS_ESCOLHIDAS} and mq3_raw is not null and mq135_raw is not null) t
-        where n <= %(limite)s
-        order by caso, n"""
-    return _linhas(con, sql, {**f.parametros(), "limite": limite})
+    """Até ``limite`` leituras por caso (MQ-3 × MQ-135), sorteadas sempre do mesmo jeito: ``f_dispersao``."""
+    return _linhas(con, _chamada("f_dispersao", f, ", %(limite)s"), {**f.parametros(), "limite": limite})
 
 
 def sobrepostas(con: psycopg.Connection, f: Filtros) -> List[Dict[str, Any]]:

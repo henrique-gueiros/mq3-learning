@@ -113,3 +113,15 @@ def test_tempo_desde_o_inicio(pg):
     rodada = nova_rodada(pg)
     gravar_serie(pg, rodada, [(5000, 100), (7500, 100)])
     assert [r[0] for r in pg.execute("select tempo_s from v_leituras order by amostra")] == [0, 2.5]
+
+
+def test_funcoes_de_analise_agregam_por_caso_com_os_filtros(pg):
+    gravar_serie(pg, nova_rodada(pg, "clean"), [(1000, 100, 400), (2000, 300, 500)])
+    gravar_serie(pg, nova_rodada(pg, "drink"), [(1000, 900, 800)])
+    distribuicao = pg.execute("select caso, n, mq3_p50, mq3_media from f_distribuicao(null, null, 'arquivo', false) order by caso").fetchall()
+    assert distribuicao == [("clean", 2, 200.0, 200.0), ("drink", 1, 900.0, 900.0)]
+    assert pg.execute("select caso from f_distribuicao(array['drink'], null, 'arquivo', false)").fetchall() == [("drink",)]
+    # o ambiente (clean) é a referência do heatmap mesmo fora do filtro de casos
+    [(caso, mq3, _, _)] = pg.execute("select caso, mq3, mq135, umid from f_heatmap(array['drink'], null, 'arquivo', false)").fetchall()
+    assert caso == "drink" and mq3 == pytest.approx(350.0)
+    assert pg.execute("select count(*) from f_dispersao(null, null, 'arquivo', false, 1)").fetchone()[0] == 2

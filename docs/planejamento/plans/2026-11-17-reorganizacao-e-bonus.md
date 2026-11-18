@@ -34,7 +34,7 @@ Dica do professor: usar o GitHub Projects para as tarefas. Datas: relatório e r
 | 2. Corrigir os achados do review | **parcial** (4 de 7) | `66b7995` |
 | 3. README no modelo do professor e `schematics/README.md` | **feita** | `db3feb8` |
 | — Este plano e a referência no `roadmap.md` | **feito** | `29dbe21` e o commit seguinte |
-| 4. Achados do review que sobraram | **A (parcial) e C feitos**; B aguarda decisão da equipe | ver `git log` |
+| 4. Achados do review que sobraram | **A (parcial), B e C feitos** | ver `git log` |
 | 5. Firmware: FreeRTOS e Wi-Fi/MQTT (com o Artur) | a fazer | |
 | 6. Esquemático: arquivo-fonte (com quem desenhou) | a fazer | |
 | 7. Relatório CSBC em `docs/relatorio/` | a fazer (vence 03/12) | |
@@ -103,15 +103,12 @@ de um sopro, mas **não gera mais o aviso "Sopro detectado"**: só o sopro medid
 **Pendente:** rever `LIMIARES.referencia` e `recuperacaoMaxMs` com a análise exploratória dos dados reais (roadmap,
 tarefa 3); o carro úmido ainda fica até 120 s no estado provisório (mostrado como "sopro" na barra, sem aviso).
 
-**B. SQL de análise na API — AGUARDA DECISÃO DA EQUIPE (não implementado).** Percentis, média relativa ao ambiente
-(heatmap) e amostragem da dispersão estão como SQL em `applications/api/consultas.py` e duplicados em
-`applications/grafana/montar_dashboard.py`, contra a regra de `applications/AGENTS.md` ("a lógica de análise fica
-nas views"). Esses agregados dependem dos filtros (caso, participante, janela, simulador), e uma view não recebe
-parâmetros: mover para views exigiria views por linha (já existem: `v_leituras`, `v_sopros`) mais a agregação na API de
-qualquer forma. Opções: (1) manter o SQL só na API e **reescrever a regra** do `AGENTS.md` ("as views guardam as
-derivações por linha; agregados que dependem dos filtros ficam em `api/consultas.py`, única fonte"), a duplicação some
-quando o Grafana sair (etapa 10); (2) criar views por rodada e agregar por rodada (muda o significado das estatísticas).
-Recomendação: opção 1. Mudar uma regra do `AGENTS.md` é decisão da equipe.
+**B. SQL de análise na API — FEITO.** Os agregados que dependem dos filtros (percentis, variação em relação ao
+ambiente, amostra da dispersão) viraram **funções SQL** (`f_distribuicao`, `f_heatmap`, `f_dispersao`) em
+`applications/db/01-schema.sql`, com migração `applications/db/migracoes/2026-11-17-funcoes-de-analise.sql`. A API
+(`api/consultas.py`) só faz `SELECT * FROM f_...(filtros)`. Uma view não recebe parâmetros, por isso função. Teste:
+`test_funcoes_de_analise_agregam_por_caso_com_os_filtros`. A regra do `applications/AGENTS.md` passou a citar
+"views e funções". **Pendente:** a cópia dessas contas em `applications/grafana/montar_dashboard.py` some com o Grafana (etapa 10).
 
 **C. Ordem entre tópicos MQTT — FEITO.** A tela guarda em `deixadas` as rodadas que já deixou e só descarta leitura
 atrasada delas; leitura de rodada desconhecida abre a rodada (a mensagem `rodada` depois só preenche os metadados).
