@@ -33,6 +33,7 @@ Dica do professor: usar o GitHub Projects para as tarefas. Datas: relatório e r
 | 1. Reorganizar pastas (`ml/`, `services/`, CSVs, `docs/`) | **feita** | `6b66af7` |
 | 2. Corrigir os achados do review | **parcial** (4 de 7) | `66b7995` |
 | 3. README no modelo do professor e `schematics/README.md` | **feita** | `db3feb8` |
+| — Este plano e a referência no `roadmap.md` | **feito** | `29dbe21` e o commit seguinte |
 | 4. Achados do review que sobraram (A, B, C) | a fazer | |
 | 5. Firmware: FreeRTOS e Wi-Fi/MQTT (com o Artur) | a fazer | |
 | 6. Esquemático: arquivo-fonte (com quem desenhou) | a fazer | |

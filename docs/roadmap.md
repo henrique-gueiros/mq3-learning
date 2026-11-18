@@ -54,3 +54,5 @@ Ainda não existe:
 4. Experimento com dados reais no MLflow, com k-fold e overfitting. Aí `applications/ml/models/sob_efeito.joblib` passa a existir.
 5. A equipe escolhe um contrato MQTT e a ESP32 passa a publicar (quem mantém o firmware).
 6. Airflow, resultado do modelo na tela e um Compose único.
+
+- Plano desta reorganização: `docs/planejamento/plans/2026-11-17-reorganizacao-e-bonus.md` (atualizar a cada etapa).
