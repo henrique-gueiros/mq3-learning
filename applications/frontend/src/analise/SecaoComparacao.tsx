@@ -45,7 +45,7 @@ export function SecaoComparacao({ filtros }: PropsSecao) {
 
   return (
     <Secao
-      id="comparacao"
+      id="comparacao-casos"
       titulo="Comparação entre os casos."
       descricao="Como cada sensor se comporta em ambiente, bebida, perfume e nos outros casos."
     >

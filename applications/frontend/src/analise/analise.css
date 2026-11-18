@@ -192,6 +192,7 @@
 @keyframes surgir {
   from {
     opacity: 0;
+    transform: translateY(4px);
   }
 }
 .grafico-corpo {
@@ -250,8 +251,9 @@
   }
 }
 /* Âncoras da análise: além do cabeçalho (scroll-padding-top do index.css), descontar a barra fixa. */
-.analise .secao {
-  scroll-margin-top: 64px;
+.analise .secao,
+.analise .ancora {
+  scroll-margin-top: 140px;
 }
 
 @media (max-width: 760px) {

@@ -15,7 +15,7 @@ html {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   scroll-behavior: smooth;
-  scroll-padding-top: 80px;
+  scroll-padding-top: 140px;
 }
 
 body {
@@ -26,7 +26,10 @@ body {
 
 h1,
 h2,
-h3,
+h3 {
+  margin: 0;
+  text-wrap: balance;
+}
 p {
   margin: 0;
 }
@@ -119,9 +122,9 @@ button {
 
 @media (max-width: 600px) {
   .display-xl {
-    font-size: 36px;
+    font-size: 32px;
     line-height: 40px;
-    letter-spacing: -1.6px;
+    letter-spacing: -1.4px;
   }
 }
 

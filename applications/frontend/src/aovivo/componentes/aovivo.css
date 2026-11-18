@@ -121,7 +121,7 @@
   display: inline-block;
   width: 16px;
   height: 10px;
-  border-radius: 2px;
+  border-radius: var(--raio-xs);
 }
 .aovivo-amostra.linha {
   height: 2px;
@@ -157,7 +157,7 @@
   font-size: 13px;
   line-height: 20px;
   white-space: pre-wrap;
-  word-break: break-all;
+  word-break: break-word;
 }
 
 @media (max-width: 860px) {

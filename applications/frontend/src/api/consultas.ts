@@ -17,6 +17,8 @@ export interface RodadaOpcao {
   origem: string
   /** ISO 8601, em UTC. */
   inicio: string
+  /** Nome do CSV; distingue rodadas importadas no mesmo minuto. */
+  arquivo?: string
 }
 
 export interface ResumoApi {

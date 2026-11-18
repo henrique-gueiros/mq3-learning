@@ -3,6 +3,7 @@ import { useFiltrosDaUrl } from './analise/filtros'
 import { Aviso } from './aovivo/componentes/Aviso'
 import { PainelAoVivo } from './aovivo/componentes/PainelAoVivo'
 import { SeloAoVivo } from './aovivo/componentes/SeloAoVivo'
+import { descricaoAoVivo } from './aovivo/descricao'
 import { useAoVivo } from './aovivo/useAoVivo'
 import { Cabecalho } from './layout/Cabecalho'
 import { LimiteDeErro } from './layout/LimiteDeErro'
@@ -17,16 +18,13 @@ function TelaPrincipal() {
   const [filtros, mudarFiltros] = useFiltrosDaUrl()
   return (
     <>
+      <a className="pular" href="#ao-vivo">Pular para o conteúdo</a>
       <Cabecalho direita={<SeloAoVivo estado={estado} conexao={conexao} />} />
       <main>
         <Secao
           id="ao-vivo"
           titulo="Ao vivo."
-          descricao={
-            conexao === 'sem-broker'
-              ? 'Sem conexão com o broker MQTT. Confira se o Compose está de pé; a tela reconecta sozinha.'
-              : 'Leituras chegando da placa agora: PPM, MQ-135 e umidade.'
-          }
+          descricao={descricaoAoVivo(conexao, estado.leituras.length > 0)}
         >
           <PainelAoVivo estado={estado} />
         </Secao>

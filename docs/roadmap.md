@@ -36,7 +36,7 @@ Pronto e testado:
 - Firmware lendo os três sensores e gravando CSV por sessão.
 - Pipeline de ML em `ml/src/` (validação, recorte, features, separação por participante, 4 modelos × 4 conjuntos de sensores, Grid Search aninhado por grupo, modelo final e previsão), testado com curvas montadas à mão.
 - Coleta em `applications/`: ponte serial, ingestor, simulador, importador, lote dos 12 CSVs válidos, Compose com Mosquitto, Postgres e API.
-- Tela React no Compose (http://localhost:8080): ao vivo, detector ambiente × sopro e as quatro seções de análise, com os números conferidos contra o Grafana local. O acabamento visual da etapa 5 está feito; o Lighthouse de acessibilidade ainda não rodou. Plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
+- Tela React no Compose (http://localhost:8080): ao vivo, detector ambiente × sopro e as quatro seções de análise, com os números conferidos contra o Grafana local. O acabamento visual da etapa 5 está feito. O Lighthouse de acessibilidade deu 100 em 17/11. Plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
 - `services/`: worker e servidor do modelo (responde `sem_modelo` até haver modelo).
 
 Ainda não existe:

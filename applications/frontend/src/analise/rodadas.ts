@@ -9,7 +9,7 @@ export function rodadasVisiveis(rodadas: RodadaOpcao[], simulador: boolean): Rod
 
 /** `bebida · p01 · 06/11/2026 14:00`, no fuso do navegador; as do simulador vêm marcadas. */
 export function rotuloRodada(r: RodadaOpcao): string {
-  const partes = [nomeDoCaso(r.caso), r.participante, formatarDataHora(r.inicio)]
+  const partes = [nomeDoCaso(r.caso), r.participante, formatarDataHora(r.inicio), r.arquivo ?? '']
   if (r.origem === 'simulador') partes.push('simulador')
   return partes.filter(Boolean).join(' · ')
 }

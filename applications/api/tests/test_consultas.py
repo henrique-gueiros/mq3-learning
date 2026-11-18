@@ -16,6 +16,7 @@ def test_filtros_lista_casos_participantes_e_rodadas(pg):
     assert [r["id"] for r in resposta["rodadas"]] == [nova, antiga]
     assert resposta["rodadas"][0]["caso"] == "drink"
     assert resposta["rodadas"][0]["participante"] == "p01"
+    assert resposta["rodadas"][0]["arquivo"] == "drink.csv"
     assert resposta["rodadas"][0]["inicio"].isoformat() == "2026-11-06T09:30:00+00:00"
 
 

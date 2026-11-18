@@ -45,8 +45,10 @@ export function Analise({ filtros, aoMudarFiltros }: PropsSecao) {
   return (
     <div className="analise">
       <BarraFiltros filtros={filtros} aoMudar={aoMudarFiltros} />
-      <Resumo filtros={filtros} />
-      <SecaoComparacao {...props} />
+      <div id="comparacao" className="ancora">
+        <Resumo filtros={filtros} />
+        <SecaoComparacao {...props} />
+      </div>
       <SecaoRodadas {...props} />
       <SecaoRodada {...props} />
       <SecaoSopros {...props} />

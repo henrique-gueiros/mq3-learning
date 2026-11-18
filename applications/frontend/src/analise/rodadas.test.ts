@@ -28,6 +28,12 @@ describe('rotuloRodada', () => {
     expect(rotuloRodada(r('b', 'clean'))).toBe('ambiente · p01 · 06/11/2026 14:00')
   })
 
+  it('acrescenta o arquivo, que distingue rodadas do mesmo minuto', () => {
+    expect(rotuloRodada({ ...r('a', 'drink'), arquivo: '2026-11-12_equipe_drink_4.csv' })).toBe(
+      'bebida · p01 · 06/11/2026 14:00 · 2026-11-12_equipe_drink_4.csv',
+    )
+  })
+
   it('marca as rodadas do simulador', () => {
     expect(rotuloRodada(r('a', 'drink', 'simulador'))).toBe('bebida · p01 · 06/11/2026 14:00 · simulador')
   })

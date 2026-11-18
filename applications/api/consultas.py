@@ -61,7 +61,8 @@ def filtros(con: psycopg.Connection) -> Dict[str, Any]:
 
     Cada rodada traz a ``origem`` para a tela esconder as do simulador quando o
     interruptor "incluir simulador" está desligado. O rótulo é montado na tela, que
-    mostra o ``inicio`` no fuso do navegador (o do banco é UTC).
+    mostra o ``inicio`` no fuso do navegador (o do banco é UTC) e o ``arquivo``,
+    porque várias rodadas importadas no mesmo minuto ficariam com o mesmo texto.
     """
     casos = _linhas(con, "select distinct caso from rodadas where caso is not null order by 1")
     participantes = _linhas(
@@ -70,7 +71,7 @@ def filtros(con: psycopg.Connection) -> Dict[str, Any]:
     rodadas = _linhas(
         con,
         """select id::text as id, caso, coalesce(participante, '') as participante,
-                  coalesce(origem, '') as origem, inicio
+                  coalesce(origem, '') as origem, coalesce(arquivo_sessao, '') as arquivo, inicio
            from rodadas
            where inicio is not null and caso is not null
            order by inicio desc""",

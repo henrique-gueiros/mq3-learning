@@ -19,7 +19,7 @@ etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
 | 4. e2e da análise (parte da 3B) | feito (`e2e/analise.spec.ts`) | mesmo commit |
 | 4. Conferência dos números com o Grafana (resto da 3B) | feita: tudo igual (ver "3B — conferência com o Grafana") | ver `git log` |
 | 5b. Animações, acabamento e revisão de design (3A) — parte 1 | feita (ver "3A — acabamento: parte 1 feita") | ver `git log` |
-| 5b. Animações, acabamento e revisão de design (3A) — parte 2 | feita (ver "3A — o que falta"; Lighthouse não rodou neste ambiente) | ver `git log` |
+| 5b. Animações, acabamento e revisão de design (3A) — parte 2 | feita, com a revisão das skills e Lighthouse 100 (ver "3A — revisão das skills") | ver `git log` |
 | 6b. Documentação (3C) | feita neste ciclo (READMEs, ARCHITECTURE, roadmap) | ver `git log` |
 | 7. Remoção do Grafana | a fazer; **perguntar à equipe antes** (apaga pastas e serviços) | |
 
@@ -370,7 +370,22 @@ Verificado: 181 testes do Vitest, `tsc -b`, e2e (4) no Vite e no nginx (8080).
 | Marca | Abaixo de 760 px, "Sopro Seguro" não quebra (`white-space: nowrap`, 15 px). |
 | Sinal dos gráficos | `comSinal` em `formato.ts`, usado pelo heatmap e pela subida. |
 | Ficou de fora, de propósito | Juntar as três listas de sensores (os campos diferem), o hook `useOpcoes`, mover `CoresGrafico` e unificar o breakpoint de 640 px com o de 1000 px: mudança grande para pouco ganho. Desmarcar o último chip continua voltando a "todos", como no Grafana, até a equipe decidir o contrário. |
-| Acessibilidade | `:focus-visible` global (anel azul). O Lighthouse não rodou neste ambiente; o critério ≥ 95 continua aberto. |
+| Acessibilidade | `:focus-visible` global e link "Pular para o conteúdo". Lighthouse 100 em 17/11. |
+
+## 3A — revisão das skills (17/11)
+
+Rodaram a crítica de design, o detector do Impeccable, a revisão de animação e as Web Interface Guidelines.
+
+Corrigido:
+- A seção "Ao vivo" só diz "leituras chegando" quando há leitura (`descricaoAoVivo`).
+- O atalho Comparação pousa no resumo, não debaixo da barra (`#comparacao` envolve o resumo; `scroll-margin-top: 140px`).
+- O rótulo da rodada inclui o arquivo, porque as 12 importações caem no mesmo segundo e o seletor repetia o mesmo texto. `/api/filtros` passou a mandar `arquivo`.
+- O comando de exemplo quebra em espaços, não no meio da palavra.
+- Valores fora da escala do design: raio 2px virou `--raio-xs` (4px), o título no celular foi de 36px para 32px, a marca de 15px para 16px, e a sombra do interruptor usa 8% da tinta em vez de `#00000040`.
+- A entrada do gráfico ganhou um deslocamento de 4px, para não ser só um fade.
+- Link "Pular para o conteúdo".
+
+Ficou de fora, de propósito: reescrever o vazio do ao vivo (o comando é o jeito de testar sem a placa), mudar o primeiro clique do chip (a equipe ainda não decidiu) e trocar a regra global de `prefers-reduced-motion`, que o plano pediu para desligar o movimento. O detector marcou as fontes Geist como aviso; o design system as prescreve.
 
 **Zoom das rodadas sobrepostas — opção 1 aplicada.** `fimDoZoom` (`sobrepostas.ts`): 0 até o
 fim da rodada mais longa que não é ambiente, arredondado para cima ao minuto, mínimo 300 s.
@@ -544,9 +559,9 @@ Skills: `emil-design-eng`, `animate`, `review-animations`, `impeccable`, `web-de
 - [x] Interações 150–250 ms com `--sair`; `prefers-reduced-motion` desliga tudo (já há a regra global em `index.css`).
 - [x] **(5a, frente 1C)** Menu das seções no celular (hoje os atalhos somem abaixo de 760 px): botão no cabeçalho que abre a lista de seções; fecha ao escolher, com Esc e ao tocar fora; foco preso enquanto aberto.
 - [x] O build avisa bundle > 500 kB (ECharts + mqtt.js): separar com `import()` dinâmico os gráficos de análise e a página `/design-system` (3A, parte 1; o aviso continua para o chunk principal, ver lá).
-- [ ] Rodar `/impeccable critique` e `/impeccable audit`, `review-animations` e `web-design-guidelines` sobre a tela; corrigir. Não rodou neste ciclo.
-- [ ] Contraste AA de todo texto nos dois temas conferido por ferramenta; foco visível já existe (`:focus-visible` global) e os controles nativos navegam por teclado.
-- Aceite ainda aberto: Lighthouse de acessibilidade ≥ 95 (não rodou neste ambiente).
+- [x] Rodar `/impeccable critique` e o detector do audit, mais `review-animations` e as Web Interface Guidelines; corrigir o que era defeito (ver "3A — revisão das skills").
+- [x] Foco visível (`:focus-visible` global), controles nativos no teclado e link "Pular para o conteúdo".
+- [x] Lighthouse de acessibilidade: 100 em http://localhost:5173 (Chromium do Playwright, 17/11). A meta era ≥ 95.
 
 ## Etapa 6 — Compose (nginx) e documentação (6a = frente 1B; 6b = frente 3C)
 
