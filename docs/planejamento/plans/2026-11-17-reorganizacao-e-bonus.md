@@ -34,15 +34,15 @@ Dica do professor: usar o GitHub Projects para as tarefas. Datas: relatório e r
 | 2. Corrigir os achados do review | **parcial** (4 de 7) | `66b7995` |
 | 3. README no modelo do professor e `schematics/README.md` | **feita** | `db3feb8` |
 | — Este plano e a referência no `roadmap.md` | **feito** | `29dbe21` e o commit seguinte |
-| 4. Achados do review que sobraram (A, B, C) | a fazer | |
+| 4. Achados do review que sobraram | **C feito**; A e B a fazer | C: ver `git log` |
 | 5. Firmware: FreeRTOS e Wi-Fi/MQTT (com o Artur) | a fazer | |
 | 6. Esquemático: arquivo-fonte (com quem desenhou) | a fazer | |
 | 7. Relatório CSBC em `docs/relatorio/` | a fazer (vence 03/12) | |
 | 8. GitHub Projects e organização do repositório | a fazer (com o Henrique, dono do repo) | |
 | 9. Unificar `services/` com `applications/` | a fazer (aprovado em 05/11 para depois da coleta) | |
 | 10. Remover o Grafana (Etapa 7 do plano da tela) | a fazer; **perguntar à equipe antes** | |
-| 11. Bônus: alertas (Telegram + e-mail) | a fazer | |
-| 12. Bônus: IPv6 no Compose | a fazer | |
+| 11. Bônus: alertas (Telegram + e-mail) | **não implementar até a equipe confirmar** | |
+| 12. Bônus: IPv6 no Compose | **não implementar: a equipe não confirmou** (decisão de 17/11) | |
 | 13. Merge na `main` e aviso à equipe | a fazer, depois das etapas 4 a 6 | |
 
 ## Feito
@@ -112,9 +112,9 @@ contra a regra de `applications/AGENTS.md` ("a lógica de análise fica nas view
 `applications/coleta/tests/test_banco.py`. A duplicação some quando o Grafana sair (etapa 10): então a prioridade é baixa
 se a etapa 10 for aprovada.
 
-**C. Ordem entre tópicos MQTT (`applications/frontend/src/aovivo/estado.ts`, linha ~88).** Leituras de uma rodada
-nova que chegam antes da mensagem `rodada` dela são descartadas. Caminho: guardar essas leituras em `pendentes`
-(como já é feito com eventos) e aplicá-las quando a `rodada` chegar ou depois de 2 s; teste em `estado.test.ts`.
+**C. Ordem entre tópicos MQTT — FEITO.** A tela guarda em `deixadas` as rodadas que já deixou e só descarta leitura
+atrasada delas; leitura de rodada desconhecida abre a rodada (a mensagem `rodada` depois só preenche os metadados).
+Teste: `estado.test.ts` ("leituras da rodada nova que chegam antes do anúncio dela não se perdem").
 
 ### Etapa 5 — firmware (Artur mantém; `AGENTS.md` reserva o firmware a ele)
 
@@ -162,7 +162,7 @@ colunas. Pré-requisito: modelo treinado (`applications/ml/models/sob_efeito.job
 equipe aprovar. Detalhes na Etapa 7 de `docs/planejamento/plans/2026-11-17-frontend-react.md`. Atualizar
 `ARCHITECTURE.md`, README e `applications/AGENTS.md`; apagar `applications/coleta/tests/test_dashboard.py`.
 
-### Etapa 11 — bônus: alertas (Telegram + e-mail)
+### Etapa 11 — bônus: alertas (Telegram + e-mail) — NÃO IMPLEMENTAR até a equipe confirmar
 
 Serviço novo `applications/alertas/` no Compose, assinando o MQTT:
 
@@ -174,7 +174,9 @@ Serviço novo `applications/alertas/` no Compose, assinando o MQTT:
 - **Testes:** canais falsos injetados, regras de cooldown e mapeamento evento → mensagem (TDD), sem rede.
 - Documentar em `applications/README.md` e no relatório; mostrar na apresentação (celular recebendo ao vivo).
 
-### Etapa 12 — bônus: IPv6
+### Etapa 12 — bônus: IPv6 — NÃO IMPLEMENTAR: a equipe não confirmou
+
+O usuário pediu em 17/11 que o IPv6 não seja implementado. Fica só como proposta, caso a equipe decida depois.
 
 1. Rede do Compose com IPv6 (`networks: default: enable_ipv6: true`, sub-rede ULA `fd00:…/64`) e `ip6tables` do Docker ligado.
 2. Mosquitto escutando em IPv6 (`listener 1883 ::` / `socket_domain ipv6` em `applications/mosquitto/mosquitto.conf`).

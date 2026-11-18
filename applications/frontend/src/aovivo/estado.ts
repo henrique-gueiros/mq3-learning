@@ -42,13 +42,15 @@ export interface EstadoAoVivo {
   statusPorPlaca: Record<string, 'online' | 'offline'>
   /** Eventos de rodadas que ainda não são a atual, por rodada_id. */
   pendentes: Record<string, Evento[]>
+  /** Rodadas que a tela já deixou; leitura atrasada delas é descartada. */
+  deixadas: string[]
 }
 
 /** Estado vazio, antes da primeira mensagem do broker. */
 export function estadoInicial(): EstadoAoVivo {
   return {
     placa: null, rodada: null, leituras: [], eventos: [], detector: novoDetector(), trechos: [],
-    ultimaLeituraEm: null, aviso: null, rodadasPorPlaca: {}, statusPorPlaca: {}, pendentes: {},
+    ultimaLeituraEm: null, aviso: null, rodadasPorPlaca: {}, statusPorPlaca: {}, pendentes: {}, deixadas: [],
   }
 }
 
@@ -71,6 +73,7 @@ function recomecar(e: EstadoAoVivo, placa: string, rodada: Rodada): EstadoAoVivo
     aviso: e.aviso,
     rodadasPorPlaca: e.rodadasPorPlaca,
     statusPorPlaca: e.statusPorPlaca,
+    deixadas: e.rodada && e.rodada.rodada_id !== rodada.rodada_id ? [...e.deixadas, e.rodada.rodada_id] : e.deixadas,
   }
 }
 
@@ -83,9 +86,9 @@ const emSilencio = (e: EstadoAoVivo, agora: number) => e.ultimaLeituraEm === nul
 function comLeitura(atual: EstadoAoVivo, l: Leitura, placa: string, agora: number): EstadoAoVivo {
   if (atual.placa !== null && atual.placa !== placa && !emSilencio(atual, agora)) return atual
 
-  // leitura atrasada da rodada anterior desta placa: a rodada nova já foi anunciada
-  const anunciadaAgora = atual.rodadasPorPlaca[placa]?.rodada_id
-  if (atual.placa === placa && atual.rodada?.rodada_id === anunciadaAgora && l.rodada_id !== anunciadaAgora) return atual
+  // leitura atrasada de uma rodada que a tela já deixou. Rodada desconhecida é rodada nova
+  // cujas primeiras leituras chegaram antes do anúncio (tópicos diferentes não têm ordem entre si).
+  if (atual.placa === placa && atual.deixadas.includes(l.rodada_id)) return atual
 
   let e = atual
   if (e.placa !== placa || e.rodada?.rodada_id !== l.rodada_id) {

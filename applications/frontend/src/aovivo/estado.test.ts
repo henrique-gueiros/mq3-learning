@@ -128,6 +128,14 @@ describe('estado ao vivo', () => {
     expect(e.leituras.map((l) => l.amostra)).toEqual([1, 2])
   })
 
+  it('leituras da rodada nova que chegam antes do anúncio dela não se perdem', () => {
+    const anuncio = (id: string, caso: string): Mensagem => ({ placa: 'placa01', tipo: 'rodada', dados: { rodada_id: id, placa: 'placa01', caso, participante: 'p01', inicio: null, arquivo_sessao: null, origem: 'ponte' } })
+    const e = aplicar([anuncio('r1', 'clean'), leitura(1), leitura(1, {}, 'r2'), leitura(2, {}, 'r2'), anuncio('r2', 'drink'), leitura(3, {}, 'r2'), leitura(9, {}, 'r1')])
+    expect(e.rodada?.rodada_id).toBe('r2')
+    expect(e.rodada?.caso).toBe('drink')
+    expect(e.leituras.map((l) => l.amostra)).toEqual([1, 2, 3])
+  })
+
   it('um aviso por sopro, mesmo que ele passe por "recuperando" e volte', () => {
     const alto = { humidity_pct: 72, mq135_raw: 560, mq3_raw: 1500 }
     const e = aplicar([
