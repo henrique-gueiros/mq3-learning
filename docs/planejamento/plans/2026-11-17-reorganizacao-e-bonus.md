@@ -34,7 +34,7 @@ Dica do professor: usar o GitHub Projects para as tarefas. Datas: relatório e r
 | 2. Corrigir os achados do review | **parcial** (4 de 7) | `66b7995` |
 | 3. README no modelo do professor e `schematics/README.md` | **feita** | `db3feb8` |
 | — Este plano e a referência no `roadmap.md` | **feito** | `29dbe21` e o commit seguinte |
-| 4. Achados do review que sobraram | **C feito**; A e B a fazer | C: ver `git log` |
+| 4. Achados do review que sobraram | **A (parcial) e C feitos**; B aguarda decisão da equipe | ver `git log` |
 | 5. Firmware: FreeRTOS e Wi-Fi/MQTT (com o Artur) | a fazer | |
 | 6. Esquemático: arquivo-fonte (com quem desenhou) | a fazer | |
 | 7. Relatório CSBC em `docs/relatorio/` | a fazer (vence 03/12) | |
@@ -96,21 +96,22 @@ docker compose config -q && (cd applications/services && docker compose config -
 
 ### Etapa 4 — achados do review que sobraram
 
-**A. Detector com referência fixa (`applications/frontend/src/aovivo/detector.ts`, linha ~159).** Na calibração,
-`subiu(recentes, LIMIARES.referencia)` compara com umidade 55 %, MQ-3 900 e MQ-135 400. Carro úmido ou MQ-3
-aquecendo dispara "Sopro detectado" falso e a tela fica em sopro/recuperando até 120 s.
-Caminho sugerido: exigir que a subida venha *depois* de `minAmostrasBase` leituras de base (ou só usar a
-referência quando a primeira leitura já estiver acima dela por mais de N segundos *e* a umidade subiu entre
-leituras consecutivas); acrescentar teste em `detector.test.ts` com sessão úmida e MQ-3 quente. Os limiares
-dependem de dados reais (roadmap, tarefa 3): rever junto com a análise exploratória.
+**A. Detector com referência fixa — PARCIAL (feito o que não depende de dados reais).** O estado
+`sopro` provisório (base = referência fixa, vindo de `calibrando`) continua existindo, para sessões que começam no meio
+de um sopro, mas **não gera mais o aviso "Sopro detectado"**: só o sopro medido contra o ambiente da própria sessão avisa
+(`estado.ts`, `comecouSopro`). Teste: "sessão que começa acima da referência ... não avisa sopro".
+**Pendente:** rever `LIMIARES.referencia` e `recuperacaoMaxMs` com a análise exploratória dos dados reais (roadmap,
+tarefa 3); o carro úmido ainda fica até 120 s no estado provisório (mostrado como "sopro" na barra, sem aviso).
 
-**B. SQL de análise na API (`applications/api/consultas.py`).** Percentis, média relativa ao ambiente (heatmap) e
-amostragem da dispersão estão como SQL na API e duplicados em `applications/grafana/montar_dashboard.py`,
-contra a regra de `applications/AGENTS.md` ("a lógica de análise fica nas views"). Caminho: criar views em
-`applications/db/01-schema.sql` (`v_distribuicao`, `v_heatmap`, `v_dispersao`), com migração em
-`applications/db/migracoes/`; a API passa a fazer só `SELECT` com filtros; testes de views em
-`applications/coleta/tests/test_banco.py`. A duplicação some quando o Grafana sair (etapa 10): então a prioridade é baixa
-se a etapa 10 for aprovada.
+**B. SQL de análise na API — AGUARDA DECISÃO DA EQUIPE (não implementado).** Percentis, média relativa ao ambiente
+(heatmap) e amostragem da dispersão estão como SQL em `applications/api/consultas.py` e duplicados em
+`applications/grafana/montar_dashboard.py`, contra a regra de `applications/AGENTS.md` ("a lógica de análise fica
+nas views"). Esses agregados dependem dos filtros (caso, participante, janela, simulador), e uma view não recebe
+parâmetros: mover para views exigiria views por linha (já existem: `v_leituras`, `v_sopros`) mais a agregação na API de
+qualquer forma. Opções: (1) manter o SQL só na API e **reescrever a regra** do `AGENTS.md` ("as views guardam as
+derivações por linha; agregados que dependem dos filtros ficam em `api/consultas.py`, única fonte"), a duplicação some
+quando o Grafana sair (etapa 10); (2) criar views por rodada e agregar por rodada (muda o significado das estatísticas).
+Recomendação: opção 1. Mudar uma regra do `AGENTS.md` é decisão da equipe.
 
 **C. Ordem entre tópicos MQTT — FEITO.** A tela guarda em `deixadas` as rodadas que já deixou e só descarta leitura
 atrasada delas; leitura de rodada desconhecida abre a rodada (a mensagem `rodada` depois só preenche os metadados).

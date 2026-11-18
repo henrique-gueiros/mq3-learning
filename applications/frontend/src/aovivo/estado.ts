@@ -117,7 +117,9 @@ function comLeitura(atual: EstadoAoVivo, l: Leitura, placa: string, agora: numbe
       : [...e.trechos, { estado: detector.estado, inicio_ms: l.t_ms, fim_ms: l.t_ms }]
 
   // o aviso é para um sopro novo, não para a volta de "recuperando"
-  const comecouSopro = detector.estado === 'sopro' && (e.detector.estado === 'ambiente' || e.detector.estado === 'calibrando')
+  // Vindo de "calibrando" a base é a referência fixa: um carro úmido ou um sensor quente parece sopro,
+  // então só o sopro medido contra o ambiente da própria sessão vira aviso.
+  const comecouSopro = detector.estado === 'sopro' && e.detector.estado === 'ambiente'
   return {
     ...e,
     leituras,

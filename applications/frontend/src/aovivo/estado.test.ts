@@ -136,6 +136,14 @@ describe('estado ao vivo', () => {
     expect(e.leituras.map((l) => l.amostra)).toEqual([1, 2, 3])
   })
 
+  it('sessão que começa acima da referência (carro úmido, sensor quente) não avisa sopro: o estado é provisório', () => {
+    const quente = { humidity_pct: 66, mq135_raw: 560, mq3_raw: 1500 }
+    const e = aplicar(Array.from({ length: 6 }, (_, i) => leitura(i, quente)))
+    expect(e.detector.estado).toBe('sopro')
+    expect(e.detector.baseProvisoria).toBe(true)
+    expect(e.aviso).toBeNull()
+  })
+
   it('um aviso por sopro, mesmo que ele passe por "recuperando" e volte', () => {
     const alto = { humidity_pct: 72, mq135_raw: 560, mq3_raw: 1500 }
     const e = aplicar([
