@@ -1,7 +1,9 @@
 # Coleta: da placa ao dashboard
 
-Leva cada leitura da ESP32 até o MQTT, grava no PostgreSQL e mostra no
-Grafana Cloud, sem mudar o que o pipeline de ML lê.
+Leva cada leitura da ESP32 até o MQTT, grava no PostgreSQL e mostra na tela
+React (http://localhost:8080). O Grafana local continua disponível para
+conferência, até a equipe decidir tirá-lo. Nada disso muda o que o pipeline
+de ML lê.
 
 ```text
 ESP32 --USB--> ponte (notebook) --MQTT--> Mosquitto --> ingestor --> PostgreSQL ─┐
@@ -15,6 +17,7 @@ simulador ------MQTT-----^          importador ------------> PostgreSQL ──�
 | `coleta.ponte` | notebook (`ml/.venv`) | Lê a serial, grava o CSV de sessão, publica no MQTT e completa o `attempts.csv` |
 | Mosquitto, PostgreSQL, ingestor | Docker Compose | Broker, banco e gravação das mensagens |
 | `api` | Docker Compose (`127.0.0.1:8000`) | API somente leitura com os dados dos gráficos da tela (`api/`) |
+| `frontend` | Docker Compose (`127.0.0.1:8080`) | Tela React: ao vivo por MQTT e análise pela API |
 | `pdc` | Docker Compose (perfil `cloud`) | Túnel até o Grafana Cloud |
 | `coleta.simulador` | notebook | Publica um CSV real como se a placa estivesse ligada |
 | `coleta.importador` | notebook | Grava no banco um CSV feito sem a ponte |
@@ -69,8 +72,9 @@ e uma linha por sopro em `ml/data/raw/attempts.csv`.
 python -m coleta.simulador ../esp32-esp8266/leituras.csv --caso clean --participante p00 --sopros 20
 ```
 
-As rodadas do simulador saem com origem `simulador` e ficam fora das
-comparações do dashboard (variável **Incluir simulador** = `nao`).
+As rodadas do simulador saem com origem `simulador` e ficam fora da análise
+por padrão (interruptor **Incluir simulador** na tela; no Grafana, a variável
+de mesmo nome fica em `nao`).
 
 ## CSV gravado sem a ponte
 
@@ -101,10 +105,10 @@ JSON como descrito em `grafana/README.md`.
 
 ## API da tela
 
-A tela em React (em construção, substituirá o Grafana) lê os gráficos de análise
-pela API e as leituras ao vivo direto do Mosquitto, por WebSocket (porta 9001, só
-em `127.0.0.1`). A API roda as mesmas consultas do dashboard do Grafana com o
-usuário só leitura, e os filtros vão na query string:
+A tela em React (http://localhost:8080, ou `npm run dev` na 5173) lê os gráficos
+de análise pela API e as leituras ao vivo direto do Mosquitto, por WebSocket
+(porta 9001, só em `127.0.0.1`). A API roda as mesmas consultas do dashboard do
+Grafana com o usuário só leitura, e os filtros vão na query string:
 
 ```bash
 curl 'http://localhost:8000/api/resumo?caso=drink&caso=perfume&janela=sopro'

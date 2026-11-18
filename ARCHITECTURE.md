@@ -25,8 +25,10 @@ services/ (fluxo paralelo): worker + servidor do modelo ──▶ mq3/<placa>/re
 ```
 
 A ESP32 ainda não publica no MQTT: hoje a ponte serial (ou o simulador) publica no
-lugar dela, com as mesmas mensagens. O dashboard antigo do Grafana
-(`applications/grafana/`) está sendo substituído pela tela React.
+lugar dela, com as mesmas mensagens. Quem visita o sistema usa a tela React
+(http://localhost:8080). O Grafana (`applications/grafana/`, perfil `local` na
+porta 3000) continua no repositório até a equipe autorizar a remoção; em 17/11 os
+números da tela bateram com os painéis dele.
 
 ## Pastas
 

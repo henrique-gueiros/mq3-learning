@@ -36,7 +36,7 @@ Pronto e testado:
 - Firmware lendo os três sensores e gravando CSV por sessão.
 - Pipeline de ML em `ml/src/` (validação, recorte, features, separação por participante, 4 modelos × 4 conjuntos de sensores, Grid Search aninhado por grupo, modelo final e previsão), testado com curvas montadas à mão.
 - Coleta em `applications/`: ponte serial, ingestor, simulador, importador, lote dos 12 CSVs válidos, Compose com Mosquitto, Postgres e API.
-- Tela React com a seção "Ao vivo" e o detector ambiente × sopro (plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`).
+- Tela React no Compose (http://localhost:8080): ao vivo, detector ambiente × sopro e as quatro seções de análise, com os números conferidos contra o Grafana local. O acabamento visual da etapa 5 está feito; o Lighthouse de acessibilidade ainda não rodou. Plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
 - `services/`: worker e servidor do modelo (responde `sem_modelo` até haver modelo).
 
 Ainda não existe:
@@ -48,7 +48,7 @@ Ainda não existe:
 
 ## Próximas tarefas, em ordem
 
-1. Terminar a tela React (análise, acabamento, nginx) e tirar o Grafana — plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
+1. Tirar o Grafana, só com o aval da equipe (apaga pastas e serviços) — o que falta está na Etapa 7 de `docs/superpowers/plans/2026-11-17-frontend-react.md`. Rodar o Lighthouse de acessibilidade da tela (meta ≥ 95) antes da mostra.
 2. Coleta com a ponte (`applications/README.md`, "Dia de coleta"), com sopros marcados, e conferência com `python -m src.cli validate`.
 3. Análise exploratória, revisão das features, dos tempos do protocolo e dos limiares do detector da tela.
 4. Experimento com dados reais no MLflow, com k-fold e overfitting. Aí `ml/models/sob_efeito.joblib` passa a existir.
