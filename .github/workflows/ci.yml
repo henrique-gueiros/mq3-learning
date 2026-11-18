@@ -49,11 +49,16 @@ jobs:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: |
-            ml/requirements.txt
+            applications/ml/requirements.txt
             applications/coleta/requirements.txt
             applications/api/requirements.txt
-      - run: pip install -r ml/requirements.txt -r applications/coleta/requirements.txt -r applications/api/requirements.txt
+            applications/services/requirements.txt
+      - run: >-
+          pip install -r applications/ml/requirements.txt -r applications/coleta/requirements.txt
+          -r applications/api/requirements.txt -r applications/services/requirements.txt
       - run: python -m pytest -q
         working-directory: applications
       - run: python -m pytest -q
-        working-directory: ml
+        working-directory: applications/ml
+      - run: python -m pytest -q
+        working-directory: applications/services

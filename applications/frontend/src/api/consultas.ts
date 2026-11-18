@@ -100,17 +100,26 @@ export interface RodadaSemSopro {
 /** A chave de cache leva só o que a API recebe (a rodada escolhida não refaz as consultas). */
 const soApi = ({ casos, janela, simulador }: FiltrosApi): FiltrosApi => ({ casos, janela, simulador })
 
+/** A coleta grava rodadas novas com a tela aberta: a lista de rodadas e a situação da placa se renovam sozinhas. */
+const ATUALIZAR_A_CADA_MS = 15_000
+
 /** Opções da barra de filtros: casos, participantes e rodadas (a mais nova primeiro). */
-export const useFiltros = () => useQuery({ queryKey: ['filtros'], queryFn: () => buscar<OpcoesFiltros>('/filtros') })
+export const useFiltros = () =>
+  useQuery({ queryKey: ['filtros'], queryFn: () => buscar<OpcoesFiltros>('/filtros'), refetchInterval: ATUALIZAR_A_CADA_MS })
 
 /**
  * Consulta que depende dos filtros. Ao trocar de filtro, os dados do anterior ficam na tela
  * (`isPlaceholderData`) até os novos chegarem: o gráfico não some e anima até o valor novo.
  */
-const usePorFiltro = <T,>(nome: string, f: FiltrosApi) =>
-  useQuery({ queryKey: [nome, soApi(f)], queryFn: () => buscar<T>(`/${nome}`, soApi(f)), placeholderData: keepPreviousData })
+const usePorFiltro = <T,>(nome: string, f: FiltrosApi, refetchInterval?: number) =>
+  useQuery({
+    queryKey: [nome, soApi(f)],
+    queryFn: () => buscar<T>(`/${nome}`, soApi(f)),
+    placeholderData: keepPreviousData,
+    refetchInterval,
+  })
 
-export const useResumo = (f: FiltrosApi) => usePorFiltro<ResumoApi>('resumo', f)
+export const useResumo = (f: FiltrosApi) => usePorFiltro<ResumoApi>('resumo', f, ATUALIZAR_A_CADA_MS)
 export const useDistribuicao = (f: FiltrosApi) => usePorFiltro<DistribuicaoCaso[]>('distribuicao', f)
 export const useHeatmap = (f: FiltrosApi) => usePorFiltro<CelulaHeatmap[]>('heatmap', f)
 export const useDispersao = (f: FiltrosApi) => usePorFiltro<PontoDispersao[]>('dispersao', f)

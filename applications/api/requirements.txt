@@ -1,5 +1,5 @@
-# API somente leitura da tela (FastAPI). Entra no mesmo ml/.venv, como as outras dependências.
+# API somente leitura da tela (FastAPI). Entra no mesmo applications/ml/.venv, como as outras dependências.
 fastapi>=0.115
 uvicorn[standard]>=0.30
-psycopg[binary]>=3.2
+psycopg[binary,pool]>=3.2
 httpx>=0.27

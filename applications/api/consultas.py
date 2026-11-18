@@ -9,6 +9,7 @@ Cada função recebe uma conexão aberta e devolve dados prontos para virar JSON
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Optional, Sequence
 
@@ -173,15 +174,17 @@ def sobrepostas(con: psycopg.Connection, f: Filtros) -> List[Dict[str, Any]]:
 
 def leituras_rodada(con: psycopg.Connection, rodada_id: str) -> Optional[Dict[str, Any]]:
     """Leituras de uma rodada ao longo do tempo, com a marcação da janela de sopro."""
-    [rodada] = _linhas(
-        con, "select count(*) as n, max(caso) as caso from rodadas where id::text = %(id)s", {"id": rodada_id}
-    )
+    try:
+        rodada_id = str(uuid.UUID(rodada_id))
+    except ValueError:
+        return None
+    [rodada] = _linhas(con, "select count(*) as n, max(caso) as caso from rodadas where id = %(id)s::uuid", {"id": rodada_id})
     if rodada["n"] == 0:
         return None
     pontos = _linhas(
         con,
         """select tempo_s, t_ms, mq3_raw, mq135_raw, humidity_pct, ppm, em_sopro
-           from v_leituras where rodada_id::text = %(id)s order by tempo_s""",
+           from v_leituras where rodada_id = %(id)s::uuid order by tempo_s""",
         {"id": rodada_id},
     )
     return {"rodada": rodada_id, "caso": rodada["caso"], "pontos": pontos}

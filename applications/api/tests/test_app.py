@@ -58,3 +58,8 @@ def test_rotas_dos_graficos_respondem(cliente, pg):
 @pytest.mark.integracao
 def test_rodada_desconhecida_da_404(cliente):
     assert cliente.get("/api/rodadas/00000000-0000-4000-8000-000000000000/leituras").status_code == 404
+
+
+@pytest.mark.integracao
+def test_id_que_nao_e_uuid_da_404_em_vez_de_erro(cliente):
+    assert cliente.get("/api/rodadas/nao-e-um-uuid/leituras").status_code == 404

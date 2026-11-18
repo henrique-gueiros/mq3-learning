@@ -14,22 +14,39 @@ mesma configuração das ferramentas da coleta (``coleta/config.py``).
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Iterator, List, Optional
+from contextlib import asynccontextmanager
+from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
 
 import psycopg
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from psycopg_pool import ConnectionPool
 
 from api import consultas
 from api.consultas import Filtros, Janela
 from coleta.config import Config
 
-app = FastAPI(title="MQ-3 — API da tela", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
 
-def conexao() -> Iterator[psycopg.Connection]:
-    """Uma conexão por requisição; a API só lê, então não há transação para confirmar."""
+@asynccontextmanager
+async def _ciclo_de_vida(app: FastAPI) -> AsyncIterator[None]:
+    """Um pool de conexões para todas as requisições; a tela dispara várias consultas por vez."""
     dsn = os.environ.get("API_PG_DSN") or Config.do_ambiente().pg_dsn
-    with psycopg.connect(dsn, autocommit=True) as con:
+    app.state.pool = ConnectionPool(dsn, min_size=1, max_size=8, kwargs={"autocommit": True}, open=False)
+    app.state.pool.open()
+    try:
+        yield
+    finally:
+        app.state.pool.close()
+
+
+app = FastAPI(
+    title="MQ-3 — API da tela", docs_url="/api/docs", openapi_url="/api/openapi.json", lifespan=_ciclo_de_vida
+)
+
+
+def conexao(requisicao: Request) -> Iterator[psycopg.Connection]:
+    """Uma conexão do pool por requisição; a API só lê, então não há transação para confirmar."""
+    with requisicao.app.state.pool.connection() as con:
         yield con
 
 
