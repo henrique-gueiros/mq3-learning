@@ -1,0 +1,58 @@
+{
+  "sensor_set": "mq3+mq135+dht11",
+  "model": "logistic_regression",
+  "features": [
+    "mq3_before",
+    "mq3_peak",
+    "mq3_rise",
+    "mq3_peak_time_s",
+    "mq3_recovery_s",
+    "mq135_before",
+    "mq135_peak",
+    "mq135_rise",
+    "mq135_peak_time_s",
+    "mq135_recovery_s",
+    "mq135_mq3_rise_ratio",
+    "humidity_before",
+    "humidity_peak",
+    "humidity_rise",
+    "humidity_peak_time_s",
+    "humidity_recovery_s",
+    "mq3_humidity_peak_lag_s"
+  ],
+  "classes": [
+    "sem_efeito",
+    "sob_efeito"
+  ],
+  "best_params": {
+    "clf__C": 0.1
+  },
+  "n_train_attempts": 11289,
+  "n_test_attempts": 1562,
+  "test_metrics": {
+    "f1_macro": 0.6612302364733301,
+    "balanced_accuracy": 0.880679307332614,
+    "recall_sem_efeito": 0.884435537742151,
+    "precision_sem_efeito": 0.993993993993994,
+    "recall_sob_efeito": 0.8769230769230769,
+    "precision_sob_efeito": 0.24782608695652175
+  },
+  "confusion_matrix": {
+    "labels": [
+      "sem_efeito",
+      "sob_efeito"
+    ],
+    "matrix": [
+      [
+        1324,
+        173
+      ],
+      [
+        8,
+        57
+      ]
+    ]
+  },
+  "selected_by": "f1_macro",
+  "cv_score": 0.6814526872817739
+}

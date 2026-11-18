@@ -1,5 +1,6 @@
 # Infraestrutura da coleta: broker MQTT, banco e ingestor.
 # Uso: cp .env.example .env && docker compose up -d --build
+# Airflow (ingestão → preparação → disponibilização): docker compose --profile airflow up -d --build
 services:
   mosquitto:
     image: eclipse-mosquitto:2
@@ -121,7 +122,48 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # Arruma a pasta do Airflow antes do processo (o volume nasce como root).
+  airflow-init:
+    profiles: ["airflow"]
+    build:
+      context: ./airflow
+    user: "0:0"
+    entrypoint: ["bash", "-c", "mkdir -p /opt/airflow/logs && chown -R 50000:0 /opt/airflow && chmod -R g+rwX /opt/airflow"]
+    volumes:
+      - airflow-home:/opt/airflow
+    restart: "no"
+
+  # Interface em http://localhost:8088 (8080 fica com a tela). DAG dataset_para_treino.
+  # Senha do admin: docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt
+  airflow:
+    profiles: ["airflow"]
+    build:
+      context: ./airflow
+    user: "50000:0"
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/ml/dags
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      ML_ROOT: /opt/ml
+      PYTHONPATH: /opt/ml
+      PG_DSN: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    ports:
+      - "127.0.0.1:8088:8080"
+    volumes:
+      - ./ml:/opt/ml
+      - airflow-home:/opt/airflow
+    command: standalone
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   grafana-dados:
   mosquitto-dados:
   postgres-dados:
+  airflow-home:

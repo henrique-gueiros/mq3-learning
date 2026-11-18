@@ -20,9 +20,15 @@ simulador (CSV real) ─────┤ MQTT  mq3/<placa>/{rodada,leituras,event
                           ▼                           │
                    tela React (applications/frontend): ao vivo por /mqtt, análise por /api
 
-ml/ (offline): CSVs + attempts.csv ──▶ validação ──▶ features ──▶ treino ──▶ ml/models/sob_efeito.joblib
+ml/ (offline ou Airflow): CSVs + attempts.csv ──▶ validação ──▶ features ──▶ treino ──▶ ml/models/sob_efeito.joblib
 services/ (fluxo paralelo): worker + servidor do modelo ──▶ mq3/<placa>/resultado
 ```
+
+O DAG `dataset_para_treino` (perfil `airflow` do Compose, http://localhost:8088) lê as
+rodadas encerradas no Postgres, grava sessão e tentativas que ainda não existem em
+`ml/data/raw/` e roda a mesma preparação de `python -m src.cli prepare`. O arquivo
+`ml/data/processed/disponivel.json` marca o dataset como pronto para o treino. CSV de
+sessão que já existe não é reescrito. Rodada com `origem = 'simulador'` fica de fora.
 
 A ESP32 ainda não publica no MQTT: hoje a ponte serial (ou o simulador) publica no
 lugar dela, com as mesmas mensagens. Quem visita o sistema usa a tela React
@@ -120,6 +126,7 @@ Rodadas com `origem = 'simulador'` ficam fora da análise por padrão.
 | Tela (nginx: serve o build e encaminha `/api` e `/mqtt`) | 127.0.0.1:8080 | idem (`applications/frontend/Dockerfile`) |
 | Tela (dev) | 5173 | `npm run dev` em `applications/frontend` (usa 8000 e 9001 do host) |
 | Grafana local (perfil `local`) | 127.0.0.1:3000 | idem |
+| Airflow (perfil `airflow`) | 127.0.0.1:8088 | idem; DAG `dataset_para_treino` |
 
 O Compose de `services/` usa as mesmas portas: as duas stacks não sobem juntas.
 

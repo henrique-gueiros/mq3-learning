@@ -39,6 +39,8 @@ CONDITIONS = {
     "alcohol70_hands": "sem_efeito",
     "mouthwash": "sem_efeito",
     "drink": "sob_efeito",
+    "sem_efeito": "sem_efeito",
+    "sob_efeito": "sob_efeito",
 }
 
 

@@ -85,6 +85,8 @@ python -m src.cli all
 
 Esse arquivo é o modelo. Ele ainda não existe: falta coleta das duas classes, com várias pessoas. Três sessões de uma pessoa só não fecham o treino. Os detalhes dos comandos estão em `ml/README.md`.
 
+Quando a rodada já está no Postgres, `python -m src.cli pipeline` (ou o DAG `dataset_para_treino` no Airflow) faz a ingestão, a preparação e grava `ml/data/processed/disponivel.json`. O treino continua no `train`.
+
 ## 3. Rodar o modelo
 
 Há dois jeitos, e os dois usam o mesmo `.joblib`.

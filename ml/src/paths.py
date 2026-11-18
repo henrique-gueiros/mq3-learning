@@ -43,6 +43,11 @@ class ProjectPaths:
         return self.processed_dir / "test.csv"
 
     @property
+    def disponivel(self) -> Path:
+        """Manifesto que declara o dataset pronto para o treino."""
+        return self.processed_dir / "disponivel.json"
+
+    @property
     def config_dir(self) -> Path:
         return self.root / "config"
 

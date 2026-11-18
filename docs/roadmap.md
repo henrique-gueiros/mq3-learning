@@ -38,13 +38,14 @@ Pronto e testado:
 - Coleta em `applications/`: ponte serial, ingestor, simulador, importador, lote dos 12 CSVs válidos, Compose com Mosquitto, Postgres e API.
 - Tela React no Compose (http://localhost:8080): ao vivo, detector ambiente × sopro e as quatro seções de análise, com os números conferidos contra o Grafana local. O acabamento visual da etapa 5 está feito. O Lighthouse de acessibilidade deu 100 em 17/11. Plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
 - `services/`: worker e servidor do modelo (responde `sem_modelo` até haver modelo).
+- DAG do Airflow `dataset_para_treino`: lê rodadas encerradas no Postgres, grava o que ainda não está em `ml/data/raw/` e disponibiliza `ml/data/processed/disponivel.json`. Sobe com `docker compose --profile airflow up -d --build` (interface em http://localhost:8088).
 
 Ainda não existe:
 - [ ] Coleta rotulada suficiente (`attempts.csv` com sopros marcados), com as duas classes.
 - [ ] Análise exploratória e revisão das features com dados reais.
 - [ ] Modelo treinado e avaliado com dados reais (métricas dos testes automatizados **não** dizem nada sobre o sensor).
 - [ ] Wi-Fi/MQTT na ESP32 (hoje a ponte publica no lugar da placa).
-- [ ] MLflow, Airflow e um Compose único.
+- [ ] MLflow e um Compose único com todos os serviços da entrega final (o Airflow já está no perfil `airflow`).
 
 ## Próximas tarefas, em ordem
 
@@ -53,4 +54,4 @@ Ainda não existe:
 3. Análise exploratória, revisão das features, dos tempos do protocolo e dos limiares do detector da tela.
 4. Experimento com dados reais no MLflow, com k-fold e overfitting. Aí `ml/models/sob_efeito.joblib` passa a existir.
 5. A equipe escolhe um contrato MQTT e a ESP32 passa a publicar (quem mantém o firmware).
-6. Airflow, resultado do modelo na tela e um Compose único.
+6. Resultado do modelo na tela, MLflow e um Compose único.

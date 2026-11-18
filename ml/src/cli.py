@@ -7,22 +7,25 @@ Rode de dentro da pasta ``ml/``::
     python -m src.cli train      # experimento por sensores e modelo final
     python -m src.cli predict --session leituras_7.csv --blow-start-s 60
     python -m src.cli all        # prepare + train
+    python -m src.cli pipeline   # ingestão (se PG_DSN), preparação e disponibilização
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 import pandas as pd
 
 from src.data_io import load_raw_data, read_dataset_csv, read_session_csv, write_csv
-from src.features import SENSOR_SETS, assign_phases, build_dataset, compute_features
+from src.features import SENSOR_SETS
 from src.inference import predict_attempts
 from src.paths import ML_ROOT, ProjectPaths
-from src.splitting import GROUP_COLUMNS, apply_split, load_split, save_split, update_split
+from src.pipeline import executar_pipeline, preparar_dataset
+from src.splitting import GROUP_COLUMNS, load_split
 from src.train import choose_best, run_experiment, save_model, train_final_model
 
 
@@ -40,28 +43,49 @@ def run_validate(paths: ProjectPaths) -> None:
 
 def run_prepare(paths: ProjectPaths, group_by: str, test_size: float, seed: int) -> None:
     """Calcula as features de cada sopro e separa treino e teste por grupo."""
-    readings, attempts, warnings = load_raw_data(paths.raw_sessions_dir, paths.raw_attempts)
-    phased, phase_warnings = assign_phases(readings, attempts)
-    features, feature_warnings = compute_features(phased)
-    dataset = build_dataset(features, attempts)
-    if dataset.empty:
-        raise ValueError("nenhuma tentativa com features válidas")
-    write_csv(dataset, paths.features_all)
-
-    split, split_warnings = update_split(dataset, load_split(paths.split_manifest), group_by, test_size, seed)
-    _print_warnings(warnings + phase_warnings + feature_warnings + split_warnings)
-    save_split(split, paths.split_manifest)
-    train, test = apply_split(dataset, split)
-    write_csv(train, paths.train)
-    write_csv(test, paths.test)
-
-    print(f"Features: {len(dataset)} tentativas -> {_rel(paths, paths.features_all)}")
-    print(f"Separação por {split.group_by} -> {_rel(paths, paths.split_manifest)}")
-    for name, part, path in (("Treino", train, paths.train), ("Teste ", test, paths.test)):
+    resumo = preparar_dataset(paths, group_by, test_size, seed)
+    _print_warnings(list(resumo.avisos))
+    print(f"Features: {resumo.n_features} tentativas -> {_rel(paths, paths.features_all)}")
+    print(f"Separação por {resumo.group_by} -> {_rel(paths, paths.split_manifest)}")
+    for name, n_grupos, n_tentativas, contagem, path in (
+        ("Treino", resumo.n_grupos_treino, resumo.n_treino, resumo.treino_por_classe, paths.train),
+        ("Teste ", resumo.n_grupos_teste, resumo.n_teste, resumo.teste_por_classe, paths.test),
+    ):
         print(
-            f"{name}: {part[split.group_by].nunique()} grupos, {len(part)} tentativas "
-            f"({_counts(part['target'])}) -> {_rel(paths, path)}"
+            f"{name}: {n_grupos} grupos, {n_tentativas} tentativas "
+            f"({_fmt_contagem(contagem)}) -> {_rel(paths, path)}"
         )
+
+
+def run_pipeline(
+    paths: ProjectPaths,
+    group_by: str,
+    test_size: float,
+    seed: int,
+    dsn: str | None,
+    incluir_simulador: bool,
+) -> None:
+    """Ingere rodadas do banco (se houver DSN), prepara e grava o manifesto."""
+    print("== Ingestão, preparação e disponibilização ==")
+    manifesto = executar_pipeline(
+        paths,
+        group_by=group_by,
+        test_size=test_size,
+        seed=seed,
+        incluir_simulador=incluir_simulador,
+        dsn=dsn,
+    )
+    _print_warnings(manifesto["avisos"])
+    print(
+        f"Sessões novas: {len(manifesto['sessoes_gravadas'])}; "
+        f"preservadas: {len(manifesto['sessoes_preservadas'])}; "
+        f"tentativas novas: {len(manifesto['tentativas_acrescentadas'])}"
+    )
+    print(
+        f"Dataset: {manifesto['n_features']} tentativas "
+        f"(treino {manifesto['n_treino']}, teste {manifesto['n_teste']}) "
+        f"-> {_rel(paths, paths.disponivel)}"
+    )
 
 
 def run_train(paths: ProjectPaths, select_by: str, seed: int) -> None:
@@ -153,6 +177,22 @@ def build_parser() -> argparse.ArgumentParser:
     run_all = sub.add_parser("all", help="prepare e train")
     _add_prepare_args(run_all)
     _add_train_args(run_all, with_seed=False)
+
+    pipeline = sub.add_parser(
+        "pipeline",
+        help="ingestão (Postgres, se --dsn), preparação e disponibilização do dataset",
+    )
+    _add_prepare_args(pipeline)
+    pipeline.add_argument(
+        "--dsn",
+        default=os.environ.get("PG_DSN") or None,
+        help="Postgres da coleta (padrão: a variável PG_DSN). Vazio usa só os CSVs já em data/raw",
+    )
+    pipeline.add_argument(
+        "--incluir-simulador",
+        action="store_true",
+        help="também exporta rodadas com origem simulador (fora do treino por padrão)",
+    )
     return parser
 
 
@@ -173,6 +213,10 @@ def main(argv: list[str] | None = None) -> int:
             print("== Preparação ==")
             run_prepare(paths, args.group_by, args.test_size, args.seed)
             run_train(paths, args.select_by, args.seed)
+        elif args.command == "pipeline":
+            run_pipeline(
+                paths, args.group_by, args.test_size, args.seed, args.dsn or None, args.incluir_simulador
+            )
     except (ValueError, FileNotFoundError) as exc:
         print(f"Erro: {exc}", file=sys.stderr)
         return 1
@@ -208,6 +252,10 @@ def _print_results(results: pd.DataFrame) -> None:
 
 def _counts(values: pd.Series) -> str:
     return ", ".join(f"{k}: {v}" for k, v in values.value_counts().sort_index().items())
+
+
+def _fmt_contagem(contagem: dict[str, int]) -> str:
+    return ", ".join(f"{classe}: {quantidade}" for classe, quantidade in sorted(contagem.items()))
 
 
 def _print_warnings(warnings: list[str]) -> None:

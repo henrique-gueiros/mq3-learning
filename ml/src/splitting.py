@@ -84,6 +84,8 @@ def update_split(
     """Mantém a separação existente e sorteia apenas os grupos novos.
 
     Se já existe manifesto, ``group_by``, ``test_size`` e ``seed`` dele prevalecem.
+    Se uma classe ficou só de um lado e existe em pelo menos dois grupos, um
+    desses grupos muda de lado. Treino e teste passam a ter as duas classes.
 
     Returns:
         ``(separação, avisos)``. Há aviso quando alguma classe ficou fora do
@@ -125,12 +127,44 @@ def update_split(
             split.test_groups.extend(shuffled[:n_test])
             split.train_groups.extend(shuffled[n_test:])
 
+    warnings.extend(_garantir_classes(dataset, split))
+
     train, test = apply_split(dataset, split)
     for name, part in (("treino", train), ("teste", test)):
         missing = sorted(set(dataset["target"]) - set(part["target"]))
         if missing:
             warnings.append(f"classes ausentes no {name}: {missing}")
     return split, warnings
+
+
+def _garantir_classes(dataset: pd.DataFrame, split: GroupSplit) -> list[str]:
+    """Move um grupo quando uma classe existe em dois ou mais e falta de um lado."""
+    alvo = dataset["target"].astype(str)
+    coluna = dataset[split.group_by].astype(str)
+    rng = np.random.default_rng(split.seed)
+    avisos: list[str] = []
+    for classe in sorted(alvo.unique()):
+        grupos = sorted(coluna[alvo == classe].unique())
+        if len(grupos) < 2:
+            avisos.append(
+                f"classe {classe} está em só 1 {split.group_by}; não dá para colocá-la no treino e no teste"
+            )
+            continue
+        no_treino = [grupo for grupo in grupos if grupo in split.train_groups]
+        no_teste = [grupo for grupo in grupos if grupo in split.test_groups]
+        if no_treino and no_teste:
+            continue
+        if not no_teste and len(no_treino) >= 2:
+            escolhido = str(rng.permutation(no_treino)[0])
+            split.train_groups.remove(escolhido)
+            split.test_groups.append(escolhido)
+            avisos.append(f"{escolhido} foi para o teste para a classe {classe} aparecer nos dois lados")
+        elif not no_treino and len(no_teste) >= 2:
+            escolhido = str(rng.permutation(no_teste)[0])
+            split.test_groups.remove(escolhido)
+            split.train_groups.append(escolhido)
+            avisos.append(f"{escolhido} foi para o treino para a classe {classe} aparecer nos dois lados")
+    return avisos
 
 
 def apply_split(dataset: pd.DataFrame, split: GroupSplit) -> tuple[pd.DataFrame, pd.DataFrame]:

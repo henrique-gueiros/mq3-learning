@@ -56,6 +56,10 @@ Como o firmware reinicia a numeração em cada placa, **renomeie o arquivo ao co
 
 Uma linha por sopro, preenchida por quem conduz o experimento (modelo em `templates/attempts_template.csv`). Uma sessão pode ter vários sopros.
 
+Nos arquivos de bebida desta coleta (o nome tem "alcool", ou o lote aponta uma origem com "alcool"), o `prepare` reescreve as tentativas: três amostras seguidas são um sopro, e o trio fica de fora se algum PPM está vazio ou abaixo de 0,6. O PPM só descarta o trio; a classe continua sendo `drink` porque o arquivo já é de bebida. `ppm` não vira feature.
+
+Nos outros arquivos, o mesmo `prepare` usa a umidade só para recortar. Hipótese desta coleta: 60% ou mais parece sopro (três amostras seguidas); abaixo disso, ou com umidade vazia, cada amostra é uma linha. Perfume, ar limpo, álcool na mão e enxaguante entram todos como `sem_efeito`. A umidade não decide se a pessoa bebeu. No `attempts.csv` que o `prepare` grava, a coluna `condition` fica só com `sem_efeito` ou `sob_efeito`.
+
 | Coluna | Descrição |
 | --- | --- |
 | `attempt_id` | Identificador único do sopro (ex.: `p01-perfume-1`) |
@@ -90,15 +94,17 @@ Para cada sensor (MQ-3, MQ-135 e umidade; a temperatura é lida, mas não entra 
 ml/
 ├── config/split.json         # Criado pelo 'prepare': quem é de treino e quem é de teste
 ├── data/
-│   ├── raw/                  # Dados reais originais (nunca alterados pelo código)
+│   ├── raw/                  # Sessões e tentativas. CSV de sessão existente não é reescrito
 │   │   ├── sessions/*.csv    # CSVs do firmware
 │   │   └── attempts.csv      # Um sopro por linha
-│   └── processed/            # features_all.csv, train.csv, test.csv
+│   └── processed/            # features_all.csv, train.csv, test.csv, disponivel.json
 ├── models/                   # Modelos treinados (.joblib + .json)
 ├── reports/                  # Resultados do experimento e do teste final
 ├── notebooks/                # Análise exploratória
+├── dags/                     # DAG do Airflow; a lógica fica em src/pipeline.py
 ├── src/
 │   ├── cli.py                # Linha de comando
+│   ├── pipeline.py           # Ingestão, preparação e disponibilização
 │   ├── data_validation.py    # Esquema, condições e validação
 │   ├── data_io.py            # Leitura e gravação de CSVs
 │   ├── features.py           # Features por sopro e conjuntos de sensores
@@ -140,6 +146,7 @@ python -m pytest        # roda os testes
 | `prepare` | Recorta cada sopro, calcula as features e separa treino/teste por participante | `data/processed/*.csv`, `config/split.json` |
 | `train` | Compara 4 modelos em 4 conjuntos de sensores e treina o melhor (`sob_efeito` ou `sem_efeito`) | `reports/experiment.csv`, `reports/final.json`, `models/sob_efeito.joblib` |
 | `predict` | Classifica um sopro de uma sessão nova | previsões na tela ou em `--output` |
+| `pipeline` | Ingestão do Postgres (com `--dsn`), preparação e disponibilização | `data/processed/disponivel.json` e os CSVs do `prepare` |
 
 Opções úteis:
 
@@ -148,6 +155,22 @@ Opções úteis:
 - `python -m src.cli predict --session leituras_7.csv --blow-start-s 60 --model models/sob_efeito.joblib`.
 
 Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste continua no teste. Para refazer o sorteio do zero, apague `config/split.json`.
+
+### Pipeline no Airflow
+
+O mesmo `prepare` também roda sozinho, depois de buscar no Postgres da coleta as rodadas que ainda não estão em `data/raw/`:
+
+```bash
+python -m src.cli pipeline --dsn "$PG_DSN"   # sem --dsn, só prepara os CSVs que já estão em data/raw
+```
+
+Isso grava `data/processed/disponivel.json` quando o dataset está pronto para o `train`. A ordem (ingestão, preparação, disponibilização) é o DAG `dataset_para_treino`. Na raiz do repositório:
+
+```bash
+docker compose --profile airflow up -d --build
+```
+
+A interface fica em http://localhost:8088. O usuário é `admin` e a senha está em `standalone_admin_password.txt` dentro do contêiner (`docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt`). O DAG não reescreve CSV de sessão e ignora rodada de simulador. O treino em si continua no comando `train` (o MLflow ainda não entra aqui).
 
 ### Como o treino avalia
 
@@ -171,7 +194,7 @@ Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste
 2. Coletar as duas classes: quem bebeu (`sob_efeito`) e quem não bebeu, incluindo perfume e álcool em gel (`sem_efeito`).
 3. Análise exploratória em `notebooks/01_eda.ipynb` e revisão das features e dos tempos do protocolo.
 4. Registrar os experimentos no MLflow.
-5. As leituras ao vivo entram pelo MQTT em `services/`: o worker grava no Postgres e o servidor do modelo espera `models/sob_efeito.joblib`. Quando esse arquivo existir, ele classifica com o mesmo `predict` daqui. Airflow e a leitura do treino direto do banco ainda não existem.
+5. As leituras ao vivo entram pelo MQTT em `services/`: o worker grava no Postgres e o servidor do modelo espera `models/sob_efeito.joblib`. Quando esse arquivo existir, ele classifica com o mesmo `predict` daqui. O treino ainda não lê o banco direto: o Airflow exporta a rodada encerrada para os CSVs de `data/raw/` e o `prepare` segue a partir daí.
 
 ## Segurança
 

@@ -42,14 +42,45 @@ def test_existing_assignment_is_kept_when_new_participants_arrive():
     assert any("manifesto existente" in w for w in warnings)
 
 
-def test_warns_when_a_class_is_missing_from_test():
-    dataset = _dataset(n_participants=4)
-    split, _ = update_split(dataset, existing=None)
-    only_clean_in_test = dataset[
-        ~dataset["participant_id"].isin(split.test_groups) | (dataset["target"] == "sem_efeito")
-    ]
-    _, warnings = update_split(only_clean_in_test, existing=split)
-    assert any("classes ausentes no teste" in w for w in warnings)
+def test_classe_ausente_no_teste_recebe_um_grupo_do_treino():
+    dataset = pd.DataFrame(
+        {
+            "session_file": ["a.csv", "b.csv", "c.csv", "d.csv"],
+            "participant_id": ["p", "p", "p", "p"],
+            "target": ["sob_efeito", "sob_efeito", "sem_efeito", "sem_efeito"],
+            "attempt_id": ["a", "b", "c", "d"],
+        }
+    )
+    existente = GroupSplit(
+        "session_file",
+        ["a.csv", "b.csv", "c.csv"],
+        ["d.csv"],
+        test_size=0.25,
+        seed=42,
+    )
+
+    split, warnings = update_split(dataset, existing=existente, group_by="session_file")
+    train, test = apply_split(dataset, split)
+
+    assert set(train["target"]) == {"sem_efeito", "sob_efeito"}
+    assert set(test["target"]) == {"sem_efeito", "sob_efeito"}
+    assert any("sob_efeito" in aviso for aviso in warnings)
+
+
+def test_avisa_quando_a_classe_so_existe_em_um_grupo():
+    dataset = pd.DataFrame(
+        {
+            "session_file": ["a.csv", "c.csv"],
+            "participant_id": ["p", "p"],
+            "target": ["sob_efeito", "sem_efeito"],
+            "attempt_id": ["a", "c"],
+        }
+    )
+    existente = GroupSplit("session_file", ["a.csv"], ["c.csv"], test_size=0.25, seed=42)
+
+    _, warnings = update_split(dataset, existing=existente, group_by="session_file")
+
+    assert any("classes ausentes no teste" in aviso for aviso in warnings)
 
 
 def test_invalid_group_column():
