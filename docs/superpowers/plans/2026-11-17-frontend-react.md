@@ -17,13 +17,14 @@ etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
 | 6a. Tela no Compose com nginx (1B) | feita | `668722b`, merge `bd8d05f`; ajuste `98da720` |
 | 4. Seções de análise — Onda 2 (2A–2D) | feita (ver "Onda 2 — feita") | ver `git log` (commit da Onda 2) |
 | 4. e2e da análise (parte da 3B) | feito (`e2e/analise.spec.ts`) | mesmo commit |
-| 4. Conferência dos números com o Grafana (resto da 3B) | **próxima** (passo a passo em "3B — o que falta") | |
-| 5b. Animações, acabamento e revisão de design (3A) | a fazer (lista em "Achados que ficaram para depois" + Etapa 5) | |
+| 4. Conferência dos números com o Grafana (resto da 3B) | feita: tudo igual (ver "3B — conferência com o Grafana") | ver `git log` |
+| 5b. Animações, acabamento e revisão de design (3A) | **próxima** (lista em "Achados que ficaram para depois", na tabela da revisão da Onda 2 e na Etapa 5) | |
 | 6b. Documentação (3C) | a fazer | |
 | 7. Remoção do Grafana | a fazer; **perguntar à equipe antes** (apaga pastas e serviços) | |
 
-**Estado do ambiente (17/11, 21h):** Compose da raiz de pé, com `api` e `frontend` reconstruídos
-depois das mudanças desta onda (o 8080 já serve a versão nova); stack `services/` parada
+**Estado do ambiente (17/11, 21h30):** Compose da raiz de pé, com `api` e `frontend` reconstruídos
+na Onda 2 (o 8080 ainda não tem os ajustes da revisão de código: `docker compose up -d --build frontend`)
+e o Grafana local (perfil `local`) na 3000; stack `services/` parada
 (usa as mesmas portas). Postgres descartável dos testes da API: contêiner `pg-teste` na 55432.
 
 ## Regras de trabalho (valem para todas as etapas)
@@ -339,18 +340,42 @@ está certo, mas vale a equipe decidir se o zoom inicial deve ser outro (anotado
 A Onda 2, o e2e e este plano entraram num commit só. Ficaram fora dele, de propósito,
 `.claude/worktrees/` e `Relatório progressão projeto.md` (não são desta tarefa).
 
-### 3B — o que falta (conferência com o Grafana)
+### 3B — conferência com o Grafana: feita (17/11)
 
-Critério de aceite da Etapa 4: os números do boxplot, do heatmap e do resumo batem com o Grafana
-local com os mesmos filtros. Passo a passo:
-1. `docker compose --profile local up -d grafana` (raiz; a stack `services/` precisa estar parada).
-2. Abrir http://localhost:3000, dashboard "Bancada", e a tela em http://localhost:8080.
-3. Para (a) todos os casos, arquivo inteiro e (b) só `drink`, só o sopro: comparar rodadas e
-   leituras do resumo; mediana, quartis e média do boxplot de cada sensor; as células do heatmap.
-4. Anotar aqui uma tabela "valor na tela × valor no Grafana". Diferença ≠ arredondamento é bug:
-   abrir o SQL em `applications/api/consultas.py` e o do painel em `applications/grafana/montar_dashboard.py`.
-5. Hoje não há nenhum sopro marcado (12 rodadas, 0 sopros), então "só o sopro" e a seção
-   "Sopros marcados" ficam vazias nos dois lados: conferir só que os dois mostram vazio.
+Critério de aceite da Etapa 4: os números batem com o Grafana local com os mesmos filtros.
+
+**Como foi feito** (para repetir antes da Etapa 7): com o Grafana local de pé
+(`docker compose --profile local up -d grafana`, admin/admin), um script lê o `rawSql` de cada
+painel em `applications/grafana/dashboards/coleta.json`, troca as variáveis (`$caso` pela lista,
+`$participante` por todos, `$janela`, `$incluir_simulador` = `sim`/`nao`), roda pelo próprio
+Grafana (`POST http://localhost:3000/api/ds/query`, datasource `mq3-postgres`) e compara com a
+rota da API (`http://localhost:8000/api/...`) com os mesmos filtros. Igualdade exigida: tolerância
+relativa de 1e-6 (só ponto flutuante). O script ficou fora do repositório (vai embora com o Grafana);
+o método acima basta para refazê-lo.
+
+**Resultado (banco de 17/11: 12 rodadas, 11.941 leituras, 0 sopros, todas de origem `importador`):**
+
+| Filtros | Resumo (rodadas / leituras) | Números comparados (boxplot + heatmap) | Diferenças |
+| --- | --- | --- | --- |
+| todos, arquivo inteiro | 12 / 11.941 | 60 | 0 |
+| só bebida | 4 / 727 | 21 | 0 |
+| ambiente + perfume | 8 / 11.214 | 39 | 0 |
+| só ambiente | 7 / 11.112 | 18 (heatmap vazio nos dois) | 0 |
+| todos, só o sopro | 12 / 0 | 0 (vazio nos dois: não há sopro marcado) | 0 |
+| todos, com simulador | 12 / 11.941 (não há rodada de simulador no banco) | 60 | 0 |
+
+Também iguais: as 12 linhas de "Rodadas sem sopro marcado" (mesmos arquivos); "Subida por sopro"
+vazia nos dois; rodadas sobrepostas com os mesmos 11.941 pontos em 12 rodadas; "Leituras da rodada"
+ponto a ponto nas 12 rodadas (tempo, MQ-3, MQ-135, umidade); a dispersão com os mesmos 902 pontos
+(400 por caso, sorteio fixo por `md5`) com todos os casos e os mesmos 400 só com bebida.
+
+Observação: o heatmap dos dois lados calcula a base do ambiente **sem** o filtro de caso (por isso
+"só bebida" ainda mostra a bebida comparada ao ambiente). Está igual ao Grafana e faz sentido.
+
+**Limites da conferência:** não havia sopro marcado nem rodada de simulador no banco, então a janela
+"só o sopro", a subida por sopro e o interruptor do simulador só foram conferidos no vazio. Os testes
+da API (`applications/api/tests/test_consultas.py`) cobrem esses casos com dados montados no teste.
+Refazer a conferência quando houver `attempts.csv` com sopros marcados.
 
 ## Onda 2: como encaixar (frentes 2A–2D)
 
@@ -390,7 +415,7 @@ interface PropsSecao {
 - **Pronto quando:** `npm test`, `npx tsc -b`, `npm run build` e `npm run e2e` verdes;
   screenshot em 1280 e 390 px nos dois temas; `code-review` sobre o diff; um commit.
 
-## Etapa 4 — Seções de análise (1A e Onda 2 feitas; falta a conferência com o Grafana, 3B)
+## Etapa 4 — Seções de análise (feita: 1A, Onda 2 e conferência com o Grafana)
 
 **Objetivo:** as quatro seções abaixo do "Ao vivo" mostram os mesmos gráficos do
 Grafana, com os mesmos filtros, lendo a API. Ao final, dá para comparar com o
@@ -463,7 +488,7 @@ Componente `src/analise/SecaoComparacao.tsx`: grade com o boxplot em largura tot
 ### Critérios de aceite da Etapa 4
 
 - [x] `npm test` e `npm run e2e` verdes; novo e2e: com a rota `/api/*` falsa (`page.route`), as 4 seções renderizam e trocar um filtro muda a URL e refaz as consultas (o e2e usa o segmentado "Só o sopro"; os chips já têm teste no Vitest).
-- [ ] Com o Compose e os CSVs importados, os números do boxplot, heatmap e resumo batem com o Grafana local (`docker compose --profile local up -d`, http://localhost:3000) com os mesmos filtros. Passo a passo em "3B — o que falta".
+- [x] Com o Compose e os CSVs importados, os números do boxplot, heatmap e resumo batem com o Grafana local (`docker compose --profile local up -d`, http://localhost:3000) com os mesmos filtros. Resultado em "3B — conferência com o Grafana".
 - [x] Screenshots (escuro e claro, 1280 px e 390 px) sem sobreposição de rótulos.
 - [x] Plano atualizado e revisão de código antes do commit.
 
@@ -493,7 +518,7 @@ Skills: `emil-design-eng`, `animate`, `review-animations`, `impeccable`, `web-de
 
 ## Etapa 7 — Remoção do Grafana (frente 4A, só depois da Etapa 4 conferida)
 
-- [ ] Conferir painel a painel que a tela mostra tudo o que o Grafana mostra.
+- [x] Conferir painel a painel que a tela mostra tudo o que o Grafana mostra (feito na 3B, 17/11; refazer se o banco ganhar sopros marcados antes da remoção).
 - [ ] Apagar `applications/grafana/`, `applications/pdc/`, os serviços `pdc` e `grafana` do compose, as variáveis `GCLOUD_*` e `GRAFANA_*` do `.env.example` e `coleta/tests/test_dashboard.py`.
 - [ ] Renomear o papel `grafana_leitor` para `leitor` em `applications/db/02-leitor.sh` + migração em `applications/db/migracoes/`; atualizar `API_PG_DSN` no compose.
 - [ ] `ARCHITECTURE.md` e `applications/AGENTS.md` deixam de citar o Grafana e descrevem só a tela.
