@@ -5,7 +5,7 @@ uma tarefa terminar. O mapa do sistema está em `ARCHITECTURE.md`.
 
 ## Datas e avaliação — Sistemas Embarcados
 
-Fonte: `docs/Projeto-Embarcados_CesarSchool-CSBC.pdf`.
+Fonte: `docs/requisitos/Projeto-Embarcados_CesarSchool-CSBC.pdf`.
 
 - **17/11** checkpoint (protótipo, código-fonte, arquitetura, dashboard e protótipo do front-end).
 - **03/12** relatório (modelo CSBC/ABNT2) e repositório.
@@ -14,10 +14,10 @@ Fonte: `docs/Projeto-Embarcados_CesarSchool-CSBC.pdf`.
 
 ## Entregáveis — Machine Learning
 
-Fonte: coluna CC de `docs/Entregáveis 6ºP - Projeto 2026.2.xlsx`.
+Fonte: coluna CC de `docs/requisitos/Entregáveis 6ºP - Projeto 2026.2.xlsx`.
 
 1. **Infraestrutura e dataset inicial:** coleta própria (CSVs + `attempts.csv`), publicação por MQTT e gravação em banco.
-2. **Pipeline no Airflow** (ingestão, preparação, disponibilização) e **notebook de EDA** em `ml/notebooks/`, justificando limpeza, normalização e ausentes. Lógica reutilizável em `ml/src/`.
+2. **Pipeline no Airflow** (ingestão, preparação, disponibilização) e **notebook de EDA** em `applications/ml/notebooks/`, justificando limpeza, normalização e ausentes. Lógica reutilizável em `applications/ml/src/`.
 3. **Baseline** justificado, com métricas de validação, no **MLflow**.
 4. **Três modelos ou mais** comparados no MLflow, com matriz de confusão, ROC/AUC e análise crítica. Hoje: regressão logística, árvore e Random Forest além do baseline; KNN é candidato.
 5. **Otimização de hiperparâmetros** (Grid Search pronto; Random Search ou Optuna são alternativas), documentada e no MLflow.
@@ -34,10 +34,10 @@ confusão. Prioridade: **recall de `sob_efeito`**.
 
 Pronto e testado:
 - Firmware lendo os três sensores e gravando CSV por sessão.
-- Pipeline de ML em `ml/src/` (validação, recorte, features, separação por participante, 4 modelos × 4 conjuntos de sensores, Grid Search aninhado por grupo, modelo final e previsão), testado com curvas montadas à mão.
+- Pipeline de ML em `applications/ml/src/` (validação, recorte, features, separação por participante, 4 modelos × 4 conjuntos de sensores, Grid Search aninhado por grupo, modelo final e previsão), testado com curvas montadas à mão.
 - Coleta em `applications/`: ponte serial, ingestor, simulador, importador, lote dos 12 CSVs válidos, Compose com Mosquitto, Postgres e API.
-- Tela React no Compose (http://localhost:8080): ao vivo, detector ambiente × sopro e as quatro seções de análise, com os números conferidos contra o Grafana local. O acabamento visual da etapa 5 está feito. O Lighthouse de acessibilidade deu 100 em 17/11. Plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
-- `services/`: worker e servidor do modelo (responde `sem_modelo` até haver modelo).
+- Tela React no Compose (http://localhost:8080): ao vivo, detector ambiente × sopro e as quatro seções de análise, com os números conferidos contra o Grafana local. O acabamento visual da etapa 5 está feito. O Lighthouse de acessibilidade deu 100 em 17/11. Plano em `docs/planejamento/plans/2026-11-17-frontend-react.md`.
+- `applications/services/`: worker e servidor do modelo (responde `sem_modelo` até haver modelo).
 
 Ainda não existe:
 - [ ] Coleta rotulada suficiente (`attempts.csv` com sopros marcados), com as duas classes.
@@ -48,9 +48,9 @@ Ainda não existe:
 
 ## Próximas tarefas, em ordem
 
-1. Tirar o Grafana, só com o aval da equipe (apaga pastas e serviços) — o que falta está na Etapa 7 de `docs/superpowers/plans/2026-11-17-frontend-react.md`. Rodar o Lighthouse de acessibilidade da tela (meta ≥ 95) antes da mostra.
+1. Tirar o Grafana, só com o aval da equipe (apaga pastas e serviços) — o que falta está na Etapa 7 de `docs/planejamento/plans/2026-11-17-frontend-react.md`. Rodar o Lighthouse de acessibilidade da tela (meta ≥ 95) antes da mostra.
 2. Coleta com a ponte (`applications/README.md`, "Dia de coleta"), com sopros marcados, e conferência com `python -m src.cli validate`.
 3. Análise exploratória, revisão das features, dos tempos do protocolo e dos limiares do detector da tela.
-4. Experimento com dados reais no MLflow, com k-fold e overfitting. Aí `ml/models/sob_efeito.joblib` passa a existir.
+4. Experimento com dados reais no MLflow, com k-fold e overfitting. Aí `applications/ml/models/sob_efeito.joblib` passa a existir.
 5. A equipe escolhe um contrato MQTT e a ESP32 passa a publicar (quem mantém o firmware).
 6. Airflow, resultado do modelo na tela e um Compose único.

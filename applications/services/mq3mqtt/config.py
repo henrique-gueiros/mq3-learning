@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+APPLICATIONS = Path(__file__).resolve().parents[2]
 
 
 @dataclass(frozen=True)
@@ -35,6 +35,6 @@ def load_settings() -> Settings:
             "DATABASE_URL", "postgresql://mq3:mq3@localhost:5432/mq3"
         ),
         model_path=Path(
-            os.environ.get("MODEL_PATH", str(REPO_ROOT / "ml" / "models" / "sob_efeito.joblib"))
+            os.environ.get("MODEL_PATH", str(APPLICATIONS / "ml" / "models" / "sob_efeito.joblib"))
         ),
     )

@@ -1,12 +1,12 @@
 """Simulador: publica um CSV real do firmware no MQTT, como se a placa estivesse ligada.
 
 Serve para desenvolver e demonstrar o dashboard sem a placa. Usa só CSVs
-gravados pela placa (por exemplo ``esp32-esp8266/leituras.csv``); as rodadas saem
+gravados pela placa (por exemplo ``esp32-esp8266/leituras/leituras.csv``); as rodadas saem
 com origem ``simulador`` e ficam fora das comparações por padrão.
 
 Uso (de dentro de ``applications/``)::
 
-    python -m coleta.simulador ../esp32-esp8266/leituras.csv --caso clean --participante p00 --sopros 20
+    python -m coleta.simulador ../esp32-esp8266/leituras/leituras.csv --caso clean --participante p00 --sopros 20
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from coleta.arquivos import REPO
+from coleta.arquivos import ML
 from coleta.casos import validar_caso
 from coleta.config import Config
 from coleta.importador import ler_csv_sessao
@@ -27,7 +27,7 @@ from coleta.mensagens import payload_evento, payload_leitura, payload_rodada
 from coleta.publicador import Publicador
 from coleta.serial_proto import Leitura
 
-_PROCESSADOS = REPO / "ml" / "data" / "processed"
+_PROCESSADOS = ML / "data" / "processed"
 
 
 def validar_origem(caminho: Path) -> Path:

@@ -6,7 +6,7 @@ Uso (de dentro de ``applications/``)::
     python -m coleta.lote --manifesto dados/outro.csv
 
 O manifesto (``origem,sessao,caso,participante``) diz qual CSV de
-``esp32-esp8266/`` vira qual sessão em ``ml/data/raw/sessions/`` e com que caso
+``esp32-esp8266/leituras/`` vira qual sessão em ``applications/ml/data/raw/sessions/`` e com que caso
 e participante ele entra no banco. Rodar de novo é seguro: arquivo já copiado
 com o mesmo conteúdo é aceito e sessão já importada é só contada.
 """
@@ -25,8 +25,8 @@ from coleta.casos import validar_caso
 
 RAIZ = Path(__file__).resolve().parents[2]
 MANIFESTO = RAIZ / "applications" / "dados" / "lote-2026-11.csv"
-PASTA_FIRMWARE = RAIZ / "esp32-esp8266"
-PASTA_SESSOES = RAIZ / "ml" / "data" / "raw" / "sessions"
+PASTA_FIRMWARE = RAIZ / "esp32-esp8266" / "leituras"
+PASTA_SESSOES = RAIZ / "applications" / "ml" / "data" / "raw" / "sessions"
 
 
 @dataclass(frozen=True)

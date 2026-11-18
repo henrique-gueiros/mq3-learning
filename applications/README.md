@@ -60,7 +60,7 @@ depois use `docker compose --profile cloud up -d`.
 4. No fim, confira os arquivos para o ML:
 
    ```bash
-   cd ../ml && python -m src.cli validate
+   cd ml && python -m src.cli validate
    ```
 
 Cada rodada gera `ml/data/raw/sessions/AAAA-MM-DD_<participante>_<caso>_<n>.csv`
@@ -69,7 +69,7 @@ e uma linha por sopro em `ml/data/raw/attempts.csv`.
 ## Sem a placa
 
 ```bash
-python -m coleta.simulador ../esp32-esp8266/leituras.csv --caso clean --participante p00 --sopros 20
+python -m coleta.simulador ../esp32-esp8266/leituras/leituras.csv --caso clean --participante p00 --sopros 20
 ```
 
 As rodadas do simulador saem com origem `simulador` e ficam fora da análise
@@ -79,7 +79,7 @@ de mesmo nome fica em `nao`).
 ## CSV gravado sem a ponte
 
 ```bash
-python -m coleta.importador ../ml/data/raw/sessions/arquivo.csv --caso perfume --participante p01
+python -m coleta.importador ml/data/raw/sessions/arquivo.csv --caso perfume --participante p01
 ```
 
 Os sopros vêm das linhas do `attempts.csv` com o mesmo `session_file`. O

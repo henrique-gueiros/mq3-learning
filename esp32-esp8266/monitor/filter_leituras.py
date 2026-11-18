@@ -3,7 +3,7 @@ from pathlib import Path
 
 from platformio.public import DeviceMonitorFilterBase  # pyright: ignore[reportMissingImports]
 
-PASTA = Path(__file__).resolve().parents[1]
+PASTA = Path(__file__).resolve().parents[1] / "leituras"
 CABECALHO = (
     "amostra,t_ms,mq3_raw,ppm,rs,rs_rsar,mq135_raw,mq135_mv,"
     "temperature_c,humidity_pct,alcool,tensao_atual_mv,tensao_referencia_mv\n"

@@ -1,7 +1,7 @@
 """Casos aceitos numa rodada.
 
 A lista é a mesma do pipeline de ML (``CONDITIONS`` em
-``ml/src/data_validation.py``), lida de lá para não existir uma cópia que
+``applications/ml/src/data_validation.py``), lida de lá para não existir uma cópia que
 possa ficar desatualizada.
 """
 
@@ -10,7 +10,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-_VALIDACAO_ML = Path(__file__).resolve().parents[2] / "ml" / "src" / "data_validation.py"
+_VALIDACAO_ML = Path(__file__).resolve().parents[1] / "ml" / "src" / "data_validation.py"
 
 
 def _carregar_casos() -> frozenset[str]:

@@ -2,7 +2,7 @@
 
 Uso (de dentro de ``applications/``)::
 
-    python -m coleta.importador ../ml/data/raw/sessions/2026-11-05_p01_perfume_1.csv --caso perfume --participante p01
+    python -m coleta.importador ml/data/raw/sessions/2026-11-05_p01_perfume_1.csv --caso perfume --participante p01
 
 Os sopros vêm do ``attempts.csv`` (linhas com o mesmo ``session_file``). Um
 arquivo já importado (mesmo SHA-256) é recusado, assim como um arquivo que o

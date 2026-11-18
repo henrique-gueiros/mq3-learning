@@ -10,9 +10,9 @@ exemplo concreto.
 
 - **Mapa do sistema** (peças, fluxo, contratos MQTT, banco, portas): `ARCHITECTURE.md`.
 - **Estado, entregáveis, datas e próximas tarefas:** `docs/roadmap.md`.
-- **Plano em andamento** (tela React): `docs/superpowers/plans/2026-11-17-frontend-react.md`.
-- **Regras de cada área:** o `AGENTS.md` dentro de `applications/`, `applications/frontend/` e `ml/`.
-- **Requisitos das disciplinas:** `docs/`. O `decisoes_projeto_ml.pdf` vale, exceto nas classes (ainda fala em 3); valem as duas abaixo.
+- **Plano em andamento** (tela React): `docs/planejamento/plans/2026-11-17-frontend-react.md`.
+- **Regras de cada área:** o `AGENTS.md` dentro de `applications/`, `applications/frontend/` e `applications/ml/`.
+- **Requisitos das disciplinas:** `docs/requisitos/`. O `decisoes_projeto_ml.pdf` vale, exceto nas classes (ainda fala em 3); valem as duas abaixo.
 
 ## O que o modelo prevê
 
@@ -31,7 +31,7 @@ Bloqueio do carro não faz parte do protótipo.
 
 ## Regras invioláveis
 
-- **Dados só da coleta da equipe**: nada de datasets da internet nem dados sintéticos em treino ou teste. Os CSVs de sessão ficam **sem edição**; derivados vão para `ml/data/processed/`.
+- **Dados só da coleta da equipe**: nada de datasets da internet nem dados sintéticos em treino ou teste. Os CSVs de sessão ficam **sem edição**; derivados vão para `applications/ml/data/processed/`.
 - A tela mostra o PPM do MQ-3, o MQ-135 e a umidade. Não mostra mg/L. O rótulo de treino continua vindo da `condition` anotada, não de um limiar.
 - O PPM calculado pelo firmware pode aparecer e entra no modelo futuro: quem decide se a pessoa bebeu é o conjunto PPM, MQ-135 e umidade, no machine learning que ainda não existe. Até lá, nenhuma regra solta de PPM decide. `alcool` (o outro número do firmware) fica fora de rótulo, feature e decisão.
 - Medições, calibração, limiares, resultados e fontes vêm de dados ou documentos reais; o que ainda não foi medido é tratado como hipótese, e está escrito assim.
@@ -51,4 +51,4 @@ Bloqueio do carro não faz parte do protótipo.
 6. Ao terminar, diga o que mudou, como executar e o que foi testado.
 
 Código: Python 3.9+ com tipos e docstring nas funções públicas; um só ambiente
-(`ml/.venv`); caminhos relativos ao repositório. Textos de tela e documentação em português.
+(`applications/ml/.venv`); caminhos relativos ao repositório. Textos de tela e documentação em português.

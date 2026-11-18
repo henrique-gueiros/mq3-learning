@@ -44,7 +44,7 @@ Em outro terminal, com as dependências instaladas no `ml/.venv`:
 source ../ml/.venv/bin/activate
 pip install -r requirements.txt
 python -m mq3mqtt.simulator \
-  --csv ../esp32-esp8266/leituras.csv \
+  --csv ../../esp32-esp8266/leituras/leituras.csv \
   --placa bancada \
   --sessao leituras_1.csv \
   --blow-start-s 40 \

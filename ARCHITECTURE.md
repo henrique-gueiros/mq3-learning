@@ -8,8 +8,8 @@ coisa mora. Regras de trabalho ficam no `AGENTS.md`; estado e próximos passos, 
 
 ```text
                  ┌──────────── coleta (notebook) ────────────┐
-ESP32 ──USB──▶ ponte serial ──▶ CSV de sessão (ml/data/raw/sessions/)
- MQ-3 · MQ-135 · DHT11   │      └▶ linha em ml/data/raw/attempts.csv
+ESP32 ──USB──▶ ponte serial ──▶ CSV de sessão (applications/ml/data/raw/sessions/)
+ MQ-3 · MQ-135 · DHT11   │      └▶ linha em applications/ml/data/raw/attempts.csv
                           │
 simulador (CSV real) ─────┤ MQTT  mq3/<placa>/{rodada,leituras,eventos,status}
                           ▼
@@ -20,8 +20,8 @@ simulador (CSV real) ─────┤ MQTT  mq3/<placa>/{rodada,leituras,event
                           ▼                           │
                    tela React (applications/frontend): ao vivo por /mqtt, análise por /api
 
-ml/ (offline): CSVs + attempts.csv ──▶ validação ──▶ features ──▶ treino ──▶ ml/models/sob_efeito.joblib
-services/ (fluxo paralelo): worker + servidor do modelo ──▶ mq3/<placa>/resultado
+applications/ml/ (offline): CSVs + attempts.csv ──▶ validação ──▶ features ──▶ treino ──▶ applications/ml/models/sob_efeito.joblib
+applications/services/ (fluxo paralelo): worker + servidor do modelo ──▶ mq3/<placa>/resultado
 ```
 
 A ESP32 ainda não publica no MQTT: hoje a ponte serial (ou o simulador) publica no
@@ -34,16 +34,16 @@ números da tela bateram com os painéis dele.
 
 | Pasta | O quê | Como usar |
 | --- | --- | --- |
-| `esp32-esp8266/` | Firmware (PlatformIO): lê os 3 sensores ~1×/s e grava CSV por sessão. Mantido por outro integrante | `esp32-esp8266/README.md` |
+| `esp32-esp8266/` | Firmware (PlatformIO): lê os 3 sensores ~1×/s e grava CSV por sessão; `leituras/` guarda os CSVs gravados pela placa. Mantido por outro integrante | `esp32-esp8266/README.md` |
 | `applications/coleta/` | Ponte serial, ingestor (MQTT → Postgres), simulador, importador e lote de CSVs | `applications/README.md` |
 | `applications/db/` | Esquema e views do Postgres (`01-schema.sql`), usuário só leitura, migrações | — |
 | `applications/api/` | API somente leitura com os dados dos gráficos de análise | `applications/README.md`, `/api/docs` |
 | `applications/frontend/` | Tela única (React): ao vivo + análise; design system Vercel/Geist | `applications/frontend/README.md` |
 | `applications/grafana/`, `pdc/` | Dashboard antigo e túnel do Grafana Cloud (saem na Etapa 7 do plano da tela) | `applications/grafana/README.md` |
-| `ml/` | Pipeline de ML: validação, features, separação por participante, treino, inferência | `ml/README.md` |
-| `services/` | Fluxo paralelo: broker, banco, worker e servidor do modelo | `services/README.md` |
-| `docs/` | Requisitos das disciplinas, decisões de ML (PDF), roadmap, planos (`superpowers/`) | — |
-| `schematics/` | Esquemático e foto da montagem | — |
+| `applications/ml/` | Pipeline de ML: validação, features, separação por participante, treino, inferência | `applications/ml/README.md` |
+| `applications/services/` | Fluxo paralelo: broker, banco, worker e servidor do modelo | `applications/services/README.md` |
+| `docs/` | `requisitos/` (PDFs e planilha das disciplinas), `relatorio/` (relatório CSBC-ABNT2), `imagens/` (diagrama e prints da tela), `planejamento/` (planos e specs) e o `roadmap.md` | — |
+| `schematics/` | Esquemático e foto da montagem | `schematics/README.md` |
 
 ## Contratos
 
@@ -60,9 +60,9 @@ conforme a versão do firmware; todas as peças aceitam os três formatos.
 | `temperature_c` | Gravada, fora das features (não distingue hálito de ambiente) |
 | `amostra`, `ppm`, `mq135_mv`, `alcool` | Calculados ou contados pelo firmware: nunca rótulo nem feature |
 
-### `ml/data/raw/attempts.csv`
+### `applications/ml/data/raw/attempts.csv`
 
-Uma linha por sopro (modelo em `ml/templates/attempts_template.csv`): `attempt_id`,
+Uma linha por sopro (modelo em `applications/ml/templates/attempts_template.csv`): `attempt_id`,
 `session_file`, `participant_id`, `condition`, `blow_start_s` e, opcionais,
 `blow_end_s`, `reference_mg_l`, `notes`. O rótulo vem da `condition`:
 
@@ -71,9 +71,9 @@ Uma linha por sopro (modelo em `ml/templates/attempts_template.csv`): `attempt_i
 | `clean`, `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash` | `sem_efeito` |
 | `drink` | `sob_efeito` |
 
-Condições novas entram em `CONDITIONS` (`ml/src/data_validation.py`). Recorte de cada
+Condições novas entram em `CONDITIONS` (`applications/ml/src/data_validation.py`). Recorte de cada
 sopro (`assign_phases`): 15 s antes, o sopro (5 s sem `blow_end_s`) e 30 s depois;
-dois sopros da mesma sessão precisam de ~50 s de intervalo. Features em `ml/src/features.py`.
+dois sopros da mesma sessão precisam de ~50 s de intervalo. Features em `applications/ml/src/features.py`.
 
 ### MQTT — coleta (`applications/`)
 
@@ -89,11 +89,11 @@ Formato em `applications/coleta/mensagens.py`; JSON, QoS 1, `null` para ausentes
 O ingestor grava sem duplicar (chave rodada + amostra). O navegador assina os mesmos
 tópicos por WebSocket.
 
-### MQTT — servidor do modelo (`services/`)
+### MQTT — servidor do modelo (`applications/services/`)
 
-Formato em `services/mq3mqtt/messages.py`. Mesmos `leituras`/`eventos`/`status`, mais
+Formato em `applications/services/mq3mqtt/messages.py`. Mesmos `leituras`/`eventos`/`status`, mais
 `mq3/<placa>/sopro_pronto` (worker → servidor do modelo) e `mq3/<placa>/resultado`
-(`sem_modelo` até existir `ml/models/sob_efeito.joblib`; depois classe e
+(`sem_modelo` até existir `applications/ml/models/sob_efeito.joblib`; depois classe e
 probabilidades). Unificar os dois contratos é decisão da equipe.
 
 ### Banco (`applications/db/01-schema.sql`)
@@ -121,9 +121,9 @@ Rodadas com `origem = 'simulador'` ficam fora da análise por padrão.
 | Tela (dev) | 5173 | `npm run dev` em `applications/frontend` (usa 8000 e 9001 do host) |
 | Grafana local (perfil `local`) | 127.0.0.1:3000 | idem |
 
-O Compose de `services/` usa as mesmas portas: as duas stacks não sobem juntas.
+O Compose de `applications/services/` usa as mesmas portas: as duas stacks não sobem juntas.
 
-Ambiente Python: um só, `ml/.venv` (criação em `ml/README.md`), com
-`ml/requirements.txt`, `applications/coleta/requirements.txt` e
+Ambiente Python: um só, `applications/ml/.venv` (criação em `applications/ml/README.md`), com
+`applications/ml/requirements.txt`, `applications/coleta/requirements.txt` e
 `applications/api/requirements.txt`. O scikit-learn é fixo em 1.6.1: o `.joblib` só
 abre na versão que o gravou. Frontend: Node + npm em `applications/frontend`.

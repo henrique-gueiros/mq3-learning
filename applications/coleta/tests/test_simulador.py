@@ -1,6 +1,6 @@
 import pytest
 
-from coleta.arquivos import REPO
+from coleta.arquivos import ML
 from coleta.simulador import instantes_de_sopro, validar_origem
 from coleta.tests.ajuda import leitura
 
@@ -16,4 +16,4 @@ def test_sopro_depois_do_fim_e_ignorado():
 
 def test_recusa_dados_processados():
     with pytest.raises(ValueError):
-        validar_origem(REPO / "ml" / "data" / "processed" / "train.csv")
+        validar_origem(ML / "data" / "processed" / "train.csv")

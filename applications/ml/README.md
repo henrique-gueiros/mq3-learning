@@ -2,7 +2,7 @@
 
 Parte de Machine Learning e dados de um projeto acadêmico de detector de álcool para carro, combinando os sensores **MQ-3**, **MQ-135** e **DHT11**.
 
-O passo a passo da coleta, do treino e do MQTT está no [README do repositório](../README.md). As decisões antigas estão em `../docs/decisoes_projeto_ml.pdf` (esse PDF ainda descreve três classes; vale a tabela abaixo).
+O passo a passo da coleta, do treino e do MQTT está no [README do repositório](../../README.md). As decisões antigas estão em `../../docs/requisitos/decisoes_projeto_ml.pdf` (esse PDF ainda descreve três classes; vale a tabela abaixo).
 
 ## O que o modelo prevê
 
@@ -17,7 +17,7 @@ Perfume e álcool em gel **não** são `sob_efeito`. Eles entram na coleta justa
 
 ## Escopo
 
-Este repositório cobre apenas ML e dados. O firmware da ESP32 fica em `../esp32-esp8266/`. Fora do escopo: o que o carro faz com cada resposta.
+Este repositório cobre apenas ML e dados. O firmware da ESP32 fica em `../../esp32-esp8266/`. Fora do escopo: o que o carro faz com cada resposta.
 
 ## Estado atual
 

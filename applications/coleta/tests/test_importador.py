@@ -22,7 +22,7 @@ def _attempts(pasta: Path, *linhas: str) -> Path:
 
 
 def test_le_amostra_real():
-    leituras = ler_csv_sessao(REPO / "esp32-esp8266" / "leituras.csv")
+    leituras = ler_csv_sessao(REPO / "esp32-esp8266" / "leituras" / "leituras.csv")
     assert leituras and leituras[0].amostra == 38
 
 

@@ -8,7 +8,7 @@ from coleta.serial_proto import CABECALHO_CSV, ler_linha
 from coleta.tests.ajuda import leitura
 
 REPO = Path(__file__).resolve().parents[3]
-CABECALHO_ATTEMPTS = (REPO / "ml" / "templates" / "attempts_template.csv").read_text().strip().split(",")
+CABECALHO_ATTEMPTS = (REPO / "applications" / "ml" / "templates" / "attempts_template.csv").read_text().strip().split(",")
 LINHA = "CSV_LINHA,leituras_3.csv,40,2940,1232,0.4,451,525,36.3,49.4,0"
 DIA = date(2026, 11, 5)
 

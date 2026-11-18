@@ -1,7 +1,7 @@
 """Arquivos que a coleta entrega ao pipeline de ML.
 
-- o CSV de sessão, no formato exato do firmware, em ``ml/data/raw/sessions/``;
-- as linhas de ``ml/data/raw/attempts.csv``, uma por sopro marcado.
+- o CSV de sessão, no formato exato do firmware, em ``applications/ml/data/raw/sessions/``;
+- as linhas de ``applications/ml/data/raw/attempts.csv``, uma por sopro marcado.
 """
 
 from __future__ import annotations
@@ -15,10 +15,10 @@ from typing import List
 from coleta.rodada import Rodada
 from coleta.serial_proto import Leitura
 
-REPO = Path(__file__).resolve().parents[2]
-PASTA_SESSOES = REPO / "ml" / "data" / "raw" / "sessions"
-ARQUIVO_ATTEMPTS = REPO / "ml" / "data" / "raw" / "attempts.csv"
-_TEMPLATE_ATTEMPTS = REPO / "ml" / "templates" / "attempts_template.csv"
+ML = Path(__file__).resolve().parents[1] / "ml"
+PASTA_SESSOES = ML / "data" / "raw" / "sessions"
+ARQUIVO_ATTEMPTS = ML / "data" / "raw" / "attempts.csv"
+_TEMPLATE_ATTEMPTS = ML / "templates" / "attempts_template.csv"
 
 
 def nome_sessao(pasta: Path, data: date, participante: str, caso: str) -> Path:

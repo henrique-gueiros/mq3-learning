@@ -2,10 +2,10 @@
 
 Lê as leituras que a ESP32 manda pelo USB e, para cada rodada:
 
-- grava o CSV de sessão em ``ml/data/raw/sessions/`` (formato do firmware);
+- grava o CSV de sessão em ``applications/ml/data/raw/sessions/`` (formato do firmware);
 - publica cada leitura no MQTT, marcada com o caso e o participante;
 - registra os sopros marcados pelo operador e, no fim, acrescenta as linhas
-  correspondentes ao ``ml/data/raw/attempts.csv``.
+  correspondentes ao ``applications/ml/data/raw/attempts.csv``.
 
 Uso (de dentro de ``applications/``)::
 

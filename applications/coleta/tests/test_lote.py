@@ -104,4 +104,4 @@ def test_manifesto_do_repositorio_aponta_para_csvs_validos():
     entradas = ler_manifesto(MANIFESTO)
     assert len(entradas) == 12
     for entrada in entradas:
-        assert ler_csv_sessao(REPO / "esp32-esp8266" / entrada.origem), entrada.origem
+        assert ler_csv_sessao(REPO / "esp32-esp8266" / "leituras" / entrada.origem), entrada.origem

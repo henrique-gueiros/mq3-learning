@@ -1,7 +1,7 @@
 # AGENTS.md — applications/frontend/
 
 A tela única do Sopro Seguro (React + TypeScript + Vite). Uso e organização em
-`README.md`; plano e próximas etapas em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
+`README.md`; plano e próximas etapas em `docs/planejamento/plans/2026-11-17-frontend-react.md`.
 
 ## Design
 
