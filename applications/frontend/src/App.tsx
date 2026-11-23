@@ -8,6 +8,7 @@ import { useAoVivo } from './aovivo/useAoVivo'
 import { Cabecalho } from './layout/Cabecalho'
 import { LimiteDeErro } from './layout/LimiteDeErro'
 import { Secao } from './layout/Secao'
+import { TelaModelo } from './modelo/TelaModelo'
 
 // Carregados sob demanda: o "Ao vivo" aparece sem esperar os gráficos de análise nem o design system.
 const Analise = lazy(() => import('./analise/Analise'))
@@ -41,7 +42,9 @@ function TelaPrincipal() {
 
 /** Tela única do sistema; /design-system mostra os tokens e componentes. */
 export default function App() {
-  if (window.location.pathname.replace(/\/$/, '') === '/design-system') {
+  const caminho = window.location.pathname.replace(/\/$/, '') || '/'
+  if (caminho === '/modelo') return <TelaModelo />
+  if (caminho === '/design-system') {
     return (
       <>
         <Cabecalho />

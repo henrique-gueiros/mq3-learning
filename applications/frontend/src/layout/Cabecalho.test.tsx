@@ -16,6 +16,20 @@ function montar() {
   return screen.getByRole('button', { name: 'Abrir menu das seções' })
 }
 
+describe('abas do cabeçalho', () => {
+  it('marca Modelo e esconde o menu das seções nessa tela', () => {
+    render(
+      <TemaProvider>
+        <Cabecalho pagina="modelo" />
+      </TemaProvider>,
+    )
+    expect(screen.getByRole('link', { name: 'Modelo' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Painel' })).not.toHaveAttribute('aria-current')
+    expect(screen.queryByRole('navigation', { name: 'Seções' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Abrir menu das seções' })).not.toBeInTheDocument()
+  })
+})
+
 describe('menu das seções no celular', () => {
   it('começa fechado e o botão abre e fecha o painel', async () => {
     const botao = montar()

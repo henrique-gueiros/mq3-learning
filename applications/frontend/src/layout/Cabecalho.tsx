@@ -4,8 +4,8 @@ import { MenuSecoes } from './MenuSecoes'
 import { SECOES } from './secoes'
 import './layout.css'
 
-/** Barra fixa no topo: marca, atalhos para as seções e troca de tema. */
-export function Cabecalho({ direita }: { direita?: ReactNode }) {
+/** Barra fixa no topo: marca, abas Painel/Modelo, atalhos das seções e troca de tema. */
+export function Cabecalho({ direita, pagina = 'painel' }: { direita?: ReactNode; pagina?: 'painel' | 'modelo' }) {
   return (
     <header className="cabecalho">
       <div className="recipiente cabecalho-linha">
@@ -22,17 +22,27 @@ export function Cabecalho({ direita }: { direita?: ReactNode }) {
           </svg>
           <span>Sopro Seguro</span>
         </a>
-        <nav className="cabecalho-nav" aria-label="Seções">
-          {SECOES.map((l) => (
-            <a key={l.href} href={l.href}>
-              {l.rotulo}
-            </a>
-          ))}
+        <nav className="abas" aria-label="Telas">
+          <a href="/" aria-current={pagina === 'painel' ? 'page' : undefined}>
+            Painel
+          </a>
+          <a href="/modelo" aria-current={pagina === 'modelo' ? 'page' : undefined}>
+            Modelo
+          </a>
         </nav>
+        {pagina === 'painel' && (
+          <nav className="cabecalho-nav" aria-label="Seções">
+            {SECOES.map((l) => (
+              <a key={l.href} href={l.href}>
+                {l.rotulo}
+              </a>
+            ))}
+          </nav>
+        )}
         <div className="cabecalho-acoes">
           {direita}
           <BotaoTema />
-          <MenuSecoes />
+          {pagina === 'painel' && <MenuSecoes />}
         </div>
       </div>
     </header>

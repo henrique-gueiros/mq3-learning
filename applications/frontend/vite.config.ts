@@ -2,8 +2,10 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-// Em desenvolvimento, /api vai para a API (Compose, 127.0.0.1:8000) e /mqtt para o
-// WebSocket do Mosquitto (127.0.0.1:9001). Em produção, o nginx faz o mesmo papel.
+// Em desenvolvimento, /api vai para a API (Compose, 127.0.0.1:8000), /modelo/ para o
+// classificador (127.0.0.1:8010) e /mqtt para o WebSocket do Mosquitto (127.0.0.1:9001).
+// A página /modelo fica no Vite; só o que tem barra depois (/modelo/classificar) sai daqui.
+// Em produção, o nginx faz o mesmo papel.
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -23,6 +25,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://127.0.0.1:8000',
+      '/modelo/': 'http://127.0.0.1:8010',
       '/mqtt': { target: 'ws://127.0.0.1:9001', ws: true },
     },
   },

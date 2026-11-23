@@ -7,6 +7,8 @@ todas as coletas. Substitui o dashboard do Grafana quando cobrir todos os painé
 - Design system: [`DESIGN.md`](DESIGN.md) (Vercel / Geist), traduzido em
   `src/styles/tokens.css`. A referência viva fica em `/design-system`.
 - Ao vivo: MQTT por WebSocket (`/mqtt`). Análise: a API de `../api` (`/api`).
+- Aba Modelo (`/modelo`): três sopros de exemplo da coleta. O botão envia o recorte
+  para `POST /modelo/classificar` e a classe aparece na mesma tela.
 
 ## Rodar em desenvolvimento
 
@@ -18,10 +20,21 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-O `vite.config.ts` manda `/api` para `127.0.0.1:8000` e `/mqtt` para `127.0.0.1:9001`.
+O `vite.config.ts` manda `/api` para `127.0.0.1:8000`, `/modelo/` para `127.0.0.1:8010`
+e `/mqtt` para `127.0.0.1:9001`.
+
+O classificador, sem subir o Compose inteiro (com o `ml/.venv` ativo, na raiz):
+
+```bash
+PYTHONPATH=services:ml python -m mq3mqtt.classificar_http
+```
+
+Ele lê `ml/models/sob_efeito.joblib`. Sem esse arquivo a aba responde "Sem modelo."
+No Compose da raiz o mesmo processo é o serviço `model`.
 
 O Compose também serve a tela pronta, com nginx, em http://localhost:8080
-(`Dockerfile` + `nginx.conf`: `/api/` vai para a API e `/mqtt` para o Mosquitto).
+(`Dockerfile` + `nginx.conf`: `/api/` vai para a API, `/modelo/` para o classificador
+e `/mqtt` para o Mosquitto).
 Reconstruir depois de mudar a tela: `docker compose up -d --build frontend`, na raiz.
 
 ## Testes
@@ -51,6 +64,7 @@ só mostrado, nunca usado na decisão.
 | `src/layout` | Cabeçalho, seções e menu do celular |
 | `src/paginas` | Páginas além da tela principal (`/design-system`) |
 | `src/aovivo` | Seção "Ao vivo": MQTT (`useAoVivo`), estado (`estado.ts`), detector ambiente × sopro (`detector.ts`) e componentes |
+| `src/modelo` | Aba Modelo: sopros de exemplo, pedido ao classificador e a classe na tela |
 | `src/analise` | Filtros na URL, resumo e as quatro seções de análise |
 | `src/graficos` | Opções do ECharts como funções puras (testadas) e leitura das cores do tema |
 

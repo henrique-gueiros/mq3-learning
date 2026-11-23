@@ -43,6 +43,9 @@ def main() -> None:
         settings.mqtt_port,
         settings.model_path,
     )
+    from mq3mqtt.classificar_http import iniciar_em_fundo
+
+    iniciar_em_fundo(settings.model_path)
     client.connect(settings.mqtt_host, settings.mqtt_port, keepalive=60)
     client.loop_forever()
 

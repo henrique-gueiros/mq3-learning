@@ -78,6 +78,8 @@ Resultado (`mq3/bancada/resultado`), enquanto não houver modelo:
 
 Quando o `train` gerar `ml/models/sob_efeito.joblib`, o mesmo serviço passa a preencher `prediction` com `sob_efeito` ou `sem_efeito` e as duas probabilidades. Não é preciso mudar o worker.
 
+O processo também abre `POST /modelo/classificar` na porta 8010 (a aba Modelo da tela). O corpo é o recorte do sopro; a resposta é este mesmo JSON. Essa chamada não grava no Postgres. No Compose de `services/` a porta fica em `127.0.0.1:8010`.
+
 `ppm` e `alcool` são gravados porque estão no CSV. O modelo continua sem usá-los.
 
 Uma leitura repetida (mesma placa, mesma sessão, mesma `amostra`) não entra de novo.

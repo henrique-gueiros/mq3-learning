@@ -1,0 +1,917 @@
+[
+  {
+    "id": "perfume",
+    "caso": "perfume",
+    "origem": "leituras_perfume.csv",
+    "blow_start_s": 43.527,
+    "blow_end_s": 48.527,
+    "leituras": [
+      {
+        "t_ms": 29119,
+        "mq3_raw": 1847,
+        "mq135_raw": 892,
+        "temperature_c": 24.2,
+        "humidity_pct": 57.2,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 30278,
+        "mq3_raw": 1863,
+        "mq135_raw": 927,
+        "temperature_c": 24.2,
+        "humidity_pct": 57.1,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 31465,
+        "mq3_raw": 1859,
+        "mq135_raw": 901,
+        "temperature_c": 24.2,
+        "humidity_pct": 57.1,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 32629,
+        "mq3_raw": 1841,
+        "mq135_raw": 881,
+        "temperature_c": 24.2,
+        "humidity_pct": 57,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 33812,
+        "mq3_raw": 1831,
+        "mq135_raw": 907,
+        "temperature_c": 24.2,
+        "humidity_pct": 57,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 34976,
+        "mq3_raw": 1840,
+        "mq135_raw": 900,
+        "temperature_c": 24.1,
+        "humidity_pct": 56.9,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 36172,
+        "mq3_raw": 1823,
+        "mq135_raw": 885,
+        "temperature_c": 24.1,
+        "humidity_pct": 56.9,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 37346,
+        "mq3_raw": 1746,
+        "mq135_raw": 854,
+        "temperature_c": 24.1,
+        "humidity_pct": 56.9,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 38541,
+        "mq3_raw": 1772,
+        "mq135_raw": 880,
+        "temperature_c": 24.1,
+        "humidity_pct": 56.9,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 39995,
+        "mq3_raw": 1781,
+        "mq135_raw": 885,
+        "temperature_c": 24.1,
+        "humidity_pct": 56.9,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 41183,
+        "mq3_raw": 1781,
+        "mq135_raw": 871,
+        "temperature_c": 24.1,
+        "humidity_pct": 56.9,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 42342,
+        "mq3_raw": 1761,
+        "mq135_raw": 881,
+        "temperature_c": 24.1,
+        "humidity_pct": 56.9,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 43527,
+        "mq3_raw": 1753,
+        "mq135_raw": 895,
+        "temperature_c": 24.1,
+        "humidity_pct": 56.9,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 44680,
+        "mq3_raw": 1797,
+        "mq135_raw": 880,
+        "temperature_c": 24.1,
+        "humidity_pct": 57,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 45861,
+        "mq3_raw": 1826,
+        "mq135_raw": 1422,
+        "temperature_c": 24.1,
+        "humidity_pct": 57,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 47014,
+        "mq3_raw": 1955,
+        "mq135_raw": 1535,
+        "temperature_c": 24,
+        "humidity_pct": 57.2,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 48206,
+        "mq3_raw": 2032,
+        "mq135_raw": 1459,
+        "temperature_c": 24,
+        "humidity_pct": 57.2,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 49372,
+        "mq3_raw": 2102,
+        "mq135_raw": 1374,
+        "temperature_c": 24,
+        "humidity_pct": 59.2,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 50569,
+        "mq3_raw": 2125,
+        "mq135_raw": 1339,
+        "temperature_c": 24,
+        "humidity_pct": 59.2,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 51737,
+        "mq3_raw": 2167,
+        "mq135_raw": 1293,
+        "temperature_c": 24,
+        "humidity_pct": 59.8,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 52938,
+        "mq3_raw": 2177,
+        "mq135_raw": 1246,
+        "temperature_c": 24,
+        "humidity_pct": 59.8,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 54393,
+        "mq3_raw": 2160,
+        "mq135_raw": 1227,
+        "temperature_c": 24,
+        "humidity_pct": 59.9,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 55569,
+        "mq3_raw": 2195,
+        "mq135_raw": 1210,
+        "temperature_c": 24,
+        "humidity_pct": 59.9,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 56733,
+        "mq3_raw": 2189,
+        "mq135_raw": 1162,
+        "temperature_c": 23.9,
+        "humidity_pct": 59.7,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 57925,
+        "mq3_raw": 2207,
+        "mq135_raw": 1168,
+        "temperature_c": 23.9,
+        "humidity_pct": 59.7,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 59090,
+        "mq3_raw": 2219,
+        "mq135_raw": 1153,
+        "temperature_c": 23.9,
+        "humidity_pct": 59.4,
+        "ppm": 0.7
+      },
+      {
+        "t_ms": 60284,
+        "mq3_raw": 2202,
+        "mq135_raw": 1134,
+        "temperature_c": 23.9,
+        "humidity_pct": 59.4,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 61460,
+        "mq3_raw": 2217,
+        "mq135_raw": 1130,
+        "temperature_c": 23.9,
+        "humidity_pct": 59.2,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 62659,
+        "mq3_raw": 2196,
+        "mq135_raw": 1175,
+        "temperature_c": 23.9,
+        "humidity_pct": 59.2,
+        "ppm": 0.7
+      },
+      {
+        "t_ms": 63833,
+        "mq3_raw": 2201,
+        "mq135_raw": 1104,
+        "temperature_c": 23.9,
+        "humidity_pct": 58.9,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 65036,
+        "mq3_raw": 2234,
+        "mq135_raw": 1104,
+        "temperature_c": 23.9,
+        "humidity_pct": 58.9,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 66218,
+        "mq3_raw": 2195,
+        "mq135_raw": 1087,
+        "temperature_c": 23.9,
+        "humidity_pct": 58.7,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 67423,
+        "mq3_raw": 2196,
+        "mq135_raw": 1093,
+        "temperature_c": 23.9,
+        "humidity_pct": 58.7,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 68887,
+        "mq3_raw": 2224,
+        "mq135_raw": 1085,
+        "temperature_c": 23.8,
+        "humidity_pct": 58.5,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 70084,
+        "mq3_raw": 2227,
+        "mq135_raw": 1047,
+        "temperature_c": 23.8,
+        "humidity_pct": 58.5,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 71250,
+        "mq3_raw": 2203,
+        "mq135_raw": 1054,
+        "temperature_c": 23.9,
+        "humidity_pct": 58.4,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 72444,
+        "mq3_raw": 2187,
+        "mq135_raw": 1070,
+        "temperature_c": 23.9,
+        "humidity_pct": 58.4,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 73615,
+        "mq3_raw": 2192,
+        "mq135_raw": 1055,
+        "temperature_c": 23.9,
+        "humidity_pct": 58.2,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 74813,
+        "mq3_raw": 2173,
+        "mq135_raw": 1041,
+        "temperature_c": 23.9,
+        "humidity_pct": 58.2,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 75982,
+        "mq3_raw": 2201,
+        "mq135_raw": 1040,
+        "temperature_c": 23.8,
+        "humidity_pct": 58,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 77182,
+        "mq3_raw": 2207,
+        "mq135_raw": 1117,
+        "temperature_c": 23.8,
+        "humidity_pct": 58,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 78359,
+        "mq3_raw": 2202,
+        "mq135_raw": 1043,
+        "temperature_c": 23.9,
+        "humidity_pct": 57.9,
+        "ppm": 0.6
+      }
+    ]
+  },
+  {
+    "id": "bebida",
+    "caso": "drink",
+    "origem": "leituras_bebida1.csv",
+    "blow_start_s": 6.944,
+    "blow_end_s": 11.944,
+    "leituras": [
+      {
+        "t_ms": 2506,
+        "mq3_raw": 1840,
+        "mq135_raw": 783,
+        "temperature_c": 25,
+        "humidity_pct": 60.2,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 3624,
+        "mq3_raw": 1834,
+        "mq135_raw": 781,
+        "temperature_c": 25,
+        "humidity_pct": 60.2,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 4721,
+        "mq3_raw": 1828,
+        "mq135_raw": 780,
+        "temperature_c": 25,
+        "humidity_pct": 60.3,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 5845,
+        "mq3_raw": 1819,
+        "mq135_raw": 778,
+        "temperature_c": 25,
+        "humidity_pct": 60.3,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 6944,
+        "mq3_raw": 1812,
+        "mq135_raw": 785,
+        "temperature_c": 25,
+        "humidity_pct": 60.4,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 8072,
+        "mq3_raw": 1878,
+        "mq135_raw": 743,
+        "temperature_c": 25,
+        "humidity_pct": 60.4,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 9541,
+        "mq3_raw": 1806,
+        "mq135_raw": 771,
+        "temperature_c": 25.1,
+        "humidity_pct": 64,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 10661,
+        "mq3_raw": 1820,
+        "mq135_raw": 784,
+        "temperature_c": 25.1,
+        "humidity_pct": 64,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 11759,
+        "mq3_raw": 1681,
+        "mq135_raw": 752,
+        "temperature_c": 25.4,
+        "humidity_pct": 78.5,
+        "ppm": 0.3
+      },
+      {
+        "t_ms": 12983,
+        "mq3_raw": 2205,
+        "mq135_raw": 915,
+        "temperature_c": 25.4,
+        "humidity_pct": 78.5,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 14121,
+        "mq3_raw": 2130,
+        "mq135_raw": 941,
+        "temperature_c": 25.7,
+        "humidity_pct": 82.2,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 15291,
+        "mq3_raw": 2105,
+        "mq135_raw": 945,
+        "temperature_c": 25.7,
+        "humidity_pct": 82.2,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 16662,
+        "mq3_raw": 2093,
+        "mq135_raw": 979,
+        "temperature_c": 25.9,
+        "humidity_pct": 87,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 17823,
+        "mq3_raw": 2057,
+        "mq135_raw": 989,
+        "temperature_c": 25.9,
+        "humidity_pct": 87,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 18958,
+        "mq3_raw": 1923,
+        "mq135_raw": 1006,
+        "temperature_c": 26.4,
+        "humidity_pct": 90.2,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 20116,
+        "mq3_raw": 1819,
+        "mq135_raw": 987,
+        "temperature_c": 26.4,
+        "humidity_pct": 90.2,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 21246,
+        "mq3_raw": 1863,
+        "mq135_raw": 991,
+        "temperature_c": 26.3,
+        "humidity_pct": 85.1,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 22409,
+        "mq3_raw": 1906,
+        "mq135_raw": 1002,
+        "temperature_c": 26.3,
+        "humidity_pct": 85.1,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 23542,
+        "mq3_raw": 1889,
+        "mq135_raw": 963,
+        "temperature_c": 26.3,
+        "humidity_pct": 83.2,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 24710,
+        "mq3_raw": 1872,
+        "mq135_raw": 1004,
+        "temperature_c": 26.3,
+        "humidity_pct": 83.2,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 25852,
+        "mq3_raw": 1873,
+        "mq135_raw": 956,
+        "temperature_c": 26.3,
+        "humidity_pct": 82.4,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 27020,
+        "mq3_raw": 1904,
+        "mq135_raw": 983,
+        "temperature_c": 26.3,
+        "humidity_pct": 82.4,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 28163,
+        "mq3_raw": 1818,
+        "mq135_raw": 957,
+        "temperature_c": 26.3,
+        "humidity_pct": 81.9,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 29695,
+        "mq3_raw": 1885,
+        "mq135_raw": 906,
+        "temperature_c": 26.3,
+        "humidity_pct": 81.9,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 30830,
+        "mq3_raw": 1891,
+        "mq135_raw": 953,
+        "temperature_c": 26.3,
+        "humidity_pct": 81.4,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 31993,
+        "mq3_raw": 1912,
+        "mq135_raw": 978,
+        "temperature_c": 26.3,
+        "humidity_pct": 81.4,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 33135,
+        "mq3_raw": 1912,
+        "mq135_raw": 964,
+        "temperature_c": 26.5,
+        "humidity_pct": 85.7,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 34298,
+        "mq3_raw": 1923,
+        "mq135_raw": 991,
+        "temperature_c": 26.5,
+        "humidity_pct": 85.7,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 35443,
+        "mq3_raw": 1894,
+        "mq135_raw": 990,
+        "temperature_c": 26.8,
+        "humidity_pct": 89,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 36611,
+        "mq3_raw": 1954,
+        "mq135_raw": 991,
+        "temperature_c": 26.8,
+        "humidity_pct": 89,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 37747,
+        "mq3_raw": 1942,
+        "mq135_raw": 993,
+        "temperature_c": 26.9,
+        "humidity_pct": 88.3,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 38913,
+        "mq3_raw": 1924,
+        "mq135_raw": 1046,
+        "temperature_c": 26.9,
+        "humidity_pct": 88.3,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 40069,
+        "mq3_raw": 2090,
+        "mq135_raw": 1104,
+        "temperature_c": 26.9,
+        "humidity_pct": 87.8,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 41244,
+        "mq3_raw": 2023,
+        "mq135_raw": 1119,
+        "temperature_c": 26.9,
+        "humidity_pct": 87.8,
+        "ppm": 0.5
+      }
+    ]
+  },
+  {
+    "id": "ambiente",
+    "caso": "clean",
+    "origem": "leituras_1_ambiente.csv",
+    "blow_start_s": 90.0,
+    "blow_end_s": 95.0,
+    "leituras": [
+      {
+        "t_ms": 75885,
+        "mq3_raw": 626,
+        "mq135_raw": 237,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 77292,
+        "mq3_raw": 610,
+        "mq135_raw": 240,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 78748,
+        "mq3_raw": 631,
+        "mq135_raw": 297,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 80205,
+        "mq3_raw": 522,
+        "mq135_raw": 166,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 81709,
+        "mq3_raw": 578,
+        "mq135_raw": 252,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 83779,
+        "mq3_raw": 754,
+        "mq135_raw": 235,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 85029,
+        "mq3_raw": 762,
+        "mq135_raw": 281,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 86294,
+        "mq3_raw": 784,
+        "mq135_raw": 320,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 87604,
+        "mq3_raw": 686,
+        "mq135_raw": 207,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.3
+      },
+      {
+        "t_ms": 88918,
+        "mq3_raw": 609,
+        "mq135_raw": 168,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 90279,
+        "mq3_raw": 725,
+        "mq135_raw": 176,
+        "temperature_c": 28,
+        "humidity_pct": 35.6,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 91644,
+        "mq3_raw": 626,
+        "mq135_raw": 180,
+        "temperature_c": 27.9,
+        "humidity_pct": 35.7,
+        "ppm": 0.6
+      },
+      {
+        "t_ms": 93091,
+        "mq3_raw": 624,
+        "mq135_raw": 174,
+        "temperature_c": 27.9,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 94480,
+        "mq3_raw": 626,
+        "mq135_raw": 192,
+        "temperature_c": 27.9,
+        "humidity_pct": 35.7,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 96004,
+        "mq3_raw": 640,
+        "mq135_raw": 262,
+        "temperature_c": 27.9,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 97446,
+        "mq3_raw": 726,
+        "mq135_raw": 251,
+        "temperature_c": 27.9,
+        "humidity_pct": 35.7,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 98922,
+        "mq3_raw": 691,
+        "mq135_raw": 259,
+        "temperature_c": 27.9,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 100962,
+        "mq3_raw": 697,
+        "mq135_raw": 241,
+        "temperature_c": 27.9,
+        "humidity_pct": 35.8,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 102203,
+        "mq3_raw": 640,
+        "mq135_raw": 184,
+        "temperature_c": 27.9,
+        "humidity_pct": 35.8,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 103445,
+        "mq3_raw": 689,
+        "mq135_raw": 150,
+        "temperature_c": 27.9,
+        "humidity_pct": 35.8,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 104724,
+        "mq3_raw": 646,
+        "mq135_raw": 176,
+        "temperature_c": 27.9,
+        "humidity_pct": 35.8,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 106005,
+        "mq3_raw": 531,
+        "mq135_raw": 226,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 107348,
+        "mq3_raw": 577,
+        "mq135_raw": 229,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 108690,
+        "mq3_raw": 579,
+        "mq135_raw": 275,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 110082,
+        "mq3_raw": 638,
+        "mq135_raw": 283,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 111474,
+        "mq3_raw": 614,
+        "mq135_raw": 188,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 112917,
+        "mq3_raw": 698,
+        "mq135_raw": 305,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 114360,
+        "mq3_raw": 705,
+        "mq135_raw": 294,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.3
+      },
+      {
+        "t_ms": 115951,
+        "mq3_raw": 660,
+        "mq135_raw": 314,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 118004,
+        "mq3_raw": 566,
+        "mq135_raw": 233,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 119250,
+        "mq3_raw": 768,
+        "mq135_raw": 269,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 120488,
+        "mq3_raw": 656,
+        "mq135_raw": 219,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 121781,
+        "mq3_raw": 767,
+        "mq135_raw": 228,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.4
+      },
+      {
+        "t_ms": 123080,
+        "mq3_raw": 609,
+        "mq135_raw": 167,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.5
+      },
+      {
+        "t_ms": 124426,
+        "mq3_raw": 671,
+        "mq135_raw": 309,
+        "temperature_c": 28,
+        "humidity_pct": 35.7,
+        "ppm": 0.5
+      }
+    ]
+  }
+]

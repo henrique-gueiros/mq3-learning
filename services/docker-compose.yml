@@ -54,6 +54,8 @@ services:
     volumes:
       - .:/opt/services
       - ../ml:/opt/ml
+    ports:
+      - "127.0.0.1:8010:8010"
     restart: unless-stopped
     depends_on:
       postgres:

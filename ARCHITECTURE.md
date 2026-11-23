@@ -19,6 +19,8 @@ simulador (CSV real) ─────┤ MQTT  mq3/<placa>/{rodada,leituras,event
                           │                   API FastAPI (somente leitura, :8000)
                           ▼                           │
                    tela React (applications/frontend): ao vivo por /mqtt, análise por /api
+                          aba Modelo ──POST /modelo/classificar──▶ classificador HTTP (:8010)
+                                                                    lê ml/models/sob_efeito.joblib
 
 ml/ (offline ou Airflow): CSVs + attempts.csv ──▶ validação ──▶ features ──▶ treino ──▶ ml/models/sob_efeito.joblib
 services/ (fluxo paralelo): worker + servidor do modelo ──▶ mq3/<placa>/resultado
@@ -101,6 +103,11 @@ Formato em `services/mq3mqtt/messages.py`. Mesmos `leituras`/`eventos`/`status`,
 `mq3/<placa>/sopro_pronto` (worker → servidor do modelo) e `mq3/<placa>/resultado`
 (`sem_modelo` até existir `ml/models/sob_efeito.joblib`; depois classe e
 probabilidades). Unificar os dois contratos é decisão da equipe.
+
+A aba Modelo da tela não passa pelo banco. Ela faz `POST /modelo/classificar`
+com um recorte de sopro (leituras e o instante do sopro) e recebe o mesmo corpo
+do `resultado`. No Compose da raiz o serviço é o container `model` (porta 8010).
+O recorte de demonstração não é gravado.
 
 ### Banco (`applications/db/01-schema.sql`)
 
