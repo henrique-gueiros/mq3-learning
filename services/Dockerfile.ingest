@@ -1,8 +1,0 @@
-FROM python:3.11-slim
-
-RUN pip install --no-cache-dir "paho-mqtt>=2.1" "psycopg[binary]>=3.2"
-
-WORKDIR /opt/services
-ENV PYTHONPATH=/opt/services
-
-CMD ["python", "-m", "mq3mqtt.ingest"]

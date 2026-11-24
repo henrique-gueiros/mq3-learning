@@ -21,9 +21,11 @@ simulador (CSV real) ─────┤ MQTT  mq3/<placa>/{rodada,leituras,event
                    tela React (applications/frontend): ao vivo por /mqtt, análise por /api
                           aba Modelo ──POST /modelo/classificar──▶ classificador HTTP (:8010)
                                                                     lê ml/models/sob_efeito.joblib
+                     Mosquitto ──sopro_fim──▶ servidor do modelo (mesmo container :8010)
+                          ▲                   lê a rodada no PostgreSQL, grava em resultados
+                          └──── mq3/<placa>/resultado ◀┘
 
 ml/ (offline ou Airflow): CSVs + attempts.csv ──▶ validação ──▶ features ──▶ treino ──▶ ml/models/sob_efeito.joblib
-services/ (fluxo paralelo): worker + servidor do modelo ──▶ mq3/<placa>/resultado
 ```
 
 O DAG `dataset_para_treino` (perfil `airflow` do Compose, http://localhost:8088) lê as
@@ -49,7 +51,7 @@ números da tela bateram com os painéis dele.
 | `applications/frontend/` | Tela única (React): ao vivo + análise; design system Vercel/Geist | `applications/frontend/README.md` |
 | `applications/grafana/`, `pdc/` | Dashboard antigo e túnel do Grafana Cloud (saem na Etapa 7 do plano da tela) | `applications/grafana/README.md` |
 | `ml/` | Pipeline de ML: validação, features, separação por participante, treino, inferência | `ml/README.md` |
-| `services/` | Fluxo paralelo: broker, banco, worker e servidor do modelo | `services/README.md` |
+| `services/` | Servidor do modelo: ao vivo (MQTT + banco da coleta) e HTTP da aba Modelo | `services/README.md` |
 | `docs/` | Requisitos das disciplinas, decisões de ML (PDF), roadmap, planos (`superpowers/`) | — |
 | `schematics/` | Esquemático e foto da montagem | — |
 
@@ -83,26 +85,27 @@ Condições novas entram em `CONDITIONS` (`ml/src/data_validation.py`). Recorte 
 sopro (`assign_phases`): 15 s antes, o sopro (5 s sem `blow_end_s`) e 30 s depois;
 dois sopros da mesma sessão precisam de ~50 s de intervalo. Features em `ml/src/features.py`.
 
-### MQTT — coleta (`applications/`)
+### MQTT (contrato único)
 
 Formato em `applications/coleta/mensagens.py`; JSON, QoS 1, `null` para ausentes.
 
 | Tópico | Quem publica | Conteúdo |
 | --- | --- | --- |
-| `mq3/<placa>/rodada` | ponte, simulador (depois a ESP32) | `rodada_id`, caso, participante, início, arquivo, origem; **retida** |
+| `mq3/<placa>/rodada` | ESP32, ponte, simulador | `rodada_id`, caso, participante, início, arquivo, origem; **retida** |
 | `mq3/<placa>/leituras` | idem | uma leitura, com os campos do CSV e o `rodada_id` |
 | `mq3/<placa>/eventos` | idem | `sopro_inicio`, `sopro_fim`, `rodada_fim` (com `t_ms`) |
 | `mq3/<placa>/status` | idem | `{"estado": "online" \| "offline"}`; **retida**; `offline` é o last will |
+| `mq3/<placa>/resultado` | servidor do modelo | `rodada_id`, `t_ms` do fim, `sessao`, `attempt_id`, `status`, `prediction`, `prob_sem_efeito`, `prob_sob_efeito`, `detalhe` |
 
 O ingestor grava sem duplicar (chave rodada + amostra). O navegador assina os mesmos
 tópicos por WebSocket.
 
-### MQTT — servidor do modelo (`services/`)
-
-Formato em `services/mq3mqtt/messages.py`. Mesmos `leituras`/`eventos`/`status`, mais
-`mq3/<placa>/sopro_pronto` (worker → servidor do modelo) e `mq3/<placa>/resultado`
-(`sem_modelo` até existir `ml/models/sob_efeito.joblib`; depois classe e
-probabilidades). Unificar os dois contratos é decisão da equipe.
+O servidor do modelo (`services/mq3mqtt/ao_vivo.py`) assina `eventos`. A cada
+`sopro_fim`, espera 35 s (a janela de 30 s depois do sopro usada no treino, mais
+folga), lê a rodada no Postgres, recorta e classifica com o mesmo código de
+`ml/src/inference.py`, grava em `resultados` e publica `resultado`. Sem
+`ml/models/sob_efeito.joblib` o `status` é `sem_modelo` e a classe fica vazia.
+O simulador publica `sopro_fim` 5 s depois de cada início (`--duracao`).
 
 A aba Modelo da tela não passa pelo banco. Ela faz `POST /modelo/classificar`
 com um recorte de sopro (leituras e o instante do sopro) e recebe o mesmo corpo
@@ -111,7 +114,7 @@ O recorte de demonstração não é gravado.
 
 ### Banco (`applications/db/01-schema.sql`)
 
-Tabelas `rodadas`, `leituras`, `eventos`. Views, que concentram a lógica dos gráficos:
+Tabelas `rodadas`, `leituras`, `eventos`, `resultados`. Views, que concentram a lógica dos gráficos:
 
 | View | O quê |
 | --- | --- |
@@ -134,8 +137,6 @@ Rodadas com `origem = 'simulador'` ficam fora da análise por padrão.
 | Tela (dev) | 5173 | `npm run dev` em `applications/frontend` (usa 8000 e 9001 do host) |
 | Grafana local (perfil `local`) | 127.0.0.1:3000 | idem |
 | Airflow (perfil `airflow`) | 127.0.0.1:8088 | idem; DAG `dataset_para_treino` |
-
-O Compose de `services/` usa as mesmas portas: as duas stacks não sobem juntas.
 
 Ambiente Python: um só, `ml/.venv` (criação em `ml/README.md`), com
 `ml/requirements.txt`, `applications/coleta/requirements.txt` e

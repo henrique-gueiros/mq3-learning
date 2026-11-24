@@ -17,7 +17,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from coleta.arquivos import REPO
 from coleta.casos import validar_caso
@@ -48,6 +48,23 @@ def instantes_de_sopro(leituras: List[Leitura], sopros_s: List[float]) -> Dict[i
     return instantes
 
 
+def eventos_de_sopro(
+    leituras: List[Leitura], sopros_s: List[float], duracao_s: float = 5.0
+) -> Dict[int, List[Tuple[str, int]]]:
+    """Eventos a publicar depois de cada leitura: ``sopro_inicio`` e, ``duracao_s`` depois, ``sopro_fim``.
+
+    O fim é o que dispara o modelo ao vivo. Um sopro perto do fim da sessão,
+    sem leituras depois de ``duracao_s``, fica só com o início.
+    """
+    eventos: Dict[int, List[Tuple[str, int]]] = {}
+    for segundos in sopros_s:
+        for tipo, instante_s in (("sopro_inicio", segundos), ("sopro_fim", segundos + duracao_s)):
+            marcado = instantes_de_sopro(leituras, [instante_s])
+            for indice, t_ms in marcado.items():
+                eventos.setdefault(indice, []).append((tipo, t_ms))
+    return eventos
+
+
 def _segundos(texto: str) -> List[float]:
     return [float(parte) for parte in texto.split(",") if parte.strip()]
 
@@ -59,6 +76,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--participante", required=True)
     parser.add_argument("--intervalo", type=float, default=1.0, help="segundos entre leituras (padrão 1)")
     parser.add_argument("--sopros", type=_segundos, default=[], help="segundos da sessão com sopro, ex.: 20.4,80")
+    parser.add_argument("--duracao", type=float, default=5.0, help="segundos de cada sopro (padrão 5, como no treino)")
     parser.add_argument("--placa", help="padrão: PLACA ou placa01")
     args = parser.parse_args(argv)
 
@@ -67,6 +85,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         leituras = ler_csv_sessao(validar_origem(args.csv))
     except (ValueError, OSError) as erro:
         print(erro, file=sys.stderr)
+        return 1
+    if not leituras:
+        print(f"{args.csv} não tem leituras.", file=sys.stderr)
         return 1
 
     config = Config.do_ambiente()
@@ -83,13 +104,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         payload_rodada(rodada_id, publicador.placa, args.caso, args.participante, inicio, args.csv.name, "simulador"),
         retido=True,
     )
-    sopros = instantes_de_sopro(leituras, args.sopros)
+    sopros = eventos_de_sopro(leituras, args.sopros, args.duracao)
     print(f"Simulando {args.csv.name}: {len(leituras)} leituras, rodada {rodada_id}")
     try:
         for indice, leitura in enumerate(leituras):
             publicador.publicar("leituras", payload_leitura(rodada_id, leitura))
-            if indice in sopros:
-                publicador.publicar("eventos", payload_evento(rodada_id, "sopro_inicio", sopros[indice]))
+            for tipo, t_ms in sopros.get(indice, []):
+                publicador.publicar("eventos", payload_evento(rodada_id, tipo, t_ms))
             time.sleep(args.intervalo)
     except KeyboardInterrupt:
         print()

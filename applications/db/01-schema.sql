@@ -12,7 +12,7 @@ CREATE TABLE rodadas (
     inicio         timestamptz,
     fim            timestamptz,
     arquivo_sessao text,
-    origem         text CHECK (origem IN ('ponte', 'importador', 'simulador')),
+    origem         text CHECK (origem IN ('ponte', 'importador', 'simulador', 'placa')),
     sha256         text UNIQUE,
     notas          text
 );
@@ -37,6 +37,21 @@ CREATE TABLE eventos (
     tipo      text NOT NULL CHECK (tipo IN ('sopro_inicio', 'sopro_fim', 'rodada_fim')),
     t_ms      bigint NOT NULL,
     UNIQUE (rodada_id, tipo, t_ms)
+);
+
+-- Resposta do servidor do modelo para cada sopro_fim (services/mq3mqtt/ao_vivo.py).
+-- prediction fica vazia enquanto não houver modelo (status sem_modelo).
+CREATE TABLE resultados (
+    rodada_id       uuid NOT NULL REFERENCES rodadas (id),
+    t_ms            bigint NOT NULL,
+    attempt_id      text,
+    status          text NOT NULL,
+    prediction      text CHECK (prediction IN ('sob_efeito', 'sem_efeito')),
+    prob_sem_efeito real,
+    prob_sob_efeito real,
+    detalhe         text,
+    criado_em       timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (rodada_id, t_ms)
 );
 
 -- Cada sopro com o seu fim: o primeiro sopro_fim antes do próximo sopro, ou 5 s.

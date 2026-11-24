@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -38,3 +39,18 @@ def load_settings() -> Settings:
             os.environ.get("MODEL_PATH", str(REPO_ROOT / "ml" / "models" / "sob_efeito.joblib"))
         ),
     )
+
+
+def connect_with_retry(database_url: str, attempts: int = 30, pause_s: float = 1.0):
+    """Abre o banco em autocommit, tentando de novo enquanto o Postgres do Compose sobe."""
+    import psycopg
+
+    last_error: Exception | None = None
+    for _ in range(attempts):
+        try:
+            return psycopg.connect(database_url, autocommit=True)
+        except psycopg.OperationalError as exc:
+            last_error = exc
+            time.sleep(pause_s)
+    assert last_error is not None
+    raise last_error

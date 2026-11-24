@@ -123,43 +123,33 @@ python -m src.cli predict --session data/raw/sessions/2026-11-05_p01_leituras_3.
 
 A resposta sai no terminal: `sob_efeito` ou `sem_efeito`.
 
-**Ao vivo**, o servidor do modelo é o container `model` do Docker. O código está em `services/mq3mqtt/model_server.py`. Ele lê `ml/models/sob_efeito.joblib`. Enquanto esse arquivo não existir, a resposta publicada é `sem_modelo` e a classe fica vazia.
+**Ao vivo**, o servidor do modelo é o container `model` do Docker. O código está em `services/mq3mqtt/ao_vivo.py`. Ele lê `ml/models/sob_efeito.joblib`. Enquanto esse arquivo não existir, a resposta publicada é `sem_modelo` e a classe fica vazia.
 
 ## 4. Como o MQTT funciona
 
-MQTT é o protocolo. Mosquitto é o programa que recebe e entrega essas mensagens. Sobe junto com o banco, o worker e o servidor do modelo:
+MQTT é o protocolo. Mosquitto é o programa que recebe e entrega essas mensagens. Ele sobe junto com o resto, na raiz do repositório:
 
 ```bash
-cd services
-docker compose up --build
+docker compose up -d --build
 ```
 
-Num teste novo, com a placa ligada na mesma rede:
+Num teste, com a placa ligada na mesma rede:
 
-1. Cada segundo a ESP32 publica uma leitura em `mq3/<placa>/leituras`, com as mesmas colunas do CSV.
+1. Cada segundo a ESP32 (ou a ponte serial, ou o simulador) publica uma leitura em `mq3/<placa>/leituras`, com as mesmas colunas do CSV.
 2. No começo do sopro publica `sopro_inicio` em `mq3/<placa>/eventos`. No fim, `sopro_fim`.
-3. O worker recebe essas mensagens e grava no PostgreSQL. A mesma amostra, da mesma placa e da mesma sessão, não entra duas vezes.
-4. Gravado o fim do sopro, o worker avisa o servidor em `mq3/<placa>/sopro_pronto`.
-5. O servidor lê as linhas daquela sessão no banco, recorta o sopro como no treino e publica em `mq3/<placa>/resultado`.
+3. O ingestor recebe essas mensagens e grava no PostgreSQL. A mesma amostra da mesma rodada não entra duas vezes.
+4. A cada `sopro_fim`, o servidor do modelo espera 35 s (a janela depois do sopro usada no treino), lê a rodada no banco, recorta o sopro como no treino, grava em `resultados` e publica em `mq3/<placa>/resultado`.
 
 Os CSVs usados no treino não passam de novo pelo MQTT. O MQTT leva o teste que está acontecendo agora.
 
-A ESP32 ainda não publica. Até o firmware fazer isso, o simulador republica um CSV que a placa já gravou. Os segundos do sopro são os que você passar no comando, os mesmos do `attempts.csv`:
+Sem a placa, o simulador republica um CSV que ela já gravou. `--sopros` são os segundos em que cada sopro começou, os mesmos do `attempts.csv`; o fim sai `--duracao` segundos depois (padrão 5). De dentro de `applications/`:
 
 ```bash
-cd services
 source ../ml/.venv/bin/activate
-pip install -r requirements.txt
-python -m mq3mqtt.simulator \
-  --csv ../esp32-esp8266/leituras.csv \
-  --placa bancada \
-  --sessao leituras_1.csv \
-  --blow-start-s 30 \
-  --blow-end-s 50 \
-  --interval 0
+python -m coleta.simulador ../esp32-esp8266/leituras.csv --caso clean --participante p00 --sopros 30 --intervalo 0.2
 ```
 
-Troque o CSV e os segundos pelos do teste de vocês. O passo a passo do broker, dos tópicos e da senha local do banco está em `services/README.md`.
+Troque o CSV e os segundos pelos do teste de vocês. Os tópicos estão em `ARCHITECTURE.md`.
 
 ## Onde está cada coisa
 
@@ -167,7 +157,7 @@ Troque o CSV e os segundos pelos do teste de vocês. O passo a passo do broker, 
 | --- | --- |
 | `esp32-esp8266/` | ESP32. Grava o CSV. Ainda não publica MQTT. |
 | `ml/` | Validação, recorte, treino e previsão nos arquivos. |
-| `services/` | Mosquitto, Postgres, worker, servidor do modelo e simulador. |
+| `services/` | Servidor do modelo: ao vivo (MQTT + banco) e HTTP da aba Modelo. |
 | `docs/` | Requisitos das disciplinas e o PDF de decisões. |
 | `AGENTS.md` | Regras para quem continua o projeto. |
 

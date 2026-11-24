@@ -57,3 +57,5 @@ jobs:
         working-directory: applications
       - run: python -m pytest -q
         working-directory: ml
+      - run: python -m pytest -q
+        working-directory: services

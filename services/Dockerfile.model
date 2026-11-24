@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir \
 WORKDIR /opt/services
 ENV PYTHONPATH=/opt/ml:/opt/services
 
-CMD ["python", "-m", "mq3mqtt.model_server"]
+CMD ["python", "-m", "mq3mqtt.ao_vivo"]
