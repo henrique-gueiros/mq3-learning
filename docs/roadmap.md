@@ -45,13 +45,14 @@ Ainda não existe:
 - [ ] Análise exploratória e revisão das features com dados reais.
 - [ ] Modelo treinado e avaliado com dados reais (métricas dos testes automatizados **não** dizem nada sobre o sensor).
 - [ ] Wi-Fi/MQTT na ESP32 (hoje a ponte publica no lugar da placa).
-- [ ] MLflow e um Compose único com todos os serviços da entrega final (o Airflow já está no perfil `airflow`).
+- [x] Código de registro no MLflow (`ml/src/rastreio.py`, ativo com `MLFLOW_TRACKING_URI`), métricas por fold, F1 treino × validação, ROC/AUC e figuras (`ml/src/figuras.py`), testados só com dados montados à mão.
+- [ ] Serviço MLflow e um Compose único com todos os serviços da entrega final (o Airflow já está no perfil `airflow`).
 
 ## Próximas tarefas, em ordem
 
 1. Tirar o Grafana, só com o aval da equipe (apaga pastas e serviços) — o que falta está na Etapa 7 de `docs/superpowers/plans/2026-11-17-frontend-react.md`. Rodar o Lighthouse de acessibilidade da tela (meta ≥ 95) antes da mostra.
 2. Coleta com a ponte (`applications/README.md`, "Dia de coleta"), com sopros marcados, e conferência com `python -m src.cli validate`.
 3. Análise exploratória, revisão das features, dos tempos do protocolo e dos limiares do detector da tela.
-4. Experimento com dados reais no MLflow, com k-fold e overfitting. Aí `ml/models/sob_efeito.joblib` passa a existir.
+4. Rodar o experimento com dados reais no MLflow (o registro, o desvio entre folds e a comparação treino × validação já existem; ver `ml/README.md`). Aí `ml/models/sob_efeito.joblib` passa a existir.
 5. A equipe escolhe um contrato MQTT e a ESP32 passa a publicar (quem mantém o firmware).
 6. Resultado do modelo na tela, MLflow e um Compose único.

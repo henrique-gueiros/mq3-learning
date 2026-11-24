@@ -24,9 +24,9 @@ from src.data_io import load_raw_data, read_dataset_csv, read_session_csv, write
 from src.features import SENSOR_SETS
 from src.inference import predict_attempts
 from src.paths import ML_ROOT, ProjectPaths
-from src.pipeline import executar_pipeline, preparar_dataset
-from src.splitting import GROUP_COLUMNS, load_split
-from src.train import choose_best, run_experiment, save_model, train_final_model
+from src import rastreio
+from src.pipeline import avaliar_teste, executar_pipeline, preparar_dataset, treinar_modelos
+from src.splitting import GROUP_COLUMNS
 
 
 def run_validate(paths: ProjectPaths) -> None:
@@ -89,40 +89,24 @@ def run_pipeline(
 
 
 def run_train(paths: ProjectPaths, select_by: str, seed: int) -> None:
-    """Compara os modelos e salva o melhor para classificar sob_efeito ou sem_efeito."""
-    split = load_split(paths.split_manifest)
-    if split is None:
-        raise FileNotFoundError(f"{_rel(paths, paths.split_manifest)} não existe; rode 'prepare' antes")
-    train = read_dataset_csv(paths.train)
-    test = read_dataset_csv(paths.test)
-
+    """Compara os modelos e salva o melhor (mesmo fluxo do Airflow: ``pipeline``)."""
     print("\n== Comparação: sob_efeito ou sem_efeito ==")
-    results = run_experiment(train, group_by=split.group_by, seed=seed)
-    report = paths.reports_dir / "experiment.csv"
-    write_csv(results, report)
-    _print_results(results)
-    print(f"Resultados da validação cruzada: {_rel(paths, report)}")
+    escolha = treinar_modelos(paths, select_by=select_by, seed=seed)
+    resultados = read_dataset_csv(paths.reports_dir / "experiment.csv")
+    _print_results(resultados)
+    print(f"Resultados da validação cruzada: {escolha['relatorio']}")
 
-    best = choose_best(results, select_by)
-    model, metadata = train_final_model(
-        train, test, best["sensor_set"], best["model"], group_by=split.group_by, seed=seed
-    )
-    metadata["selected_by"] = select_by
-    metadata["cv_score"] = float(best[select_by])
-    model_path = paths.models_dir / "sob_efeito.joblib"
-    save_model(model, metadata, model_path)
-    final_report = paths.reports_dir / "final.json"
-    final_report.write_text(
-        json.dumps(metadata, indent=2, ensure_ascii=False, default=str) + "\n", encoding="utf-8"
-    )
-
-    print(f"Escolhido por {select_by}: {best['model']} com {best['sensor_set']}")
-    if "test_metrics" in metadata:
-        metrics = ", ".join(f"{k}={v:.2f}" for k, v in metadata["test_metrics"].items())
-        print(f"Teste ({metadata['n_test_attempts']} tentativas): {metrics}")
+    resultado = avaliar_teste(paths, escolha, seed=seed)
+    print(f"Escolhido por {select_by}: {resultado['modelo']} com {resultado['sensor_set']}")
+    if resultado["metricas_teste"]:
+        metricas = ", ".join(f"{k}={v:.2f}" for k, v in resultado["metricas_teste"].items())
+        print(f"Teste ({resultado['n_teste']} tentativas): {metricas}")
     else:
         print("Aviso: o teste não tem tentativas; nada foi avaliado.")
-    print(f"Modelo: {_rel(paths, model_path)} | Relatório: {_rel(paths, final_report)}")
+    print(f"Modelo: {resultado['modelo_arquivo']} | Relatório: {resultado['relatorio']}")
+    print(f"Figuras: {_rel(paths, paths.figuras_dir)}")
+    if rastreio.ativo():
+        print(f"Experimento registrado no MLflow ({os.environ['MLFLOW_TRACKING_URI']})")
 
 
 def run_predict(

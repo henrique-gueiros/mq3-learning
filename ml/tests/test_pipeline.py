@@ -282,3 +282,56 @@ def test_dag_declara_treino_e_teste():
     assert visitante.tarefas == ["ingerir", "preparar", "disponibilizar", "treinar", "testar"]
     texto = fonte.read_text(encoding="utf-8")
     assert "tarefa_ingerir >> tarefa_preparar >> tarefa_disponibilizar >> tarefa_treinar >> tarefa_testar" in texto
+
+
+def _preparar_treino_e_teste(paths: ProjectPaths) -> None:
+    from src.data_io import write_csv
+    from src.splitting import apply_split, save_split, update_split
+    from tests.conftest import make_feature_dataset
+
+    dataset = make_feature_dataset(n_participants=8, repetitions=1)
+    split, _ = update_split(dataset, existing=None, group_by="participant_id", test_size=0.25, seed=42)
+    save_split(split, paths.split_manifest)
+    train, test = apply_split(dataset, split)
+    write_csv(train, paths.train)
+    write_csv(test, paths.test)
+
+
+def test_treino_e_teste_gravam_figuras_e_desvios(tmp_path, monkeypatch):
+    from src.pipeline import avaliar_teste, treinar_modelos
+
+    monkeypatch.delenv("MLFLOW_TRACKING_URI", raising=False)
+    paths = ProjectPaths(tmp_path)
+    _preparar_treino_e_teste(paths)
+
+    escolha = treinar_modelos(paths, n_estimators=5)
+    avaliar_teste(paths, escolha, seed=42)
+
+    experimento = pd.read_csv(paths.reports_dir / "experiment.csv")
+    assert {"f1_macro_std", "f1_macro_treino", "roc_auc"} <= set(experimento.columns)
+    assert (paths.reports_dir / "folds.csv").exists()
+    for nome in ("f1_por_modelo", "treino_vs_validacao", "curva_aprendizado", "matriz_confusao", "roc"):
+        assert (paths.figuras_dir / f"{nome}.png").exists(), nome
+
+
+def test_treino_e_teste_vao_para_o_mlflow_quando_ha_uri(tmp_path, monkeypatch):
+    import mlflow
+
+    from src.pipeline import avaliar_teste, treinar_modelos
+
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", f"file:{tmp_path / 'mlruns'}")
+    paths = ProjectPaths(tmp_path)
+    _preparar_treino_e_teste(paths)
+
+    escolha = treinar_modelos(paths, n_estimators=5)
+    avaliar_teste(paths, escolha, seed=42)
+
+    runs = mlflow.search_runs(search_all_experiments=True)
+    nomes = set(runs["tags.mlflow.runName"])
+    assert {"comparacao_de_modelos", "modelo_final"} <= nomes
+    assert len(runs) > 2
+
+
+def test_dag_repassa_a_uri_do_mlflow():
+    fonte = Path(__file__).resolve().parents[1] / "dags" / "dataset_para_treino.py"
+    assert "MLFLOW_TRACKING_URI" in fonte.read_text(encoding="utf-8")

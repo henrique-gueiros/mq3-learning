@@ -61,3 +61,12 @@ def test_prepare_keeps_split_stable(tmp_path):
 def test_errors_return_exit_code_1(tmp_path, capsys):
     assert main(["--root", str(tmp_path), "validate"]) == 1
     assert "firmware" in capsys.readouterr().err
+
+
+def test_train_usa_o_mesmo_fluxo_do_pipeline(tmp_path):
+    paths = ProjectPaths(tmp_path)
+    _write_raw(paths)
+
+    assert main(["--root", str(tmp_path), "all"]) == 0
+    assert (paths.figuras_dir / "matriz_confusao.png").exists()
+    assert "f1_macro_std" in pd.read_csv(paths.reports_dir / "experiment.csv").columns
