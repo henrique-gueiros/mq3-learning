@@ -42,7 +42,7 @@ Pronto e testado:
 
 Ainda não existe:
 - [ ] Coleta rotulada suficiente (`attempts.csv` com sopros marcados), com as duas classes.
-- [ ] Análise exploratória e revisão das features com dados reais.
+- [ ] Revisão das features com dados reais. A análise exploratória existe em `ml/notebooks/01_eda.ipynb` (figuras em `ml/reports/figuras_eda/`), com as seções do diário e o veredito de cada uma; falta a equipe interpretar (células "[EQUIPE: interpretar]") e decidir as sessões anteriores a 10/11, o aquecimento do MQ-3 e os trios de bebida.
 - [ ] Modelo treinado e avaliado com dados reais (métricas dos testes automatizados **não** dizem nada sobre o sensor).
 - [ ] Wi-Fi/MQTT na ESP32 (hoje a ponte publica no lugar da placa).
 - [ ] MLflow e um Compose único com todos os serviços da entrega final (o Airflow já está no perfil `airflow`).
@@ -51,7 +51,7 @@ Ainda não existe:
 
 1. Tirar o Grafana, só com o aval da equipe (apaga pastas e serviços) — o que falta está na Etapa 7 de `docs/superpowers/plans/2026-11-17-frontend-react.md`. Rodar o Lighthouse de acessibilidade da tela (meta ≥ 95) antes da mostra.
 2. Coleta com a ponte (`applications/README.md`, "Dia de coleta"), com sopros marcados, e conferência com `python -m src.cli validate`.
-3. Análise exploratória, revisão das features, dos tempos do protocolo e dos limiares do detector da tela.
+3. Equipe: ler o `01_eda.ipynb`, interpretar e decidir as pendências marcadas; depois revisar as features, os tempos do protocolo e os limiares do detector da tela. A EDA aponta o que coletar: sopros sem álcool (`clean` e `mouthwash` com sopro), `alcohol70_hands`/`alcohol70_spray`, mais de um participante e anotar gelo e boca aberta em `notes`.
 4. Experimento com dados reais no MLflow, com k-fold e overfitting. Aí `ml/models/sob_efeito.joblib` passa a existir.
 5. A equipe escolhe um contrato MQTT e a ESP32 passa a publicar (quem mantém o firmware).
 6. Resultado do modelo na tela, MLflow e um Compose único.
