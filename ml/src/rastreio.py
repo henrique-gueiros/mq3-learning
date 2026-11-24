@@ -12,9 +12,11 @@ roda como antes.
 
 from __future__ import annotations
 
+import functools
 import json
 import math
 import os
+import sys
 from pathlib import Path
 from typing import Iterable
 
@@ -30,6 +32,21 @@ def ativo() -> bool:
     return bool(os.environ.get("MLFLOW_TRACKING_URI"))
 
 
+def _tolerante(funcao):
+    """O MLflow é auxiliar: se o servidor falhar, avisa e deixa o treino seguir."""
+
+    @functools.wraps(funcao)
+    def envolvida(*args, **kwargs):
+        try:
+            return funcao(*args, **kwargs)
+        except Exception as erro:  # noqa: BLE001
+            print(f"Aviso: não foi possível registrar no MLflow ({type(erro).__name__}: {erro})", file=sys.stderr)
+            return None
+
+    return envolvida
+
+
+@_tolerante
 def registrar_experimento(
     resultados: pd.DataFrame,
     folds: pd.DataFrame | None = None,
@@ -58,6 +75,7 @@ def registrar_experimento(
         return pai.info.run_id
 
 
+@_tolerante
 def registrar_final(
     metadata: dict,
     modelo,

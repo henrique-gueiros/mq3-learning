@@ -31,10 +31,9 @@ def _caminhos():
 
 
 def _rastreio_mlflow() -> None:
-    """Passa adiante o servidor do MLflow; ``src.rastreio`` lê a variável sozinho."""
+    """Avisa no log se o MLflow está ativo; ``src.rastreio`` lê a variável sozinho."""
     uri = os.environ.get("MLFLOW_TRACKING_URI", "")
     if uri:
-        os.environ["MLFLOW_TRACKING_URI"] = uri
         print(f"MLflow ativo: {uri}")
     else:
         print("MLFLOW_TRACKING_URI vazio: experimento não será registrado no MLflow")

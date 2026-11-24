@@ -78,3 +78,12 @@ def test_registra_modelo_final_com_metricas_e_figuras(monkeypatch, tmp_path, dad
     assert run["params.best_params"] == json.dumps(metadata["best_params"])
     arquivos = [a.path for a in mlflow.MlflowClient().list_artifacts(run["run_id"])]
     assert "matriz.png" in arquivos and "model" in arquivos
+
+
+def test_servidor_fora_do_ar_nao_derruba_o_treino(monkeypatch, capsys):
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:1")
+    monkeypatch.setenv("MLFLOW_HTTP_REQUEST_MAX_RETRIES", "0")
+    monkeypatch.setenv("MLFLOW_HTTP_REQUEST_TIMEOUT", "2")
+
+    assert rastreio.registrar_experimento(pd.DataFrame([{"sensor_set": "mq3", "model": "m", "chosen_params": "[]"}])) is None
+    assert "Aviso: não foi possível registrar no MLflow" in capsys.readouterr().err

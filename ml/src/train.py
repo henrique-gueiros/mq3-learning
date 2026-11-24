@@ -330,7 +330,8 @@ def train_final_model(
         labels = sorted(set(y) | set(y_test))
         metadata["n_test_attempts"] = len(y_test)
         metadata["test_metrics"] = compute_metrics(y_test, predictions, labels)
-        metadata["test_metrics"]["roc_auc"] = roc_auc(y_test, scores_sob_efeito(model, test[columns]))
+        auc = roc_auc(y_test, scores_sob_efeito(model, test[columns]))
+        metadata["test_metrics"]["roc_auc"] = None if np.isnan(auc) else auc  # null, não NaN, no JSON
         metadata["confusion_matrix"] = {
             "labels": labels,
             "matrix": confusion_matrix(y_test, predictions, labels=labels).tolist(),
