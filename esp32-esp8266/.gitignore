@@ -3,3 +3,5 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+# Wi-Fi e broker de cada um (modelo em include/segredos.exemplo.h)
+include/segredos.h

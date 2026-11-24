@@ -1,0 +1,7 @@
+{
+  "name": "protocolo",
+  "version": "1.0.0",
+  "description": "Formatos do Sopro Seguro (linha do CSV, JSON do MQTT, UUID, ppm) sem depender do Arduino, para testar no PC.",
+  "frameworks": "*",
+  "platforms": "*"
+}
