@@ -3,6 +3,10 @@
 A lógica mora em ``ml/src/pipeline.py``. Este DAG só define a ordem e lê o
 Postgres da coleta pela variável ``PG_DSN``. Disparo manual na interface do
 Airflow (http://localhost:8088).
+
+O treino e o teste registram o experimento no MLflow quando a variável
+``MLFLOW_TRACKING_URI`` está definida no ambiente do Airflow (no docker-compose,
+``http://mlflow:5000``). Sem ela nada é registrado.
 """
 
 from __future__ import annotations
@@ -24,6 +28,15 @@ def _caminhos():
     from src.paths import ProjectPaths
 
     return ProjectPaths(Path(os.environ.get("ML_ROOT", str(_ML_ROOT))))
+
+
+def _rastreio_mlflow() -> None:
+    """Avisa no log se o MLflow está ativo; ``src.rastreio`` lê a variável sozinho."""
+    uri = os.environ.get("MLFLOW_TRACKING_URI", "")
+    if uri:
+        print(f"MLflow ativo: {uri}")
+    else:
+        print("MLFLOW_TRACKING_URI vazio: experimento não será registrado no MLflow")
 
 
 def _incluir_simulador() -> bool:
@@ -74,6 +87,7 @@ def treinar(**context) -> dict:
     """Compara os modelos só com o treino. O resultado fica na XCom e em experiment.csv."""
     from src.pipeline import treinar_modelos
 
+    _rastreio_mlflow()
     conf = {}
     dag_run = context.get("dag_run")
     if dag_run is not None and dag_run.conf:
@@ -87,6 +101,7 @@ def testar(**context) -> dict:
     """Avalia uma vez no teste o modelo escolhido pelo treino. As métricas ficam na XCom."""
     from src.pipeline import avaliar_teste
 
+    _rastreio_mlflow()
     escolha = context["ti"].xcom_pull(task_ids="treinar")
     seed = int((escolha or {}).get("seed") or os.environ.get("MQ3_SEED", "42"))
     conf = {}

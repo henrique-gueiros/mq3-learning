@@ -61,3 +61,33 @@ def test_prepare_keeps_split_stable(tmp_path):
 def test_errors_return_exit_code_1(tmp_path, capsys):
     assert main(["--root", str(tmp_path), "validate"]) == 1
     assert "firmware" in capsys.readouterr().err
+
+
+def test_train_usa_o_mesmo_fluxo_do_pipeline(tmp_path):
+    paths = ProjectPaths(tmp_path)
+    _write_raw(paths)
+
+    assert main(["--root", str(tmp_path), "all"]) == 0
+    assert (paths.figuras_dir / "matriz_confusao.png").exists()
+    assert "f1_macro_std" in pd.read_csv(paths.reports_dir / "experiment.csv").columns
+
+
+def test_train_imprime_traco_quando_nao_ha_auc(tmp_path, capsys, monkeypatch):
+    import src.cli as cli
+
+    monkeypatch.setattr(cli, "treinar_modelos", lambda *a, **k: {"relatorio": "reports/experiment.csv"})
+    monkeypatch.setattr(
+        cli,
+        "avaliar_teste",
+        lambda *a, **k: {
+            "modelo": "m", "sensor_set": "mq3", "n_teste": 3, "modelo_arquivo": "x", "relatorio": "y",
+            "metricas_teste": {"f1_macro": 0.5, "roc_auc": None},
+        },
+    )
+    paths = ProjectPaths(tmp_path)
+    write_csv(pd.DataFrame({"sensor_set": ["mq3"], "model": ["m"], "f1_macro": [0.5], "balanced_accuracy": [0.5]}),
+              paths.reports_dir / "experiment.csv")
+
+    cli.run_train(paths, "f1_macro", 42)
+
+    assert "f1_macro=0.50, roc_auc=—" in capsys.readouterr().out

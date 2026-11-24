@@ -368,6 +368,8 @@ def treinar_modelos(
     A validação cruzada fica em ``reports/experiment.csv``. O teste continua
     intacto para ``avaliar_teste``.
     """
+    from src import figuras, rastreio
+    from src.features import feature_columns
     from src.splitting import load_split
     from src.train import choose_best, model_specs, run_experiment
 
@@ -375,12 +377,26 @@ def treinar_modelos(
     if split is None:
         raise FileNotFoundError(f"{paths.split_manifest} não existe; rode a preparação antes")
     train = read_dataset_csv(paths.train)
-    results = run_experiment(
-        train, group_by=split.group_by, seed=seed, models=model_specs(seed, n_estimators=n_estimators)
-    )
+    specs = model_specs(seed, n_estimators=n_estimators)
+    results, folds = run_experiment(train, group_by=split.group_by, seed=seed, models=specs, return_folds=True)
     report = paths.reports_dir / "experiment.csv"
     write_csv(results, report)
+    write_csv(folds, paths.reports_dir / "folds.csv")
     best = choose_best(results, select_by)
+
+    graficos = [
+        figuras.barras_por_modelo(results, paths.figuras_dir / "f1_por_modelo.png"),
+        figuras.treino_vs_validacao(folds, paths.figuras_dir / "treino_vs_validacao.png"),
+        figuras.curva_aprendizado(
+            _com_parametros_escolhidos(specs[str(best["model"])].pipeline, best["chosen_params"]),
+            train[feature_columns(str(best["sensor_set"]))],
+            train["target"],
+            train[split.group_by],
+            paths.figuras_dir / "curva_aprendizado.png",
+            titulo=f"Curva de aprendizado: {best['model']} com {best['sensor_set']}\n(hiperparâmetros mais escolhidos nos folds)",
+        ),
+    ]
+    rastreio.registrar_experimento(results, folds=folds, figuras=graficos)
     comparacao = []
     for row in results.sort_values(select_by, ascending=False).to_dict(orient="records"):
         comparacao.append(
@@ -408,8 +424,10 @@ def avaliar_teste(paths: ProjectPaths, escolha: dict, seed: int = 42) -> dict:
 
     Grava ``models/sob_efeito.joblib`` e ``reports/final.json``.
     """
+    from src import figuras, rastreio
+    from src.features import feature_columns
     from src.splitting import load_split
-    from src.train import save_model, train_final_model
+    from src.train import save_model, scores_sob_efeito, train_final_model
 
     split = load_split(paths.split_manifest)
     if split is None:
@@ -433,6 +451,21 @@ def avaliar_teste(paths: ProjectPaths, escolha: dict, seed: int = 42) -> dict:
     final_report.write_text(
         json.dumps(metadata, indent=2, ensure_ascii=False, default=str) + "\n", encoding="utf-8"
     )
+    graficos = []
+    if "confusion_matrix" in metadata:
+        graficos.append(
+            figuras.matriz_confusao(
+                metadata["confusion_matrix"]["labels"],
+                metadata["confusion_matrix"]["matrix"],
+                paths.figuras_dir / "matriz_confusao.png",
+            )
+        )
+        scores = scores_sob_efeito(model, test[feature_columns(escolha["sensor_set"])])
+        if scores is not None:
+            roc = figuras.curva_roc(test["target"], scores, paths.figuras_dir / "roc.png")
+            if roc is not None:
+                graficos.append(roc)
+    rastreio.registrar_final(metadata, model, graficos)
     return {
         "modelo": escolha["modelo"],
         "sensor_set": escolha["sensor_set"],
@@ -444,6 +477,19 @@ def avaliar_teste(paths: ProjectPaths, escolha: dict, seed: int = 42) -> dict:
         "modelo_arquivo": _relativo(paths, model_path),
         "relatorio": _relativo(paths, final_report),
     }
+
+
+def _com_parametros_escolhidos(pipeline, chosen_params: str):
+    """Clona o pipeline com os hiperparâmetros que mais vezes venceram nos folds externos."""
+    from collections import Counter
+
+    from sklearn.base import clone
+
+    escolhas = [json.dumps(p, sort_keys=True) for p in json.loads(chosen_params) if p]
+    modelo = clone(pipeline)
+    if escolhas:
+        modelo.set_params(**json.loads(Counter(escolhas).most_common(1)[0][0]))
+    return modelo
 
 
 def _avaliar_rodada(rodada: RodadaColetada, incluir_simulador: bool) -> tuple[str | None, str | None]:

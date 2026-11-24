@@ -2,3 +2,6 @@
 numpy>=1.26
 pandas>=2.1
 psycopg[binary]>=3.2
+# O Airflow só envia o registro ao servidor do MLflow (MLFLOW_TRACKING_URI); a versão resolve com as constraints 2.10.5.
+mlflow>=2.17,<3
+matplotlib>=3.8

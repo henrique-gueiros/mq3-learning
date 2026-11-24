@@ -99,7 +99,7 @@ ml/
 │   │   └── attempts.csv      # Um sopro por linha
 │   └── processed/            # features_all.csv, train.csv, test.csv, disponivel.json
 ├── models/                   # Modelos treinados (.joblib + .json)
-├── reports/                  # Resultados do experimento e do teste final
+├── reports/                  # experiment.csv, folds.csv, final.json e figuras/*.png
 ├── notebooks/                # Análise exploratória
 ├── dags/                     # DAG do Airflow; a lógica fica em src/pipeline.py
 ├── src/
@@ -109,7 +109,9 @@ ml/
 │   ├── data_io.py            # Leitura e gravação de CSVs
 │   ├── features.py           # Features por sopro e conjuntos de sensores
 │   ├── splitting.py          # Separação treino/teste por participante ou sessão
-│   ├── train.py              # Modelos, validação cruzada aninhada e modelo final
+│   ├── train.py              # Modelos, validação cruzada aninhada (por fold) e modelo final
+│   ├── figuras.py            # Matriz de confusão, ROC, barras por modelo, curva de aprendizado
+│   ├── rastreio.py           # Registro no MLflow (só com MLFLOW_TRACKING_URI)
 │   ├── inference.py          # Previsão para tentativas novas
 │   └── paths.py              # Caminhos padrão
 ├── templates/                # Cabeçalho do attempts.csv
@@ -164,7 +166,7 @@ O passo a passo da interface está no [README do repositório](../README.md). Na
 docker compose --profile airflow up -d --build
 ```
 
-A interface fica em http://localhost:8088 (usuário `admin`; a senha sai de `docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt`). O DAG `dataset_para_treino` é manual. A ordem é ingerir, preparar, disponibilizar, treinar e testar. O resultado de cada caixa está na aba XCom. O DAG não reescreve CSV de sessão e ignora rodada de simulador.
+A interface fica em http://localhost:8088 (usuário `admin`; a senha sai de `docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt`). O DAG `dataset_para_treino` é manual. A ordem é ingerir, preparar, disponibilizar, treinar e testar. O resultado de cada caixa está na aba XCom. Com `MLFLOW_TRACKING_URI` definida no serviço do Airflow (no Compose, `http://mlflow:5000`), o treino e o teste também são registrados no MLflow (veja "MLflow" abaixo). O DAG não reescreve CSV de sessão e ignora rodada de simulador.
 
 Sem a interface, de dentro de `ml/`, o comando abaixo faz só a ingestão, a preparação e o `disponivel.json`. O treino e o teste ficam no DAG, ou em `python -m src.cli train`:
 
@@ -178,7 +180,34 @@ python -m src.cli pipeline --dsn "$PG_DSN"   # sem --dsn, só prepara os CSVs qu
 - **Conjuntos de sensores:** `mq3`, `mq3+mq135`, `mq3+dht11`, `mq3+mq135+dht11`. Comparar os conjuntos mostra o quanto cada sensor ajuda.
 - **Validação cruzada aninhada por grupo:** o laço externo avalia com participantes que o modelo não viu; o laço interno escolhe os hiperparâmetros (Grid Search) só com os demais.
 - **Teste final:** usado uma única vez, para o modelo escolhido.
-- **Métricas:** F1 macro, acurácia balanceada, precisão e recall de `sob_efeito` e de `sem_efeito`. O **recall de `sob_efeito`** importa mais: deixar passar quem bebeu é o erro mais grave.
+- **Métricas:** F1 macro, acurácia balanceada, precisão e recall de `sob_efeito` e de `sem_efeito`. O **recall de `sob_efeito`** importa mais: deixar passar quem bebeu é o erro mais grave. `roc_auc` usa a probabilidade de `sob_efeito` (`predict_proba`); o baseline não tem probabilidade útil.
+- **Estabilidade:** cada métrica tem uma coluna `*_std`, o desvio padrão entre os folds externos em `reports/experiment.csv`. Desvio alto em relação à média significa que o resultado depende de quais participantes caíram no fold. As métricas de cada fold ficam em `reports/folds.csv`.
+- **Over/underfitting:** `f1_macro_treino` é o F1 no próprio treino de cada fold, a ser comparado com `f1_macro` (validação). Treino muito acima da validação indica overfitting; os dois baixos, underfitting. A figura `treino_vs_validacao.png` mostra isso e `curva_aprendizado.png` mostra o F1 conforme o treino cresce, para o modelo escolhido.
+- **Figuras** (`reports/figuras/`, também no MLflow): `f1_por_modelo.png` (F1 por modelo × sensores, barra de erro = desvio), `treino_vs_validacao.png`, `curva_aprendizado.png`, `matriz_confusao.png` e `roc.png` (teste, do modelo final).
+
+### Janelas sobrepostas e vazamento entre treino e validação
+
+`n_train_attempts` em `reports/final.json` (11289) é grande porque, nos arquivos sem álcool, `src/amostras_sem_efeito.py` transforma **cada leitura** em uma "tentativa" (ou 3 leituras seguidas, quando a umidade é ≥ 60%). Essas tentativas não se sobrepõem como sopros, mas as features olham 15 s antes e 30 s depois de cada uma (`BEFORE_SECONDS`/`AFTER_SECONDS` em `src/features.py`), e as leituras próximas da mesma sessão aparecem nas janelas de várias tentativas. Linhas vizinhas são, portanto, quase cópias umas das outras: o número de linhas não é o número de exemplos independentes.
+
+Isso só vaza entre treino e validação se linhas da mesma sessão ficarem em grupos diferentes. Não ficam: o `GroupKFold` (externo e interno) agrupa por `participant_id` (ou `session_file`), e `split.json` separa treino e teste pelo mesmo grupo. Como as tentativas são geradas por sessão, uma sessão cai em um grupo só. Para garantir isso, `run_experiment` chama `checar_sessoes_nos_grupos` e recusa o treino se alguma sessão aparece em mais de um grupo (por exemplo, se um `participant_id` for editado à mão em parte das linhas de uma sessão).
+
+Consequência prática: o que conta é o número de **grupos** (`n_groups`, hoje 13) e de sessões (`n_sessions` em `experiment.csv`), não o de linhas. Com tão poucos grupos, os desvios entre folds são grandes, e as métricas de teste (1562 linhas, poucos participantes) também. O F1 macro baixo de `sob_efeito` com recall alto e precisão baixa vem do desbalanceamento (poucos sopros de bebida frente a milhares de amostras `sem_efeito`).
+
+### MLflow
+
+`src/rastreio.py` só age quando `MLFLOW_TRACKING_URI` está definida; sem ela nada muda. Para testar sem servidor:
+
+```bash
+MLFLOW_TRACKING_URI=file:./mlruns python -m src.cli train
+mlflow ui --backend-store-uri ./mlruns   # http://localhost:5000 (mlflow ui local, sem Compose)
+```
+
+No Docker Compose (serviço `mlflow`, mantido fora desta pasta) a URI dentro da rede é `http://mlflow:5000`, definida no serviço do Airflow, e a interface no host fica em http://localhost:5050 (a 5000 do macOS é do AirPlay); a DAG não precisa de mais nada. O experimento `sopro-seguro` ganha:
+
+- um run pai `comparacao_de_modelos` com `experiment.csv`, `folds.csv` e as figuras de comparação como artifacts, e um run filho por (conjunto de sensores × modelo) com os params `sensor_set`, `model`, `chosen_params` e todas as métricas, inclusive `*_std`, `f1_macro_treino` e `roc_auc` (o baseline é o run de referência);
+- um run `modelo_final` com o modelo (`model/`), as métricas de teste com prefixo `teste_`, `cv_score` e as figuras de matriz de confusão e ROC.
+
+A dependência `mlflow>=2.17,<3` está em `ml/requirements.txt` e `airflow/requirements.txt`; resolve junto das constraints do Airflow 2.10.5 (Python 3.12, pyarrow 19) e do `scikit-learn==1.6.1`, então não foi preciso usar `mlflow-skinny`. O `airflow/Dockerfile` reinstala `scikit-learn==1.6.1` depois, o que mantém a versão do modelo.
 
 ## Limitações
 
@@ -193,7 +222,7 @@ python -m src.cli pipeline --dsn "$PG_DSN"   # sem --dsn, só prepara os CSVs qu
 1. Coletar as condições seguras (`clean`, `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash`) com vários participantes, cadastrando cada sopro em `attempts.csv`.
 2. Coletar as duas classes: quem bebeu (`sob_efeito`) e quem não bebeu, incluindo perfume e álcool em gel (`sem_efeito`).
 3. Análise exploratória em `notebooks/01_eda.ipynb` e revisão das features e dos tempos do protocolo.
-4. Registrar os experimentos no MLflow.
+4. Rodar o treino com dados reais registrando no MLflow (o registro está pronto; falta a coleta e o serviço no Compose).
 5. As leituras ao vivo entram pelo MQTT em `services/`: o worker grava no Postgres e o servidor do modelo espera `models/sob_efeito.joblib`. Quando esse arquivo existir, ele classifica com o mesmo `predict` daqui. O treino ainda não lê o banco direto: o Airflow exporta a rodada encerrada para os CSVs de `data/raw/` e o `prepare` segue a partir daí.
 
 ## Segurança

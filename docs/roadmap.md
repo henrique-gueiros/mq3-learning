@@ -46,12 +46,13 @@ Ainda não existe:
 - [ ] Modelo treinado e avaliado com dados reais (métricas dos testes automatizados **não** dizem nada sobre o sensor).
 - [ ] Wi-Fi/MQTT na ESP32 (hoje a ponte publica no lugar da placa).
 - [x] MLflow e um Compose único com todos os serviços (24/11): `docker compose up -d --build` sobe broker, banco, ingestor, API, tela, modelo, alerta, Airflow e MLflow; rede com IPv6.
+- [x] Registro no MLflow (`ml/src/rastreio.py`), métricas por fold, F1 treino × validação, ROC/AUC e figuras (`ml/src/figuras.py`).
+- [x] Firmware com FreeRTOS (4 tarefas), Wi-Fi, MQTT no contrato da coleta e IPv6 — compila e passa nos testes de PC; **falta testar na placa**.
 
 ## Próximas tarefas, em ordem
 
 1. Rodar o Lighthouse de acessibilidade da tela (meta ≥ 95) antes da mostra.
 2. Coleta com a ponte (`applications/README.md`, "Dia de coleta"), com sopros marcados, e conferência com `python -m src.cli validate`.
-3. Equipe: ler o `01_eda.ipynb`, interpretar e decidir as pendências marcadas; depois revisar as features, os tempos do protocolo e os limiares do detector da tela. A EDA aponta o que coletar: sopros sem álcool (`clean` e `mouthwash` com sopro), `alcohol70_hands`/`alcohol70_spray`, mais de um participante e anotar gelo e boca aberta em `notes`.
-4. Experimento com dados reais no MLflow, com k-fold e overfitting. Aí `ml/models/sob_efeito.joblib` passa a existir.
-5. A ESP32 passa a publicar no contrato da coleta, com FreeRTOS (branch `firmware-freertos-mqtt`, em andamento; revisão de quem mantém o firmware).
-6. MLflow e um Compose único (plano `docs/superpowers/plans/2026-11-24-fecha-requisitos.md`).
+3. Equipe: ler o `01_eda.ipynb`, interpretar e decidir as pendências marcadas. A EDA aponta o que coletar: sopros sem álcool (`clean` e `mouthwash` com sopro), `alcohol70_hands`/`alcohol70_spray`, mais de um participante e anotar gelo e boca aberta em `notes`.
+4. Rodar o experimento com dados reais pelo DAG; o registro no MLflow, o desvio entre folds e a comparação treino × validação já existem.
+5. Testar o firmware na placa (Wi-Fi, MQTT, botão, IPv6) com quem mantém o firmware.

@@ -62,3 +62,7 @@ class ProjectPaths:
     @property
     def reports_dir(self) -> Path:
         return self.root / "reports"
+
+    @property
+    def figuras_dir(self) -> Path:
+        return self.reports_dir / "figuras"
