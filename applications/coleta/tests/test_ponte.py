@@ -90,3 +90,23 @@ def test_encerrar_nao_repete_sopros_ja_gravados(coleta, tmp_path):
     coleta.comando("f")
     coleta.encerrar_rodada()
     assert len(_linhas_attempts(tmp_path / "attempts.csv")) == 1
+
+
+def test_botao_da_placa_marca_o_sopro_no_instante_dela(coleta, tmp_path):
+    from coleta.serial_proto import EventoPlaca
+
+    coleta.receber(leitura(1, 20000))
+    coleta.receber(EventoPlaca("leituras_1.csv", "sopro_inicio", 20500))
+    coleta.receber(leitura(2, 21000))
+    coleta.receber(leitura(3, 22000))
+    coleta.receber(EventoPlaca("leituras_1.csv", "sopro_fim", 22400))
+    [linha] = _linhas_attempts(tmp_path / "attempts.csv")
+    assert (linha["blow_start_s"], linha["blow_end_s"]) == ("20.5", "22.4")
+
+
+def test_rodada_fim_da_placa_nao_marca_sopro(coleta, tmp_path):
+    from coleta.serial_proto import EventoPlaca
+
+    coleta.receber(leitura(1, 20000))
+    coleta.receber(EventoPlaca("leituras_1.csv", "rodada_fim", 20000))
+    assert coleta.rodada.sopros == []

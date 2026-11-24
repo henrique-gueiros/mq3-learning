@@ -3,8 +3,10 @@ numpy>=1.26
 pandas>=2.1
 psycopg[binary]>=3.2
 scikit-learn==1.6.1
+# Só o cliente do MLflow: o servidor roda no Docker Compose (http://localhost:5050).
+# O pacote "mlflow" completo puxa o pyarrow, que não compila no Python 3.14.
 # 2.22 resolve junto com as constraints do Airflow 2.10.5 (Python 3.12) e com o scikit-learn 1.6.1.
-mlflow>=2.17,<3
+mlflow-skinny>=2.17,<3
 matplotlib>=3.8
 seaborn>=0.13
 jupyter>=1.0

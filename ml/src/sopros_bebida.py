@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.data_io import arquivos_de_sessao
 from src.paths import ProjectPaths
 
 PPM_MINIMO = 0.6
@@ -54,7 +55,7 @@ def sopros_de_bebida(amostras: pd.DataFrame, session_file: str, participant_id: 
 def arquivos_bebida(sessions_dir: Path, lote: Path | None = None) -> list[Path]:
     """CSVs de bebida: o nome tem "alcool", ou o lote aponta uma origem com "alcool"."""
     sessions_dir = Path(sessions_dir)
-    por_nome = {path.name: path for path in sessions_dir.glob("*.csv")}
+    por_nome = {path.name: path for path in arquivos_de_sessao(sessions_dir)}
     escolhidos = {nome: path for nome, path in por_nome.items() if e_arquivo_bebida(nome)}
     for origem, sessao in _pares_de_lote(lote):
         if e_arquivo_bebida(origem) and sessao in por_nome:

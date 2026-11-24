@@ -163,7 +163,7 @@ Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste
 O passo a passo da interface está no [README do repositório](../README.md). Na raiz:
 
 ```bash
-docker compose --profile airflow up -d --build
+docker compose up -d --build   # o Airflow e o MLflow sobem junto com o resto
 ```
 
 A interface fica em http://localhost:8088 (usuário `admin`; a senha sai de `docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt`). O DAG `dataset_para_treino` é manual. A ordem é ingerir, preparar, disponibilizar, treinar e testar. O resultado de cada caixa está na aba XCom. Com `MLFLOW_TRACKING_URI` definida no serviço do Airflow (no Compose, `http://mlflow:5000`), o treino e o teste também são registrados no MLflow (veja "MLflow" abaixo). O DAG não reescreve CSV de sessão e ignora rodada de simulador.
@@ -222,8 +222,8 @@ A dependência `mlflow>=2.17,<3` está em `ml/requirements.txt` e `airflow/requi
 1. Coletar as condições seguras (`clean`, `perfume`, `alcohol70_spray`, `alcohol70_hands`, `mouthwash`) com vários participantes, cadastrando cada sopro em `attempts.csv`.
 2. Coletar as duas classes: quem bebeu (`sob_efeito`) e quem não bebeu, incluindo perfume e álcool em gel (`sem_efeito`).
 3. Análise exploratória em `notebooks/01_eda.ipynb` e revisão das features e dos tempos do protocolo.
-4. Rodar o treino com dados reais registrando no MLflow (o registro está pronto; falta a coleta e o serviço no Compose).
-5. As leituras ao vivo entram pelo MQTT em `services/`: o worker grava no Postgres e o servidor do modelo espera `models/sob_efeito.joblib`. Quando esse arquivo existir, ele classifica com o mesmo `predict` daqui. O treino ainda não lê o banco direto: o Airflow exporta a rodada encerrada para os CSVs de `data/raw/` e o `prepare` segue a partir daí.
+4. Rodar o treino com dados reais pelo DAG; ele registra no MLflow (http://localhost:5050).
+5. As leituras ao vivo entram pelo MQTT: o ingestor grava no Postgres e o servidor do modelo (`services/mq3mqtt/ao_vivo.py`) espera `models/sob_efeito.joblib`. Quando esse arquivo existir, ele classifica com o mesmo `predict` daqui. O treino ainda não lê o banco direto: o Airflow exporta a rodada encerrada para os CSVs de `data/raw/` e o `prepare` segue a partir daí.
 
 ## Segurança
 

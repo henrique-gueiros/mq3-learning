@@ -97,3 +97,24 @@
    - `docker compose up -d --build`; disparar o DAG `dataset_para_treino` e ver os runs e as figuras em http://localhost:5050;
    - `pio run` do firmware.
    - O firmware com a placa de verdade (Wi-Fi, MQTT, botão, IPv6) **não foi testado em hardware**. Isso fica para a equipe, com `mosquitto_sub -h <ip do computador> -t 'mq3/#' -v`.
+
+### Integração (24/11, 14h20): **merge feito; falta verificar o DAG com dados e o README**
+
+- Merge das 3 branches em `fecha-requisitos` (`5f0b429`, `ab7948b`, `38295d8`); o conflito do roadmap foi resolvido.
+- A ponte lê `CSV_EVENTO` (`EventoPlaca` em `serial_proto.py`; `Rodada.marcar_*_sopro(t_ms)`), e o ML ignora `*.eventos.csv` (`data_io.arquivos_de_sessao`). O `ml/README.md` foi corrigido.
+- `ml/requirements.txt` passou a usar `mlflow-skinny` (o `mlflow` completo não instala no Python 3.14 por causa do pyarrow).
+- **Testes:** ml 82, applications 118, services 28, front 205, `pio run` OK e `pio test -e native` 14.
+- **O DAG falhou em `preparar` por falta de dados:** `ml/data/raw/sessions` está vazio neste checkout e o banco não tem rodada real encerrada. É ambiente, não bug.
+
+**Falta:**
+1. Verificar o MLflow com dados. Numa pasta temporária, copiar o lote (`applications/dados/lote-2026-11.csv` → `esp32-esp8266/*.csv`) como na célula 6 do `01_eda.ipynb`, rodar `preparar_dataset`, `treinar_modelos` e `avaliar_teste` (`ml/src/pipeline.py`) com `MLFLOW_TRACKING_URI=http://localhost:5050` e conferir os runs na interface. Ou importar o lote no banco (`applications/README.md`, "CSVs já coletados") e disparar o DAG.
+2. No README da raiz, escrever a seção "Novidades de 24/11" (contrato único, card do modelo, alerta, Grafana removido, compose único, MLflow 5050, IPv6, firmware FreeRTOS, EDA) e o guia "Como testar cada coisa":
+   - testes de ml/, applications/, services/ e do front;
+   - `pio run` e `pio test -e native`;
+   - simulador → resultado (`mosquitto_sub -h ::1 -t 'mq3/+/resultado'`);
+   - tela em 8080;
+   - alerta (`docker compose logs alerta`);
+   - DAG e MLflow;
+   - IPv6;
+   - placa (`segredos.h`, botão BOOT, `CSV_EVENTO`).
+3. Code-review do diff da integração e o commit.

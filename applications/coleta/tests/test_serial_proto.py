@@ -72,3 +72,14 @@ def test_numero_de_campos_estranho_e_ignorado():
 
 def test_campo_extra_ilegivel_invalida_a_linha():
     assert ler_linha(LINHA_COM_RS.replace("1745.00", "17x5")) is None
+
+
+def test_evento_do_botao_da_placa():
+    from coleta.serial_proto import EventoPlaca
+
+    assert ler_linha("CSV_EVENTO,leituras_3.csv,sopro_inicio,41230\r\n") == EventoPlaca(
+        "leituras_3.csv", "sopro_inicio", 41230
+    )
+    assert ler_linha("CSV_EVENTO,leituras_3.csv,sopro_fim,46000") == EventoPlaca("leituras_3.csv", "sopro_fim", 46000)
+    for lixo in ["CSV_EVENTO,a.csv,outro,1", "CSV_EVENTO,a.csv,sopro_fim,x", "CSV_EVENTO,a.csv,sopro_fim"]:
+        assert ler_linha(lixo) is None, lixo

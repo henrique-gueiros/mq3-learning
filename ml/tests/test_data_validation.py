@@ -126,3 +126,11 @@ def test_load_raw_data(tmp_path):
 def test_load_raw_data_explains_missing_files(tmp_path):
     with pytest.raises(FileNotFoundError, match="firmware"):
         load_raw_data(tmp_path / "sessions", tmp_path / "attempts.csv")
+
+
+def test_arquivo_de_eventos_da_placa_nao_e_sessao(tmp_path):
+    from src.data_io import arquivos_de_sessao
+
+    (tmp_path / "leituras_3.csv").write_text("x\n")
+    (tmp_path / "leituras_3.eventos.csv").write_text("tipo,t_ms\nsopro_inicio,41230\n")
+    assert [p.name for p in arquivos_de_sessao(tmp_path)] == ["leituras_3.csv"]

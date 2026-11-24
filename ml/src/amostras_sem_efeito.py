@@ -20,6 +20,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.paths import ProjectPaths
+from src.data_io import arquivos_de_sessao
 from src.sopros_bebida import arquivos_bebida
 
 UMIDADE_MINIMA_SOPRO = 60.0
@@ -72,7 +73,7 @@ def reorganizar_amostras_sem_efeito(paths: ProjectPaths, lote: Path | None = Non
 
     nomes_bebida = {path.name for path in bebidas}
     casos = _casos_do_lote(lote)
-    sessoes = sorted(path for path in paths.raw_sessions_dir.glob("*.csv") if path.name not in nomes_bebida)
+    sessoes = [path for path in arquivos_de_sessao(paths.raw_sessions_dir) if path.name not in nomes_bebida]
     participantes = _participantes(paths.raw_attempts)
     novas: list[dict] = []
     avisos: list[str] = []

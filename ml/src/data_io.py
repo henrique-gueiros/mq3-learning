@@ -44,6 +44,11 @@ def read_attempts_csv(path: Path) -> pd.DataFrame:
         raise DataValidationError([f"{Path(path).name}: {p}" for p in exc.problems]) from exc
 
 
+def arquivos_de_sessao(sessions_dir: Path) -> list[Path]:
+    """CSVs de sessão da pasta, em ordem. ``*.eventos.csv`` (botão da placa) não é sessão."""
+    return sorted(p for p in Path(sessions_dir).glob("*.csv") if not p.name.endswith(".eventos.csv"))
+
+
 def load_raw_data(sessions_dir: Path, attempts_path: Path) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     """Carrega e valida todas as sessões e tentativas reais.
 
@@ -53,7 +58,7 @@ def load_raw_data(sessions_dir: Path, attempts_path: Path) -> tuple[pd.DataFrame
         ``(leituras de todas as sessões, tentativas, avisos)``.
     """
     sessions_dir = Path(sessions_dir)
-    files = sorted(sessions_dir.glob("*.csv"))
+    files = arquivos_de_sessao(sessions_dir)
     if not files:
         raise FileNotFoundError(
             f"nenhum CSV em {sessions_dir}. Copie para lá os CSVs de sessão gravados pelo firmware"

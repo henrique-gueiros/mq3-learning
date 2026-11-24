@@ -3,7 +3,9 @@
 O firmware manda duas linhas que interessam:
 
 - ``CSV_ARQUIVO,<nome>``: a placa ligou (ou reiniciou) e abriu um CSV novo;
-- ``CSV_LINHA,<nome>,<campos>``: uma leitura, com os mesmos campos do CSV.
+- ``CSV_LINHA,<nome>,<campos>``: uma leitura, com os mesmos campos do CSV;
+- ``CSV_EVENTO,<nome>,<tipo>,<t_ms>``: o botão da placa marcou ``sopro_inicio``,
+  ``sopro_fim`` ou ``rodada_fim`` no relógio dela (firmware com FreeRTOS).
 
 Todo o resto (mensagens de depuração, lixo do boot, linhas cortadas) é ignorado.
 
@@ -53,6 +55,8 @@ CABECALHOS_ACEITOS = frozenset(",".join(colunas) for colunas in FORMATOS.values(
 
 _PREFIXO_LINHA = "CSV_LINHA,"
 _PREFIXO_ARQUIVO = "CSV_ARQUIVO,"
+_PREFIXO_EVENTO = "CSV_EVENTO,"
+TIPOS_EVENTO_PLACA = ("sopro_inicio", "sopro_fim", "rodada_fim")
 
 
 @dataclass(frozen=True)
@@ -100,6 +104,15 @@ class ArquivoNovo:
     nome: str
 
 
+@dataclass(frozen=True)
+class EventoPlaca:
+    """O botão da placa marcou um evento, no ``t_ms`` do relógio dela."""
+
+    arquivo: str
+    tipo: str
+    t_ms: int
+
+
 _CONVERSORES: dict[str, Callable[[str], Union[int, float]]] = {
     "amostra": int,
     "t_ms": int,
@@ -119,7 +132,7 @@ _GUARDADAS = set(COLUNAS_FIRMWARE)
 _OBRIGATORIOS = {"amostra", "t_ms", "mq3_raw"}
 
 
-def ler_linha(bruta: Union[bytes, str]) -> Union[Leitura, ArquivoNovo, None]:
+def ler_linha(bruta: Union[bytes, str]) -> Union[Leitura, ArquivoNovo, EventoPlaca, None]:
     """Interpreta uma linha da serial; devolve ``None`` para o que não for dado."""
     texto = bruta.decode("utf-8", errors="replace") if isinstance(bruta, bytes) else bruta
     texto = texto.strip()
@@ -128,6 +141,14 @@ def ler_linha(bruta: Union[bytes, str]) -> Union[Leitura, ArquivoNovo, None]:
     if texto.startswith(_PREFIXO_ARQUIVO):
         nome = texto[len(_PREFIXO_ARQUIVO):]
         return ArquivoNovo(nome) if nome else None
+    if texto.startswith(_PREFIXO_EVENTO):
+        partes = texto[len(_PREFIXO_EVENTO):].split(",")
+        if len(partes) != 3 or partes[1] not in TIPOS_EVENTO_PLACA:
+            return None
+        try:
+            return EventoPlaca(partes[0], partes[1], int(partes[2]))
+        except ValueError:
+            return None
     if texto.startswith(_PREFIXO_LINHA):
         _, _, campos = texto[len(_PREFIXO_LINHA):].partition(",")
         return ler_campos(campos)

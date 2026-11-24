@@ -34,7 +34,7 @@ from coleta.config import Config
 from coleta.mensagens import payload_evento, payload_leitura, payload_rodada
 from coleta.publicador import Publicador
 from coleta.rodada import IGNORAR, REINICIOU, Rodada
-from coleta.serial_proto import ArquivoNovo, Leitura, ler_linha
+from coleta.serial_proto import ArquivoNovo, EventoPlaca, Leitura, ler_linha
 
 BAUD = 115200
 ESPERA_BROKER_S = 3.0
@@ -69,7 +69,15 @@ class Coleta:
         )
         print(f"Rodada aberta: {caminho.name}")
 
-    def receber(self, evento: Union[Leitura, ArquivoNovo]) -> None:
+    def receber(self, evento: Union[Leitura, ArquivoNovo, EventoPlaca]) -> None:
+        if isinstance(evento, EventoPlaca):
+            # Botão da placa: o mesmo que Enter e "f", no instante que a placa mediu.
+            # rodada_fim não precisa de nada: a placa abre outro CSV (CSV_ARQUIVO).
+            if evento.tipo == "sopro_inicio":
+                self._iniciar_sopro(evento.t_ms)
+            elif evento.tipo == "sopro_fim":
+                self._fechar_sopro(evento.t_ms)
+            return
         resultado = self.rodada.receber(evento)
         if resultado == IGNORAR:
             return
@@ -84,26 +92,32 @@ class Coleta:
 
     def comando(self, texto: str) -> None:
         if texto == "":
-            sopro = self.rodada.marcar_inicio_sopro()
-            if sopro is None:
-                if self.rodada.ultimo_t_ms is None:
-                    print("Ainda não chegou nenhuma leitura: sopro não marcado.")
-                else:
-                    print("Já há um sopro marcado neste instante.")
-                return
-            self._publicar("eventos", payload_evento(self.rodada.id, "sopro_inicio", sopro.inicio_ms))
-            self._gravar_sopros(fechando=False)
-            print(f"Sopro {len(self.rodada.sopros)} às {sopro.inicio_ms / 1000:.1f} s")
+            self._iniciar_sopro()
         elif texto.lower() == "f":
-            sopro = self.rodada.marcar_fim_sopro()
-            if sopro is None:
-                print("Nenhum sopro aberto, ou ele acabou de começar: aperte f de novo em 1 s.")
-                return
-            self._publicar("eventos", payload_evento(self.rodada.id, "sopro_fim", sopro.fim_ms))
-            self._gravar_sopros(fechando=False)
-            print(f"Fim do sopro às {sopro.fim_ms / 1000:.1f} s")
+            self._fechar_sopro()
         else:
             print("Comandos: Enter = início do sopro, f + Enter = fim do sopro, Ctrl+C = encerrar.")
+
+    def _iniciar_sopro(self, t_ms: Optional[int] = None) -> None:
+        sopro = self.rodada.marcar_inicio_sopro(t_ms)
+        if sopro is None:
+            if self.rodada.ultimo_t_ms is None:
+                print("Ainda não chegou nenhuma leitura: sopro não marcado.")
+            else:
+                print("Já há um sopro marcado neste instante.")
+            return
+        self._publicar("eventos", payload_evento(self.rodada.id, "sopro_inicio", sopro.inicio_ms))
+        self._gravar_sopros(fechando=False)
+        print(f"Sopro {len(self.rodada.sopros)} às {sopro.inicio_ms / 1000:.1f} s")
+
+    def _fechar_sopro(self, t_ms: Optional[int] = None) -> None:
+        sopro = self.rodada.marcar_fim_sopro(t_ms)
+        if sopro is None:
+            print("Nenhum sopro aberto, ou ele acabou de começar: aperte f de novo em 1 s.")
+            return
+        self._publicar("eventos", payload_evento(self.rodada.id, "sopro_fim", sopro.fim_ms))
+        self._gravar_sopros(fechando=False)
+        print(f"Fim do sopro às {sopro.fim_ms / 1000:.1f} s")
 
     def encerrar_rodada(self) -> None:
         rodada, caminho = self.rodada, self.csv.caminho

@@ -56,22 +56,23 @@ class Rodada:
         self.leituras += 1
         return LEITURA
 
-    def marcar_inicio_sopro(self) -> Optional[Sopro]:
-        """Marca um sopro no ``t_ms`` da última leitura.
+    def marcar_inicio_sopro(self, t_ms: Optional[int] = None) -> Optional[Sopro]:
+        """Marca um sopro no ``t_ms`` dado (botão da placa) ou no da última leitura (Enter).
 
         ``None`` se ainda não houve leitura ou se já há um sopro nesse instante
         (Enter apertado duas vezes no mesmo segundo).
         """
         if self.ultimo_t_ms is None:
             return None
-        if self.sopros and self.sopros[-1].inicio_ms == self.ultimo_t_ms:
+        instante = self.ultimo_t_ms if t_ms is None else t_ms
+        if self.sopros and self.sopros[-1].inicio_ms == instante:
             return None
-        sopro = Sopro(self.ultimo_t_ms)
+        sopro = Sopro(instante)
         self.sopros.append(sopro)
         return sopro
 
-    def marcar_fim_sopro(self) -> Optional[Sopro]:
-        """Fecha o último sopro no ``t_ms`` da última leitura.
+    def marcar_fim_sopro(self, t_ms: Optional[int] = None) -> Optional[Sopro]:
+        """Fecha o último sopro no ``t_ms`` dado (botão da placa) ou no da última leitura.
 
         ``None`` se não houver sopro aberto ou se ainda não chegou leitura
         depois do início (o fim precisa ser posterior ao início).
@@ -79,9 +80,10 @@ class Rodada:
         if not self.sopros or self.sopros[-1].fim_ms is not None:
             return None
         sopro = self.sopros[-1]
-        if self.ultimo_t_ms <= sopro.inicio_ms:
+        instante = self.ultimo_t_ms if t_ms is None else t_ms
+        if instante <= sopro.inicio_ms:
             return None
-        sopro.fim_ms = self.ultimo_t_ms
+        sopro.fim_ms = instante
         return sopro
 
     def terminou(self) -> bool:
