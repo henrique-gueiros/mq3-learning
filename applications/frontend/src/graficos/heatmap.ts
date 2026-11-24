@@ -2,7 +2,7 @@
  * Heatmap divergente casos × sensores: quanto a média de cada caso difere da média do
  * ambiente (`clean`), em %. Abaixo do ambiente puxa para a cor do ambiente, acima para a
  * da bebida, e o meio é cinza neutro (regra da skill `dataviz` para escalas divergentes).
- * Portado de `applications/grafana/paineis/variacao.js`.
+ * Portado do antigo painel do Grafana (removido em 24/11/2026).
  */
 
 import type { CelulaHeatmap } from '../api/consultas'

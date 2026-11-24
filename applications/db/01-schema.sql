@@ -1,4 +1,4 @@
--- Banco da coleta: rodadas, leituras e eventos, mais as views usadas pelo Grafana.
+-- Banco da coleta: rodadas, leituras e eventos, mais as views usadas pela API da tela.
 -- As janelas seguem ml/src/features.py: 15 s antes do sopro (linha de base pela
 -- mediana), o sopro (até sopro_fim ou 5 s) e 30 s depois.
 -- ppm e alcool são calculados pelo firmware. O alcool fica fora de todas as views; o ppm aparece só

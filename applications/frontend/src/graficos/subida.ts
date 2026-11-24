@@ -1,7 +1,7 @@
 /**
  * Subida por sopro: um ponto por sopro marcado, com quanto o MQ-3 (x) e o MQ-135 (y)
  * subiram em relação à mediana dos 15 s antes do sopro (pico do sopro + 30 s).
- * Portado de `applications/grafana/paineis/subida.js`.
+ * Portado do antigo painel do Grafana (removido em 24/11/2026).
  */
 
 import type { Sopro } from '../api/consultas'

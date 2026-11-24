@@ -1,7 +1,7 @@
 /**
  * Uma rodada: MQ-3, MQ-135 e Umidade em grades empilhadas, na cor do caso, com faixa
  * cinza onde a leitura cai na janela de sopro (sopro + 30 s).
- * Portado de `applications/grafana/paineis/rodada.js`.
+ * Portado do antigo painel do Grafana (removido em 24/11/2026).
  */
 
 import type { LeiturasRodada, PontoRodada } from '../api/consultas'

@@ -51,19 +51,35 @@
   - Serviço `alerta` no compose; variáveis no `.env.example`.
   - Testado com um cliente HTTP falso e no compose local, mas só pelo log: **o envio real ao Telegram não foi testado**, porque falta um bot da equipe.
 
-### Etapa 7 — remover o Grafana: **pendente** (próxima, em `fecha-requisitos`)
+### Etapa 7 — remover o Grafana: **feita** (commit "Remove o Grafana e o túnel do Grafana Cloud")
 
-Roteiro (vem da Etapa 7 de `2026-11-17-frontend-react.md`):
-1. Apagar `applications/grafana/`, `applications/pdc/` e, no `docker-compose.yml`, os serviços `grafana` (perfil `local`) e `pdc` (perfil `cloud`) e o volume `grafana-dados`.
-2. No `.env.example`, remover `GRAFANA_ADMIN_SENHA`, `GCLOUD_*`, `GRAFANA_URL` e `GRAFANA_TOKEN`. Trocar `GRAFANA_PG_SENHA` por `LEITOR_PG_SENHA`, e também na `api` do compose (`API_PG_DSN`).
-3. Em `applications/db/02-leitor.sh`, renomear o papel `grafana_leitor` para `leitor`.
-   - Migração `applications/db/migracoes/2026-11-24-leitor.sql` com `ALTER ROLE grafana_leitor RENAME TO leitor` (com guarda `IF EXISTS`) e ajuste da senha documentado.
-   - A migração de resultados dá `GRANT` para `grafana_leitor` se o papel existir; depois do rename, o grant continua valendo.
-4. Comentários "usadas pelo Grafana" em `01-schema.sql` e as referências em `README.md`, `ARCHITECTURE.md` (portas e pastas), `applications/README.md` e `docs/roadmap.md`.
-5. `git grep -i grafana` só pode sobrar em `docs/superpowers/` (histórico).
-6. Testes de `applications/` com `PG_DSN` (e a fixture do papel, se algum teste usar `grafana_leitor`), `docker compose config -q` e a tela abrindo.
+- **Removidos:** `applications/grafana/`, `applications/pdc/` e `applications/coleta/tests/test_dashboard.py`; no compose, os serviços `grafana` e `pdc` e o volume `grafana-dados`; no `.env.example`, as variáveis do Grafana e do PDC.
+- **Usuário só leitura renomeado de `grafana_leitor` para `leitor`:**
+  - `02-leitor.sh` usa `LEITOR_PG_SENHA`;
+  - migração `applications/db/migracoes/2026-11-24-leitor.sql` faz o rename;
+  - o compose aceita o `.env` antigo: `${LEITOR_PG_SENHA:-${GRAFANA_PG_SENHA:-}}`.
+- Aplicado no banco local; a API responde 200 com `leitor`. Testes: `applications` 115, front 205 e o build passam.
+- **Quem tem banco antigo:** rodar as duas migrações de 24/11 (`resultados-e-origem-placa` e `leitor`) e, no `.env`, renomear `GRAFANA_PG_SENHA` para `LEITOR_PG_SENHA`. Sem renomear também funciona.
 
-### Etapa 8 — compose único (com serviço `mlflow`) e IPv6: **pendente**
+### Etapa 8 — compose único (com serviço `mlflow`) e IPv6: **pendente** (próxima, em `fecha-requisitos`)
+
+Roteiro:
+1. **MLflow no compose.**
+   - Serviço `mlflow` com a imagem `ghcr.io/mlflow/mlflow` (versão fixa igual à que a branch de ML puser em `ml/requirements.txt`).
+   - `mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri postgresql://.../mlflow --artifacts-destination /mlartifacts`; volume `mlflow-dados`; porta `127.0.0.1:5000:5000`.
+   - O banco `mlflow` é criado por um script novo `applications/db/03-mlflow.sh` (`CREATE DATABASE mlflow`) e por uma migração para banco antigo.
+   - A imagem oficial não traz `psycopg2`. Se faltar, usar `backend-store-uri sqlite:////mlflow/mlflow.db` no volume e documentar.
+2. **Airflow com `MLFLOW_TRACKING_URI=http://mlflow:5000`.**
+   - Tirar `profiles: ["airflow"]` de `airflow-init` e `airflow`, para `docker compose up -d --build` subir tudo.
+   - Conferir a memória: o Airflow standalone pesa; documentar o mínimo de RAM do Docker.
+3. **IPv6.**
+   - Em `networks: default:`, `enable_ipv6: true` e `ipam` com subnet `fd00:dead:beef::/48`.
+   - Em `applications/mosquitto/mosquitto.conf`, `listener 1883` sem bind, para escutar em `::` e `0.0.0.0`; conferir no log do mosquitto (`Opening ipv6 listen socket on port 1883`).
+   - Testar `docker compose exec mosquitto mosquitto_sub -h ::1 -t '$SYS/#' -C 1`.
+   - O lado da placa vem da branch do firmware.
+   - Hipótese: depende de o Docker Desktop ter IPv6 ligado (Settings → Docker Engine, `"ipv6": true`). Documentar no README.
+4. **README.** Seção "Subir tudo" com um comando e a tabela de portas (8080 tela, 8000 API, 8010 modelo, 8088 Airflow, 5000 MLflow, 1883/9001 MQTT, 5432 Postgres); atualizar `ARCHITECTURE.md` (portas e diagrama).
+5. **Verificar.** `docker compose down && docker compose up -d --build`: todos os serviços `Up`/`healthy`; tela, Airflow e MLflow abrindo; DAG rodando e criando runs no MLflow. Isso depende do merge da branch de ML.
 ### Etapas 2, 3–4 e 5: **em andamento nas worktrees** (ver tabela acima)
 
 ## Contexto

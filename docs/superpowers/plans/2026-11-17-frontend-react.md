@@ -21,7 +21,7 @@ etapa deve conseguir trabalhar só com este arquivo, o código e os READMEs.
 | 5b. Animações, acabamento e revisão de design (3A) — parte 1 | feita (ver "3A — acabamento: parte 1 feita") | ver `git log` |
 | 5b. Animações, acabamento e revisão de design (3A) — parte 2 | feita, com a revisão das skills e Lighthouse 100 (ver "3A — revisão das skills") | ver `git log` |
 | 6b. Documentação (3C) | feita neste ciclo (READMEs, ARCHITECTURE, roadmap) | ver `git log` |
-| 7. Remoção do Grafana | a fazer; **perguntar à equipe antes** (apaga pastas e serviços) | |
+| 7. Remoção do Grafana | feita em 24/11 pelo plano `2026-11-24-fecha-requisitos.md` (Etapa 7) | ver `git log` |
 
 **Estado do ambiente (17/11, 22h):** Compose da raiz de pé, com `api` e `frontend` (8080)
 reconstruídos com a Onda 2 e o zoom das rodadas; o Grafana local (perfil `local`) na 3000;

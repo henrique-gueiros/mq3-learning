@@ -26,6 +26,9 @@ BEGIN
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'grafana_leitor') THEN
         GRANT SELECT ON resultados TO grafana_leitor;
     END IF;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'leitor') THEN
+        GRANT SELECT ON resultados TO leitor;
+    END IF;
 END $$;
 
 COMMIT;

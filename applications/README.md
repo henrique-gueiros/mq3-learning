@@ -1,15 +1,14 @@
 # Coleta: da placa ao dashboard
 
 Leva cada leitura da ESP32 até o MQTT, grava no PostgreSQL e mostra na tela
-React (http://localhost:8080). O Grafana local continua disponível para
-conferência, até a equipe decidir tirá-lo. Nada disso muda o que o pipeline
-de ML lê.
+React (http://localhost:8080). Nada disso muda o que o pipeline de ML lê.
 
 ```text
-ESP32 --USB--> ponte (notebook) --MQTT--> Mosquitto --> ingestor --> PostgreSQL ─┐
-                 ├─> CSV em ml/data/raw/sessions/        └───────────────────────┼─ agente PDC ══> Grafana Cloud
-                 └─> linhas em ml/data/raw/attempts.csv                           │
-simulador ------MQTT-----^          importador ------------> PostgreSQL ──────────┘
+ESP32 --Wi-Fi/MQTT-----------------------> Mosquitto --> ingestor --> PostgreSQL --> API --> tela React
+ESP32 --USB--> ponte (notebook) --MQTT---------^    └--> servidor do modelo --> mq3/<placa>/resultado --> tela, alerta
+                 ├─> CSV em ml/data/raw/sessions/
+                 └─> linhas em ml/data/raw/attempts.csv
+simulador ------MQTT--------------------------^      importador ------------> PostgreSQL
 ```
 
 | Peça | Onde roda | O que faz |
@@ -18,7 +17,6 @@ simulador ------MQTT-----^          importador ------------> PostgreSQL ──�
 | Mosquitto, PostgreSQL, ingestor | Docker Compose | Broker, banco e gravação das mensagens |
 | `api` | Docker Compose (`127.0.0.1:8000`) | API somente leitura com os dados dos gráficos da tela (`api/`) |
 | `frontend` | Docker Compose (`127.0.0.1:8080`) | Tela React: ao vivo por MQTT e análise pela API |
-| `pdc` | Docker Compose (perfil `cloud`) | Túnel até o Grafana Cloud |
 | `coleta.simulador` | notebook | Publica um CSV real como se a placa estivesse ligada |
 | `coleta.importador` | notebook | Grava no banco um CSV feito sem a ponte |
 
@@ -32,9 +30,6 @@ pip install -r requirements.txt -r ../applications/coleta/requirements.txt -r ..
 cd .. && cp .env.example .env    # troque as senhas
 docker compose up -d --build
 ```
-
-Para ligar ao Grafana Cloud, siga [`grafana/README.md`](grafana/README.md) e
-depois use `docker compose --profile cloud up -d`.
 
 ## Dia de coleta
 
@@ -73,8 +68,7 @@ python -m coleta.simulador ../esp32-esp8266/leituras.csv --caso clean --particip
 ```
 
 As rodadas do simulador saem com origem `simulador` e ficam fora da análise
-por padrão (interruptor **Incluir simulador** na tela; no Grafana, a variável
-de mesmo nome fica em `nao`).
+por padrão (interruptor **Incluir simulador** na tela).
 
 ## CSV gravado sem a ponte
 
@@ -88,27 +82,12 @@ associa a outra condição. A cópia que a placa grava na própria memória
 (LittleFS) só deve ser importada quando a rodada não passou pela ponte; senão
 os dados entram duas vezes.
 
-## Ver o dashboard sem o Grafana Cloud
-
-O Compose tem um Grafana local, no perfil `local`, já ligado ao banco e com o
-dashboard `coleta`. Não use junto com o Compose de `services/` (mesmas portas).
-
-```bash
-docker compose --profile local up -d --build
-```
-
-Abra http://localhost:3000. Usuário `admin`; a senha é `GRAFANA_ADMIN_SENHA` do
-`.env` (padrão `admin` quando a variável não existe; o Grafana só escuta em
-`127.0.0.1`). Os data sources e o dashboard vêm de `grafana/provisioning/` e
-`grafana/dashboards/`, e as edições feitas na interface não são salvas: exporte o
-JSON como descrito em `grafana/README.md`.
-
 ## API da tela
 
 A tela em React (http://localhost:8080, ou `npm run dev` na 5173) lê os gráficos
 de análise pela API e as leituras ao vivo direto do Mosquitto, por WebSocket
-(porta 9001, só em `127.0.0.1`). A API roda as mesmas consultas do dashboard do
-Grafana com o usuário só leitura, e os filtros vão na query string:
+(porta 9001, só em `127.0.0.1`). A API consulta o banco com o usuário só leitura
+`leitor`, e os filtros vão na query string:
 
 ```bash
 curl 'http://localhost:8000/api/resumo?caso=drink&caso=perfume&janela=sopro'
@@ -152,12 +131,6 @@ docker stop pg-teste
 
 ## Limitações
 
-- Não suba junto o Compose de `services/` (Henrique): as portas 1883 e 5432
-  coincidem, e o Grafana dele usa 3000 e 9001. Na coleta, só este roda.
 - O Mosquitto aceita conexões sem senha: use só na rede local da coleta.
-- O dashboard só tem dados enquanto o Compose (com o perfil `cloud`) estiver
-  rodando em alguma máquina.
-- O painel ao vivo depende do plugin MQTT funcionar pelo PDC na stack; se
-  não funcionar, veja a alternativa em `grafana/README.md`.
 - Mensagens publicadas enquanto o broker está fora do ar não chegam ao banco;
   o CSV da rodada fica completo. Se a rodada não chegou ao banco, importe o CSV.

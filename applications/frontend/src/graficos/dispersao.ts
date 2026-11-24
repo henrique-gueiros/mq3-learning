@@ -1,7 +1,7 @@
 /**
  * Dispersão MQ-3 (x) × MQ-135 (y), um ponto por leitura, uma série por caso. Se os casos
  * formam grupos separados, os dois sensores juntos já os distinguem.
- * Portado de `applications/grafana/paineis/separacao.js`.
+ * Portado do antigo painel do Grafana (removido em 24/11/2026).
  */
 
 import type { PontoDispersao } from '../api/consultas'

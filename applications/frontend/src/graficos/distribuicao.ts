@@ -1,7 +1,7 @@
 /**
  * Boxplot por caso, um gráfico por sensor (MQ-3, MQ-135, Umidade), lado a lado.
  * Caixa do 1º ao 3º quartil com a mediana; bigodes nos percentis 5 e 95; losango na média.
- * Portado de `applications/grafana/paineis/distribuicao.js`.
+ * Portado do antigo painel do Grafana (removido em 24/11/2026).
  */
 
 import type { DistribuicaoCaso, Percentis } from '../api/consultas'

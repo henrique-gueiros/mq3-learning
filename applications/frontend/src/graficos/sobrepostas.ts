@@ -2,7 +2,7 @@
  * Todas as rodadas juntas: uma linha por rodada, colorida pelo caso, em três grades
  * empilhadas (Umidade, MQ-135, PPM). O tempo é contado desde a primeira leitura de
  * cada rodada. O PPM é só exibido (regra do AGENTS.md: não decide nada).
- * Portado de `applications/grafana/paineis/sobreposicao.js`.
+ * Portado do antigo painel do Grafana (removido em 24/11/2026).
  */
 
 import type { SerieSobreposta } from '../api/consultas'

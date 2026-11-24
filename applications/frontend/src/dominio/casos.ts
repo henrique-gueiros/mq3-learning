@@ -1,6 +1,6 @@
 /**
  * Casos do protocolo de coleta: nome em português, ordem fixa e cor por tema.
- * As cores e os nomes vêm do dashboard do Grafana (grafana/paineis/comum.js),
+ * As cores e os nomes vêm do antigo dashboard do Grafana (removido em 24/11/2026),
  * para os dois mostrarem a mesma coisa do mesmo jeito.
  */
 

@@ -36,9 +36,8 @@ sessão que já existe não é reescrito. Rodada com `origem = 'simulador'` fica
 
 A ESP32 ainda não publica no MQTT: hoje a ponte serial (ou o simulador) publica no
 lugar dela, com as mesmas mensagens. Quem visita o sistema usa a tela React
-(http://localhost:8080). O Grafana (`applications/grafana/`, perfil `local` na
-porta 3000) continua no repositório até a equipe autorizar a remoção; em 17/11 os
-números da tela bateram com os painéis dele.
+(http://localhost:8080). O Grafana foi removido em 24/11/2026; em 17/11 os
+números da tela tinham batido com os painéis dele.
 
 ## Pastas
 
@@ -49,7 +48,6 @@ números da tela bateram com os painéis dele.
 | `applications/db/` | Esquema e views do Postgres (`01-schema.sql`), usuário só leitura, migrações | — |
 | `applications/api/` | API somente leitura com os dados dos gráficos de análise | `applications/README.md`, `/api/docs` |
 | `applications/frontend/` | Tela única (React): ao vivo + análise; design system Vercel/Geist | `applications/frontend/README.md` |
-| `applications/grafana/`, `pdc/` | Dashboard antigo e túnel do Grafana Cloud (saem na Etapa 7 do plano da tela) | `applications/grafana/README.md` |
 | `ml/` | Pipeline de ML: validação, features, separação por participante, treino, inferência | `ml/README.md` |
 | `services/` | Servidor do modelo: ao vivo (MQTT + banco da coleta) e HTTP da aba Modelo | `services/README.md` |
 | `docs/` | Requisitos das disciplinas, decisões de ML (PDF), roadmap, planos (`superpowers/`) | — |
@@ -141,7 +139,6 @@ Rodadas com `origem = 'simulador'` ficam fora da análise por padrão.
 | API | 127.0.0.1:8000 | idem |
 | Tela (nginx: serve o build e encaminha `/api` e `/mqtt`) | 127.0.0.1:8080 | idem (`applications/frontend/Dockerfile`) |
 | Tela (dev) | 5173 | `npm run dev` em `applications/frontend` (usa 8000 e 9001 do host) |
-| Grafana local (perfil `local`) | 127.0.0.1:3000 | idem |
 | Airflow (perfil `airflow`) | 127.0.0.1:8088 | idem; DAG `dataset_para_treino` |
 
 Ambiente Python: um só, `ml/.venv` (criação em `ml/README.md`), com

@@ -1,7 +1,7 @@
 # Sopro Seguro — tela (frontend)
 
 Tela única do sistema: leituras ao vivo da placa e os gráficos de análise de
-todas as coletas. Substitui o dashboard do Grafana quando cobrir todos os painéis.
+todas as coletas. Substituiu o dashboard do Grafana (removido em 24/11/2026).
 
 - React + TypeScript (Vite), gráficos em ECharts.
 - Design system: [`DESIGN.md`](DESIGN.md) (Vercel / Geist), traduzido em

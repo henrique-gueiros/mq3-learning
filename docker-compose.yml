@@ -21,7 +21,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      GRAFANA_PG_SENHA: ${GRAFANA_PG_SENHA}
+      LEITOR_PG_SENHA: ${LEITOR_PG_SENHA:-${GRAFANA_PG_SENHA:-}}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
@@ -53,7 +53,7 @@ services:
       context: ./applications
       dockerfile: api/Dockerfile
     environment:
-      API_PG_DSN: postgresql://grafana_leitor:${GRAFANA_PG_SENHA}@postgres:5432/${POSTGRES_DB}
+      API_PG_DSN: postgresql://leitor:${LEITOR_PG_SENHA:-${GRAFANA_PG_SENHA:-}}@postgres:5432/${POSTGRES_DB}
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -126,47 +126,6 @@ services:
     command: ["python", "-m", "mq3mqtt.alerta"]
     restart: unless-stopped
 
-  # Túnel de saída até o Grafana Cloud (Private Data Source Connect).
-  # Sobe só com: docker compose --profile cloud up -d
-  pdc:
-    image: grafana/pdc-agent:0.0.67
-    command:
-      - -token
-      - ${GCLOUD_PDC_SIGNING_TOKEN:-}
-      - -cluster
-      - ${GCLOUD_PDC_CLUSTER:-}
-      - -gcloud-hosted-grafana-id
-      - ${GCLOUD_HOSTED_GRAFANA_ID:-}
-    profiles: ["cloud"]
-    depends_on:
-      - postgres
-      - mosquitto
-    restart: unless-stopped
-
-  # Grafana local, para ver o dashboard sem o Grafana Cloud.
-  # Sobe só com: docker compose --profile local up -d   (http://localhost:3000)
-  grafana:
-    image: grafana/grafana-oss:13.0.2
-    profiles: ["local"]
-    ports:
-      - "127.0.0.1:3000:3000"
-    environment:
-      GF_INSTALL_PLUGINS: volkovlabs-echarts-panel,grafana-mqtt-datasource
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_SENHA:-admin}
-      GF_USERS_DEFAULT_THEME: light
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/coleta.json
-      GRAFANA_PG_SENHA: ${GRAFANA_PG_SENHA}
-    volumes:
-      - ./applications/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./applications/grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana-dados:/var/lib/grafana
-    depends_on:
-      postgres:
-        condition: service_healthy
-      mosquitto:
-        condition: service_started
-    restart: unless-stopped
-
   # Arruma a pasta do Airflow antes do processo (o volume nasce como root).
   airflow-init:
     profiles: ["airflow"]
@@ -208,7 +167,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  grafana-dados:
   mosquitto-dados:
   postgres-dados:
   airflow-home:

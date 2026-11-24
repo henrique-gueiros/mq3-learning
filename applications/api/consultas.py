@@ -1,7 +1,6 @@
-"""Consultas da tela de análise: as mesmas do dashboard do Grafana, com parâmetros.
+"""Consultas da tela de análise, com parâmetros (vieram do antigo dashboard do Grafana, removido em 24/11/2026).
 
-O SQL de referência está em ``grafana/montar_dashboard.py``. Lá os filtros eram
-variáveis do Grafana coladas no texto; aqui viram parâmetros do psycopg, então
+No Grafana os filtros eram variáveis coladas no texto; aqui viram parâmetros do psycopg, então
 nenhum valor vindo do navegador entra no SQL como texto.
 
 Cada função recebe uma conexão aberta e devolve dados prontos para virar JSON.

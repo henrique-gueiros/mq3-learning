@@ -12,4 +12,4 @@ próprias). Uso em `applications/README.md`. Vale junto com o `AGENTS.md` da rai
 - Testes: `python -m pytest` (de `applications/`). Os de banco precisam de um Postgres descartável:
   `docker run --rm -d --name pg-teste -e POSTGRES_PASSWORD=t -p 55432:5432 postgres:16` e
   `PG_DSN=postgresql://postgres:t@localhost:55432/postgres python -m pytest`.
-- O dashboard do Grafana (`grafana/`) sai na Etapa 7 do plano da tela; até lá, `dashboards/coleta.json` é gerado por `grafana/montar_dashboard.py`, nunca editado à mão.
+- O Grafana foi removido em 24/11/2026; a tela React (`frontend/`) é o dashboard.
