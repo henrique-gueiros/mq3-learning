@@ -80,13 +80,13 @@
   1. Disparar o DAG e ver os runs e as figuras no MLflow.
   2. Corrigir `ml/README.md` (linha ~164 ainda manda `--profile airflow`; linha ~197 fala do worker antigo de `services/`).
 
-### Etapas 2, 3–4 e 5 — nas worktrees: **revisadas pelo Opus, aguardando merge** (24/11, 14h)
+### Etapas 2, 3–4 e 5 — nas worktrees: **revisadas pelo Opus, aguardando merge** (24/11, atualizado às 14h20)
 
 | Etapa | Branch (`refs/heads/…`) | Commits | Revisão |
 | --- | --- | --- | --- |
-| 2. Firmware | `claude/firmware-freertos-mqtt-8086e4` | `5eeeae1`, `bc8e742` | Os 2 importantes já corrigidos: eventos do botão em `CSV_EVENTO` na serial e em `/leituras_N.eventos.csv`; `CASO_PADRAO`/`PARTICIPANTE_PADRAO`. Pendentes não perdem a `rodada`. |
-| 3–4. ML | `claude/ml-mlflow-avaliacao-1962b8` | `1b305f4`, `7d5a3c4` | **Pedido à sessão:** CLI quebra com `roc_auc` None; provar o build da imagem do Airflow com mlflow; curva de aprendizado com os hiperparâmetros escolhidos; README com a porta 5050. |
-| 5. EDA | `claude/kind-noyce-bc936c` | `5655cc6`, `4bb0014` | Sem bug. Nit: os vereditos trazem interpretação; o ideal é deixar só rótulo e número e passar a explicação para "[EQUIPE: interpretar]". |
+| 2. Firmware | `claude/firmware-freertos-mqtt-8086e4` | `5eeeae1`, `bc8e742` | **Pronta.** `pio run` compila e `pio test -e native` passa 14 testes. Os 2 importantes já corrigidos: eventos do botão em `CSV_EVENTO` na serial e em `/leituras_N.eventos.csv`; `CASO_PADRAO`/`PARTICIPANTE_PADRAO`. Pendentes não perdem a `rodada`. |
+| 3–4. ML | `claude/ml-mlflow-avaliacao-1962b8` | `1b305f4`, `7d5a3c4` (+ correções **sem commit** na worktree: `cli.py`, `pipeline.py`, testes, README) | **Pedido à sessão:** CLI quebra com `roc_auc` None; provar o build da imagem do Airflow com mlflow; curva de aprendizado com os hiperparâmetros escolhidos; README com a porta 5050. mlflow resolvido: 2.22.5 na imagem do Airflow (`>=2.17,<3`); o servidor é 2.17.2 (cliente mais novo, mesma série 2.x). Falta confirmar que a imagem do Airflow monta e fazer o commit das correções. |
+| 5. EDA | `claude/kind-noyce-bc936c` | `5655cc6`, `4bb0014`, `d744de9` | Sem bug. Os vereditos ficaram só com rótulo e números (`d744de9`); a interpretação é da equipe. **Pronta.** |
 
 **Integração, quando o usuário autorizar o merge** (`git merge --no-ff refs/heads/<branch>` em `fecha-requisitos`, nesta ordem: EDA, firmware, ML):
 1. **Conflitos esperados:** `docs/roadmap.md` (juntar os itens) e `ml/README.md` (linha ~164: tirar `--profile airflow`; linha ~197: o worker antigo de `services/` vira `services/mq3mqtt/ao_vivo.py`).
