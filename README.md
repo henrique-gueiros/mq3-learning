@@ -85,7 +85,31 @@ python -m src.cli all
 
 Esse arquivo é o modelo. Ele ainda não existe: falta coleta das duas classes, com várias pessoas. Três sessões de uma pessoa só não fecham o treino. Os detalhes dos comandos estão em `ml/README.md`.
 
-Quando a rodada já está no Postgres, `python -m src.cli pipeline` (ou o DAG `dataset_para_treino` no Airflow) faz a ingestão, a preparação e grava `ml/data/processed/disponivel.json`. O treino continua no `train`.
+Quando a rodada já está no Postgres, o mesmo fluxo roda no Airflow. O `docker compose up` não sobe esse serviço.
+
+Na raiz do repositório:
+
+```bash
+docker compose --profile airflow up -d --build
+```
+
+A interface fica em http://localhost:8088. O usuário é `admin`. A senha:
+
+```bash
+docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt
+```
+
+Abra o DAG `dataset_para_treino` e aperte o play. Ele não tem horário: cada execução é manual. As cinco tarefas, nesta ordem:
+
+1. **ingerir** copia do Postgres as rodadas encerradas que ainda não estão em `ml/data/raw/`. Um CSV de sessão que já existe não é reescrito.
+2. **preparar** recorta os sopros, calcula as features e separa treino e teste.
+3. **disponibilizar** grava `ml/data/processed/disponivel.json`.
+4. **treinar** compara os modelos só com o treino.
+5. **testar** avalia o modelo escolhido uma vez no teste.
+
+O número de cada etapa está na aba **XCom** da caixa, na chave `return_value`. O treino também fica em `ml/reports/experiment.csv`; o teste, em `ml/reports/final.json` e em `ml/models/sob_efeito.joblib`.
+
+Outro play, com os mesmos CSVs e o mesmo `ml/config/split.json`, repete o resultado. Para sortear de novo quem fica no teste, apague esse arquivo e dispare o DAG com outra semente, por exemplo `{"seed": 7}` na configuração do disparo. Com a semente 42 o sorteio volta a ser o mesmo.
 
 ## 3. Rodar o modelo
 

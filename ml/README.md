@@ -158,19 +158,19 @@ Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste
 
 ### Pipeline no Airflow
 
-O mesmo `prepare` também roda sozinho, depois de buscar no Postgres da coleta as rodadas que ainda não estão em `data/raw/`:
-
-```bash
-python -m src.cli pipeline --dsn "$PG_DSN"   # sem --dsn, só prepara os CSVs que já estão em data/raw
-```
-
-Isso grava `data/processed/disponivel.json` quando o dataset está pronto para o `train`. A ordem (ingestão, preparação, disponibilização) é o DAG `dataset_para_treino`. Na raiz do repositório:
+O passo a passo da interface está no [README do repositório](../README.md). Na raiz:
 
 ```bash
 docker compose --profile airflow up -d --build
 ```
 
-A interface fica em http://localhost:8088. O usuário é `admin` e a senha está em `standalone_admin_password.txt` dentro do contêiner (`docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt`). O DAG não reescreve CSV de sessão e ignora rodada de simulador. O treino em si continua no comando `train` (o MLflow ainda não entra aqui).
+A interface fica em http://localhost:8088 (usuário `admin`; a senha sai de `docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt`). O DAG `dataset_para_treino` é manual. A ordem é ingerir, preparar, disponibilizar, treinar e testar. O resultado de cada caixa está na aba XCom. O DAG não reescreve CSV de sessão e ignora rodada de simulador.
+
+Sem a interface, de dentro de `ml/`, o comando abaixo faz só a ingestão, a preparação e o `disponivel.json`. O treino e o teste ficam no DAG, ou em `python -m src.cli train`:
+
+```bash
+python -m src.cli pipeline --dsn "$PG_DSN"   # sem --dsn, só prepara os CSVs que já estão em data/raw
+```
 
 ### Como o treino avalia
 
