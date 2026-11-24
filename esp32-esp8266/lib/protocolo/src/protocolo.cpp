@@ -67,7 +67,7 @@ struct Texto {
   }
 
   void textoOuNull(const char *valor) {
-    if (valor == nullptr) {
+    if (valor == nullptr || valor[0] == '\0') {
       printf("null");
     } else {
       printf("\"%s\"", valor);
@@ -113,10 +113,14 @@ bool jsonEvento(char *saida, size_t tamanho, const char *rodadaId, const char *t
 }
 
 bool jsonRodada(char *saida, size_t tamanho, const char *rodadaId, const char *placa,
-                const char *arquivoSessao, const char *inicioIso) {
+                const char *arquivoSessao, const char *inicioIso, const char *caso,
+                const char *participante) {
   Texto t(saida, tamanho);
-  t.printf("{\"rodada_id\":\"%s\",\"placa\":\"%s\",\"caso\":null,\"participante\":null,\"inicio\":",
-           rodadaId, placa);
+  t.printf("{\"rodada_id\":\"%s\",\"placa\":\"%s\",\"caso\":", rodadaId, placa);
+  t.textoOuNull(caso);
+  t.printf(",\"participante\":");
+  t.textoOuNull(participante);
+  t.printf(",\"inicio\":");
   t.textoOuNull(inicioIso);
   t.printf(",\"arquivo_sessao\":\"%s\",\"origem\":\"placa\"}", arquivoSessao);
   return t.ok;

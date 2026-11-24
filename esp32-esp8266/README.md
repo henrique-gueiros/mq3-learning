@@ -54,7 +54,7 @@ O formato (CSV, JSON, UUID, ppm) fica em `lib/protocolo/` e não depende do Ardu
 
 ## Como testar
 
-Testes do protocolo no PC (sem placa): `pio test -e native` (12 testes: linha do CSV,
+Testes do protocolo no PC (sem placa): `pio test -e native` (14 testes: linha do CSV,
 JSON de cada tópico, UUID, ppm, buffer curto).
 
 Com a placa e o broker no ar:
@@ -86,11 +86,40 @@ são descartadas e o aviso aparece na serial).
   preciso acrescentar `'placa'` (migração que fica com a sessão integradora). Até lá o
   ingestor rejeita a mensagem `rodada` da placa. `mensagens.py` também só lista
   `ponte` e `simulador` em `ORIGENS_MQTT`.
-- `caso` e `participante` saem `null`: a placa não sabe quem sopra nem o que foi usado. A
-  rodada fica sem caso até alguém preencher; a ponte continua sendo quem anota a condição.
+- `caso` e `participante` saem `null` por padrão: a placa não sabe quem sopra nem o que foi
+  usado. Para rotular a coleta, defina `CASO_PADRAO` e `PARTICIPANTE_PADRAO` em
+  `segredos.h` (vazio = `null`); vale para todas as rodadas até regravar o firmware.
+  **Rodada que ficou `null` precisa de rótulo antes do DAG do Airflow**
+  (`dataset_para_treino` usa o caso para o rótulo): atualize no banco, por exemplo
+  `UPDATE rodadas SET caso = 'drink', participante = 'p01' WHERE id = '<rodada_id>';`
+  (o `rodada_id` aparece na serial, em `Rodada <uuid>`, e na mensagem `rodada`).
+  Cuidado: a placa republica a mensagem `rodada` ao reconectar, e o ingestor sobrescreve
+  `caso` com o valor da mensagem; rotule depois que a rodada terminar.
 - O `rodada_fim` da placa não leva `sha256` (a ponte leva o do CSV que ela gravou).
 - Se a ponte serial e a placa publicarem ao mesmo tempo, use `PLACA` diferente de
   `placa01` (padrão da ponte), senão as duas gravam nos mesmos tópicos.
+
+## Eventos do botão: serial e arquivo (não dependem do MQTT)
+
+Cada evento (`sopro_inicio`, `sopro_fim`, `rodada_fim`) sai por três caminhos: MQTT, serial
+e arquivo na placa. Na serial:
+
+```
+CSV_EVENTO,<arquivo>,<tipo>,<t_ms>
+CSV_EVENTO,leituras_3.csv,sopro_inicio,41230
+```
+
+e no LittleFS, `/leituras_N.eventos.csv` ao lado de `/leituras_N.csv`, com cabeçalho
+`tipo,t_ms`. O `t_ms` é o mesmo da coluna `t_ms` do CSV de leituras (ms desde a partida da
+placa), então cada par `sopro_inicio` / `sopro_fim` vira uma linha do `attempts.csv`:
+`blow_start_s` = (`t_ms` do início − `t_ms` da primeira leitura) / 1000, e `blow_end_s` o
+mesmo com o fim; `session_file` é o `<arquivo>` e `condition` vem do caso da rodada. A
+**ponte ainda não lê `CSV_EVENTO`** (será ajustada na integração; `applications/` não foi
+alterado): hoje os sopros do botão só chegam pelo MQTT.
+
+**Risco do QoS 0:** se o `sopro_fim` (ou o `sopro_inicio`) se perder no MQTT, o banco fica sem
+a janela do sopro e o modelo ao vivo não roda para aquela tentativa. A serial e o arquivo
+de eventos guardam o que o MQTT pode perder.
 
 ## Decisões e limites
 
@@ -99,7 +128,7 @@ são descartadas e o aviso aparece na serial).
   pelo CSV na placa e pelo CSV da ponte; para QoS 1 de verdade, trocar a biblioteca por
   `256dpi/MQTT` (mudança só em `src/rede.cpp`).
 - **Fila de pendentes limitada** (`MAX_PENDENTES_REDE`, 120 mensagens, ~2 min de leituras).
-  Cheia, descarta a leitura mais antiga; rodada e eventos só saem por último.
+  Cheia, descarta a leitura mais antiga e, sem leituras, o evento mais antigo; a mensagem `rodada` nunca é descartada.
 - **Wi-Fi:** `setAutoReconnect` e, se ficar 30 s sem conexão, recomeça com `WiFi.begin`.
 - O CSV (13 colunas) e a linha `CSV_LINHA` são idênticos aos do firmware anterior; o
   filtro `monitor/filter_leituras.py` e a ponte continuam funcionando.

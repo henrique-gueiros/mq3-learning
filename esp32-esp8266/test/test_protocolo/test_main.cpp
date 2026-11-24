@@ -87,6 +87,18 @@ void test_json_rodada_com_horario() {
   TEST_ASSERT_NOT_NULL(strstr(json, "\"inicio\":\"2026-11-24T13:00:00+00:00\""));
 }
 
+void test_json_rodada_com_caso_e_participante_padrao() {
+  char json[320];
+  jsonRodada(json, sizeof(json), "abc", "placa01", "leituras_3.csv", nullptr, "drink", "p01");
+  TEST_ASSERT_NOT_NULL(strstr(json, "\"caso\":\"drink\",\"participante\":\"p01\""));
+}
+
+void test_json_rodada_caso_vazio_vira_null() {
+  char json[320];
+  jsonRodada(json, sizeof(json), "abc", "placa01", "leituras_3.csv", nullptr, "", "");
+  TEST_ASSERT_NOT_NULL(strstr(json, "\"caso\":null,\"participante\":null"));
+}
+
 void test_uuid_v4_marca_versao_e_variante() {
   uint8_t bytes[16];
   for (int i = 0; i < 16; i++) {
@@ -140,6 +152,8 @@ int main() {
   RUN_TEST(test_json_evento);
   RUN_TEST(test_json_rodada_sem_horario);
   RUN_TEST(test_json_rodada_com_horario);
+  RUN_TEST(test_json_rodada_com_caso_e_participante_padrao);
+  RUN_TEST(test_json_rodada_caso_vazio_vira_null);
   RUN_TEST(test_uuid_v4_marca_versao_e_variante);
   RUN_TEST(test_topico);
   RUN_TEST(test_ppm_e_zero_no_ar_da_partida_fora_da_escala);

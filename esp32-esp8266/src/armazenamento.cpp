@@ -29,6 +29,7 @@ struct EstadoCsv {
   bool sistemaArquivosOk;
   char nome[24];
   char caminho[28];
+  char caminhoEventos[40];  // /leituras_N.eventos.csv, ao lado do CSV
   uint32_t proximaAmostra;
   char rodadaId[TAMANHO_UUID];
 };
@@ -53,6 +54,9 @@ bool apagarCsvMaisAntigo(const EstadoCsv &csv) {
       logf("Falha ao apagar %s", caminho);
       return false;
     }
+    char eventos[40];
+    snprintf(eventos, sizeof(eventos), "/leituras_%d.eventos.csv", numero);
+    LittleFS.remove(eventos);
     logf("CSV antigo removido: %s", caminho);
     return true;
   }
@@ -132,6 +136,15 @@ void gerarRodadaId(char saida[TAMANHO_UUID]) {
   uuidV4(bytes, saida);
 }
 
+// Entrega a mensagem a rede sem esperar: se a fila estiver cheia (rede
+// travada), a mensagem se perde aqui, mas o CSV e a serial continuam
+// completos. A ponte e o CSV sao a fonte de verdade; o MQTT e o canal rapido.
+void entregarRede(const Filas *filas, const MensagemRede &mensagem) {
+  if (xQueueSend(filas->rede, &mensagem, 0) != pdTRUE) {
+    logf("Fila de rede cheia: mensagem nao publicada (CSV preservado)");
+  }
+}
+
 // Abre uma rodada: UUID novo, CSV novo, aviso na serial e na fila de rede.
 void abrirRodada(EstadoCsv &csv, const Filas *filas) {
   csv.proximaAmostra = 1;
@@ -140,7 +153,14 @@ void abrirRodada(EstadoCsv &csv, const Filas *filas) {
   if (liberarEspaco(csv, true)) {
     escolherNomeCsv(csv);
   }
+  snprintf(csv.caminhoEventos, sizeof(csv.caminhoEventos), "/%.*s.eventos.csv",
+           static_cast<int>(strlen(csv.nome) - 4), csv.nome);
   if (csv.sistemaArquivosOk) {
+    File eventos = LittleFS.open(csv.caminhoEventos, "w");
+    if (eventos) {
+      eventos.println("tipo,t_ms");
+      eventos.close();
+    }
     File arquivo = LittleFS.open(csv.caminho, "w");
     if (!arquivo) {
       csv.sistemaArquivosOk = false;
@@ -159,7 +179,7 @@ void abrirRodada(EstadoCsv &csv, const Filas *filas) {
   strlcpy(mensagem.rodadaId, csv.rodadaId, sizeof(mensagem.rodadaId));
   strlcpy(mensagem.arquivo, csv.nome, sizeof(mensagem.arquivo));
   mensagem.tMs = millis();
-  xQueueSend(filas->rede, &mensagem, 0);
+  entregarRede(filas, mensagem);
 }
 
 void acrescentarCsv(EstadoCsv &csv, const char *linha) {
@@ -174,15 +194,6 @@ void acrescentarCsv(EstadoCsv &csv, const char *linha) {
   }
   arquivo.println(linha);
   arquivo.close();
-}
-
-// Entrega a mensagem a rede sem esperar: se a fila estiver cheia (rede
-// travada), a mensagem se perde aqui, mas o CSV e a serial continuam
-// completos. A ponte e o CSV sao a fonte de verdade; o MQTT e o canal rapido.
-void entregarRede(const Filas *filas, const MensagemRede &mensagem) {
-  if (xQueueSend(filas->rede, &mensagem, 0) != pdTRUE) {
-    logf("Fila de rede cheia: mensagem nao publicada (CSV preservado)");
-  }
 }
 
 void tratarLeitura(EstadoCsv &csv, const Filas *filas, Leitura leitura) {
@@ -209,6 +220,19 @@ void tratarLeitura(EstadoCsv &csv, const Filas *filas, Leitura leitura) {
 }
 
 void tratarEvento(EstadoCsv &csv, const Filas *filas, TipoEvento evento, uint32_t tMs) {
+  // Serial e arquivo primeiro: o MQTT (QoS 0) pode perder o evento, estes nao.
+  char linha[48];
+  snprintf(linha, sizeof(linha), "%s,%lu", nomeEvento(evento), static_cast<unsigned long>(tMs));
+  logf("CSV_EVENTO,%s,%s", csv.nome, linha);
+  if (csv.sistemaArquivosOk) {
+    File arquivo = LittleFS.open(csv.caminhoEventos, "a");
+    if (arquivo) {
+      arquivo.println(linha);
+      arquivo.close();
+    } else {
+      logf("Falha ao gravar o evento no arquivo de eventos");
+    }
+  }
   MensagemRede mensagem = {};
   mensagem.tipo = TipoMensagem::EVENTO;
   strlcpy(mensagem.rodadaId, csv.rodadaId, sizeof(mensagem.rodadaId));

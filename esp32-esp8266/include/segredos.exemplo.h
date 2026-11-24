@@ -25,3 +25,9 @@
 // no JSON sem escape). Use um nome diferente do da
 // ponte serial (placa01) se as duas publicarem ao mesmo tempo.
 #define PLACA "esp32-01"
+
+// Rotulo padrao das rodadas desta placa. Vazio = null no banco (a placa nao
+// sabe o que foi soprado nem por quem). Use as condicoes de
+// applications/coleta/casos.py (ex.: "perfume", "drink") e um id anonimo.
+#define CASO_PADRAO ""
+#define PARTICIPANTE_PADRAO ""

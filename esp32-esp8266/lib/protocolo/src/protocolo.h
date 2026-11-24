@@ -45,10 +45,12 @@ bool jsonLeitura(char *saida, size_t tamanho, const char *rodadaId, const Leitur
 bool jsonEvento(char *saida, size_t tamanho, const char *rodadaId, const char *tipo, uint32_t tMs);
 
 // Mensagem retida de mq3/<placa>/rodada. "inicioIso" pode ser nullptr
-// (sem relogio de NTP): vai como null. caso e participante vao como null,
-// pois a placa nao sabe quem esta soprando.
+// (sem relogio de NTP): vai como null. caso e participante tambem podem ser
+// nullptr ou "" (vao como null): a placa nao sabe quem esta soprando, entao
+// so levam o padrao configurado em segredos.h.
 bool jsonRodada(char *saida, size_t tamanho, const char *rodadaId, const char *placa,
-                const char *arquivoSessao, const char *inicioIso);
+                const char *arquivoSessao, const char *inicioIso, const char *caso = nullptr,
+                const char *participante = nullptr);
 
 // mq3/<placa>/<tipo>
 bool montarTopico(char *saida, size_t tamanho, const char *placa, const char *tipo);

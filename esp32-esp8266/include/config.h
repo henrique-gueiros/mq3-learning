@@ -12,6 +12,13 @@
 #include "segredos.exemplo.h"
 #endif
 
+#ifndef CASO_PADRAO
+#define CASO_PADRAO ""
+#endif
+#ifndef PARTICIPANTE_PADRAO
+#define PARTICIPANTE_PADRAO ""
+#endif
+
 // ---- Pinos ----------------------------------------------------------
 // MQ-3: AOUT no GPIO 34. No Wokwi a peca e o sensor de gas (mesmos pinos).
 const int PINO_MQ3 = 34;

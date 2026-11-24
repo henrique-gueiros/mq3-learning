@@ -29,7 +29,7 @@
 namespace {
 
 // Fila de pendentes em vetor (so esta tarefa a usa; sem mutex).
-// Cheia: descarta a leitura mais antiga; rodada e eventos so saem por ultimo.
+// Cheia: descarta a leitura mais antiga, depois o evento mais antigo; nunca a rodada.
 class Pendentes {
  public:
   size_t tamanho() const { return _n; }
@@ -38,8 +38,12 @@ class Pendentes {
 
   void adicionar(const MensagemRede &mensagem) {
     if (_n == MAX_PENDENTES_REDE) {
-      remover(indiceDescartavel());
+      size_t i = indiceDescartavel();
       _descartadas++;
+      if (i == _n) {
+        return;  // so ha rodadas na fila: descarta a nova (nunca uma rodada)
+      }
+      remover(i);
     }
     _itens[_n++] = mensagem;
   }
@@ -48,12 +52,19 @@ class Pendentes {
 
  private:
   size_t indiceDescartavel() const {
+    // Primeiro a leitura mais antiga; sem leituras, o evento mais antigo.
+    // A rodada (retida) nunca e descartada. Devolve _n se nao ha o que tirar.
     for (size_t i = 0; i < _n; i++) {
       if (_itens[i].tipo == TipoMensagem::LEITURA) {
         return i;
       }
     }
-    return 0;
+    for (size_t i = 0; i < _n; i++) {
+      if (_itens[i].tipo == TipoMensagem::EVENTO) {
+        return i;
+      }
+    }
+    return _n;
   }
 
   void remover(size_t i) {
@@ -95,7 +106,8 @@ bool publicar(PubSubClient &mqtt, const MensagemRede &m) {
     case TipoMensagem::RODADA: {
       char inicio[32];
       bool temHorario = horarioIso(m.tMs, inicio, sizeof(inicio));
-      coube = jsonRodada(json, sizeof(json), m.rodadaId, PLACA, m.arquivo, temHorario ? inicio : nullptr);
+      coube = jsonRodada(json, sizeof(json), m.rodadaId, PLACA, m.arquivo, temHorario ? inicio : nullptr,
+                         CASO_PADRAO, PARTICIPANTE_PADRAO);
       tipoTopico = "rodada";
       retida = true;
       break;
