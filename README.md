@@ -54,9 +54,39 @@ docker compose up -d --build
 
 A rede do Compose tem IPv4 e IPv6 (rede local `fd00:5050:5a::/64`). Banco criado antes de 24/11/2026 precisa das migrações de `applications/db/migracoes/` com essa data.
 
+## Novidades de 24/11
+
+- **Contrato MQTT único** (o da coleta): placa, ponte, simulador, ingestor e modelo falam o mesmo JSON. A stack paralela em `services/` saiu.
+- **Card do modelo** na aba Ao vivo e **alerta** (tela + Telegram via serviço `alerta`) quando a classe é `sob_efeito`.
+- **Grafana removido**; a tela React em http://localhost:8080 cobre ao vivo e análise.
+- **Compose único** na raiz: `docker compose up -d --build` sobe broker, banco, ingestor, API, tela, modelo, alerta, Airflow e MLflow (sem `--profile`).
+- **MLflow** em http://localhost:5050 (a porta 5000 do macOS é do AirPlay). Treino local usa `mlflow-skinny` no Python 3.14.
+- **Rede IPv6** no Compose (`fd00:5050:5a::/64`); Mosquitto escuta IPv4 e IPv6.
+- **Firmware FreeRTOS** (Wi-Fi, MQTT, CSV na placa). Na coleta da equipe o sopro é marcado na **ponte** (Enter / `f`), não por botão na ESP32.
+- **EDA** do lote bootstrap em `ml/notebooks/01_eda.ipynb` (figuras em `ml/reports/figuras_eda/`).
+
+## Como testar cada coisa
+
+Com o ambiente do ML ativo (`source ml/.venv/bin/activate`) e, quando pedido, o Compose no ar.
+
+| O quê | Como |
+| --- | --- |
+| Testes de `ml/` | `cd ml && python -m pytest` |
+| Testes de `applications/` | `cd applications && python -m pytest` |
+| Testes de `services/` | `cd services && PYTHONPATH=.:../ml python -m pytest` |
+| Testes do front | `cd applications/frontend && npm test` |
+| Firmware (compilar) | `cd esp32-esp8266 && pio run` |
+| Firmware (testes de PC) | `cd esp32-esp8266 && pio test -e native` |
+| Simulador → resultado | Com Compose no ar: de `applications/`, `python -m coleta.simulador ../esp32-esp8266/leituras.csv --caso clean --participante p00 --sopros 30 --intervalo 0.2`; em outro terminal `mosquitto_sub -h ::1 -t 'mq3/+/resultado' -v` |
+| Tela | http://localhost:8080 |
+| Alerta | `docker compose logs alerta` (Telegram só com `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID` no `.env`) |
+| DAG e MLflow | Airflow em http://localhost:8088 (senha: `docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt`); dispare `dataset_para_treino`. Runs em http://localhost:5050. Sem rodada no banco: copie o lote para `ml/data/raw/sessions/` (como em `applications/dados/lote-2026-11.csv`) e rode `cd ml && MLFLOW_TRACKING_URI=http://localhost:5050 python -m src.cli all --group-by session_file` |
+| IPv6 | `mosquitto_sub -h ::1 -t 'mq3/+/leituras' -v` (broker escuta em `[::]:1883`) |
+| Placa | Copie `esp32-esp8266/include/segredos.exemplo.h` → `segredos.h`, grave Wi-Fi/broker/`PLACA`, `pio run -t upload`. Sopro: Enter / `f` na ponte USB (`applications/README.md`, "Dia de coleta"). O ML ignora `*.eventos.csv` se alguém copiar a pasta inteira da placa. |
+
 ## 1. Captar os dados
 
-A ESP32 já grava uma linha por segundo num CSV da sessão (`leituras_N.csv`), do ligar até o reiniciar. Cada linha tem o tempo `t_ms` e as leituras dos três sensores. A placa não descobre sozinha quando alguém soprou. Quem conduz o teste anota isso.
+A ESP32 grava uma linha por segundo num CSV da sessão (`leituras_N.csv`), do ligar até o reiniciar. Cada linha tem o tempo `t_ms` e as leituras dos três sensores. A equipe **não usa botão na placa**: quem conduz o teste marca início e fim do sopro na ponte USB (Enter e `f`), que publica o evento no MQTT e anota no `attempts.csv`.
 
 Para cada bateria (30 s ou 60 s, por exemplo):
 
@@ -172,9 +202,10 @@ Troque o CSV e os segundos pelos do teste de vocês. Os tópicos estão em `ARCH
 
 | Pasta | Função |
 | --- | --- |
-| `esp32-esp8266/` | ESP32. Grava o CSV. Ainda não publica MQTT. |
-| `ml/` | Validação, recorte, treino e previsão nos arquivos. |
-| `services/` | Servidor do modelo: ao vivo (MQTT + banco) e HTTP da aba Modelo. |
+| `esp32-esp8266/` | ESP32 (FreeRTOS): CSV, Wi-Fi/MQTT. |
+| `ml/` | Validação, recorte, treino, EDA e previsão nos arquivos. |
+| `services/` | Servidor do modelo (ao vivo + HTTP) e alerta Telegram. |
+| `applications/` | Ponte serial, ingestor, simulador, API e tela React. |
 | `docs/` | Requisitos das disciplinas e o PDF de decisões. |
 | `AGENTS.md` | Regras para quem continua o projeto. |
 

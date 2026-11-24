@@ -207,7 +207,7 @@ No Docker Compose (serviço `mlflow`, mantido fora desta pasta) a URI dentro da 
 - um run pai `comparacao_de_modelos` com `experiment.csv`, `folds.csv` e as figuras de comparação como artifacts, e um run filho por (conjunto de sensores × modelo) com os params `sensor_set`, `model`, `chosen_params` e todas as métricas, inclusive `*_std`, `f1_macro_treino` e `roc_auc` (o baseline é o run de referência);
 - um run `modelo_final` com o modelo (`model/`), as métricas de teste com prefixo `teste_`, `cv_score` e as figuras de matriz de confusão e ROC.
 
-A dependência `mlflow>=2.17,<3` está em `ml/requirements.txt` e `airflow/requirements.txt`; resolve junto das constraints do Airflow 2.10.5 (Python 3.12, pyarrow 19) e do `scikit-learn==1.6.1`, então não foi preciso usar `mlflow-skinny`. O `airflow/Dockerfile` reinstala `scikit-learn==1.6.1` depois, o que mantém a versão do modelo.
+No ambiente local (`ml/requirements.txt`) a dependência é `mlflow-skinny>=2.17,<3`: o pacote completo puxa o pyarrow, que não compila no Python 3.14. No Airflow (`airflow/requirements.txt`) fica `mlflow>=2.17,<3` (imagem Python 3.12, com pyarrow). As duas séries batem com o servidor MLflow 2.17.2 do Compose e com o `scikit-learn==1.6.1`. O `airflow/Dockerfile` reinstala o scikit-learn depois, o que mantém a versão do modelo.
 
 ## Limitações
 

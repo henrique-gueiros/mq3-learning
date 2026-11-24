@@ -4,26 +4,19 @@
   "test_size": 0.25,
   "seed": 42,
   "train_groups": [
-    "2026-11-12_equipe_clean_6.csv",
     "2026-11-12_equipe_clean_7.csv",
     "2026-11-12_equipe_drink_1.csv",
     "2026-11-12_equipe_drink_2.csv",
     "2026-11-12_equipe_drink_3.csv",
-    "2026-11-12_equipe_perfume_1.csv",
     "2026-11-14_equipe_clean_2.csv",
+    "2026-11-14_equipe_clean_3.csv",
     "2026-11-14_equipe_clean_4.csv",
-    "2026-11-14_equipe_clean_5.csv",
-    "leituras_bebida1.csv",
-    "leituras_bebida3.csv",
-    "leituras_conversa1.csv",
-    "leituras_perfume.csv"
+    "2026-11-14_equipe_clean_5.csv"
   ],
   "test_groups": [
+    "2026-11-12_equipe_clean_6.csv",
     "2026-11-12_equipe_drink_4.csv",
-    "2026-11-14_equipe_clean_1.csv",
-    "2026-11-14_equipe_clean_3.csv",
-    "leituras_ambiente.csv",
-    "leituras_bebida2.csv",
-    "leituras_listerine.csv"
+    "2026-11-12_equipe_perfume_1.csv",
+    "2026-11-14_equipe_clean_1.csv"
   ]
 }

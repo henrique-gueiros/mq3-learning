@@ -1,18 +1,12 @@
 {
-  "sensor_set": "mq3+mq135+dht11",
-  "model": "logistic_regression",
+  "sensor_set": "mq3+dht11",
+  "model": "decision_tree",
   "features": [
     "mq3_before",
     "mq3_peak",
     "mq3_rise",
     "mq3_peak_time_s",
     "mq3_recovery_s",
-    "mq135_before",
-    "mq135_peak",
-    "mq135_rise",
-    "mq135_peak_time_s",
-    "mq135_recovery_s",
-    "mq135_mq3_rise_ratio",
     "humidity_before",
     "humidity_peak",
     "humidity_rise",
@@ -25,17 +19,19 @@
     "sob_efeito"
   ],
   "best_params": {
-    "clf__C": 0.1
+    "clf__max_depth": 2,
+    "clf__min_samples_leaf": 1
   },
-  "n_train_attempts": 11289,
-  "n_test_attempts": 1562,
+  "n_train_attempts": 9381,
+  "n_test_attempts": 1944,
   "test_metrics": {
-    "f1_macro": 0.6612302364733301,
-    "balanced_accuracy": 0.880679307332614,
-    "recall_sem_efeito": 0.884435537742151,
-    "precision_sem_efeito": 0.993993993993994,
-    "recall_sob_efeito": 0.8769230769230769,
-    "precision_sob_efeito": 0.24782608695652175
+    "f1_macro": 0.5634806695439445,
+    "balanced_accuracy": 0.8938265034592869,
+    "recall_sem_efeito": 0.7876530069185738,
+    "precision_sem_efeito": 1.0,
+    "recall_sob_efeito": 1.0,
+    "precision_sob_efeito": 0.1400862068965517,
+    "roc_auc": 0.8938265034592868
   },
   "confusion_matrix": {
     "labels": [
@@ -44,15 +40,15 @@
     ],
     "matrix": [
       [
-        1324,
-        173
+        1480,
+        399
       ],
       [
-        8,
-        57
+        0,
+        65
       ]
     ]
   },
   "selected_by": "f1_macro",
-  "cv_score": 0.6814526872817739
+  "cv_score": 0.8801368279110798
 }

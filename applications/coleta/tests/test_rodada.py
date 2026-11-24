@@ -24,6 +24,13 @@ def test_sopro_sem_leitura_e_ignorado():
     assert rodada.sopros == []
 
 
+def test_sopro_do_botao_usa_t_ms_mesmo_sem_leitura():
+    """CSV_EVENTO traz o t_ms da placa; não depende da última CSV_LINHA."""
+    rodada = Rodada("perfume", "p01", None)
+    assert rodada.marcar_inicio_sopro(20500) == Sopro(20500)
+    assert rodada.marcar_fim_sopro(22400) == Sopro(20500, 22400)
+
+
 def test_fim_sem_sopro_aberto_e_ignorado():
     rodada = Rodada("perfume", "p01", None)
     rodada.receber(leitura(1, 800))

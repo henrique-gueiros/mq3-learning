@@ -38,13 +38,13 @@ Pronto e testado:
 - Coleta em `applications/`: ponte serial, ingestor, simulador, importador, lote dos 12 CSVs válidos, Compose com Mosquitto, Postgres e API.
 - Tela React no Compose (http://localhost:8080): ao vivo, detector ambiente × sopro e as quatro seções de análise, com os números conferidos contra o Grafana local (removido em 24/11). O acabamento visual da etapa 5 está feito. O Lighthouse de acessibilidade deu 100 em 17/11. Plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
 - Contrato MQTT único (o da coleta, 24/11): o servidor do modelo (`services/mq3mqtt/ao_vivo.py`) assina `eventos`, lê a rodada no banco da coleta, grava em `resultados` e publica `mq3/<placa>/resultado` (`sem_modelo` até haver modelo). O simulador publica início e fim de sopro. A stack paralela de `services/` foi removida. A aba Ao vivo mostra a classe do modelo e o alerta; o serviço `alerta` envia pelo Telegram (bônus).
-- DAG do Airflow `dataset_para_treino`: lê rodadas encerradas no Postgres, grava o que ainda não está em `ml/data/raw/` e disponibiliza `ml/data/processed/disponivel.json`. Sobe com `docker compose --profile airflow up -d --build` (interface em http://localhost:8088).
+- DAG do Airflow `dataset_para_treino`: lê rodadas encerradas no Postgres, grava o que ainda não está em `ml/data/raw/` e disponibiliza `ml/data/processed/disponivel.json`. Sobe com o Compose único (`docker compose up -d --build`; interface em http://localhost:8088, MLflow em http://localhost:5050).
 
 Ainda não existe:
 - [ ] Coleta rotulada suficiente (`attempts.csv` com sopros marcados), com as duas classes.
 - [ ] Revisão das features com dados reais. A análise exploratória existe em `ml/notebooks/01_eda.ipynb` (figuras em `ml/reports/figuras_eda/`), com as seções do diário e o veredito de cada uma; falta a equipe interpretar (células "[EQUIPE: interpretar]") e decidir as sessões anteriores a 10/11, o aquecimento do MQ-3 e os trios de bebida.
 - [ ] Modelo treinado e avaliado com dados reais (métricas dos testes automatizados **não** dizem nada sobre o sensor).
-- [ ] Wi-Fi/MQTT na ESP32 (hoje a ponte publica no lugar da placa).
+- [ ] Testar na placa o firmware FreeRTOS (Wi-Fi, MQTT, IPv6). Sem rede, a ponte USB ainda publica no lugar da placa; o sopro continua marcado na ponte (Enter / `f`), sem botão na ESP32.
 - [x] MLflow e um Compose único com todos os serviços (24/11): `docker compose up -d --build` sobe broker, banco, ingestor, API, tela, modelo, alerta, Airflow e MLflow; rede com IPv6.
 - [x] Registro no MLflow (`ml/src/rastreio.py`), métricas por fold, F1 treino × validação, ROC/AUC e figuras (`ml/src/figuras.py`).
 - [x] Firmware com FreeRTOS (4 tarefas), Wi-Fi, MQTT no contrato da coleta e IPv6 — compila e passa nos testes de PC; **falta testar na placa**.
@@ -55,4 +55,4 @@ Ainda não existe:
 2. Coleta com a ponte (`applications/README.md`, "Dia de coleta"), com sopros marcados, e conferência com `python -m src.cli validate`.
 3. Equipe: ler o `01_eda.ipynb`, interpretar e decidir as pendências marcadas. A EDA aponta o que coletar: sopros sem álcool (`clean` e `mouthwash` com sopro), `alcohol70_hands`/`alcohol70_spray`, mais de um participante e anotar gelo e boca aberta em `notes`.
 4. Rodar o experimento com dados reais pelo DAG; o registro no MLflow, o desvio entre folds e a comparação treino × validação já existem.
-5. Testar o firmware na placa (Wi-Fi, MQTT, botão, IPv6) com quem mantém o firmware.
+5. Testar o firmware na placa (Wi-Fi, MQTT, IPv6) com quem mantém o firmware; sopro pela ponte.

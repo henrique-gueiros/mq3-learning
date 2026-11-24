@@ -59,10 +59,11 @@ class Rodada:
     def marcar_inicio_sopro(self, t_ms: Optional[int] = None) -> Optional[Sopro]:
         """Marca um sopro no ``t_ms`` dado (botão da placa) ou no da última leitura (Enter).
 
-        ``None`` se ainda não houve leitura ou se já há um sopro nesse instante
-        (Enter apertado duas vezes no mesmo segundo).
+        Sem ``t_ms``, precisa de pelo menos uma leitura (Enter). Com ``t_ms`` do
+        ``CSV_EVENTO``, o instante da placa vale mesmo antes da primeira linha.
+        ``None`` se faltar instante ou se já há um sopro nesse mesmo instante.
         """
-        if self.ultimo_t_ms is None:
+        if t_ms is None and self.ultimo_t_ms is None:
             return None
         instante = self.ultimo_t_ms if t_ms is None else t_ms
         if self.sopros and self.sopros[-1].inicio_ms == instante:
@@ -74,10 +75,12 @@ class Rodada:
     def marcar_fim_sopro(self, t_ms: Optional[int] = None) -> Optional[Sopro]:
         """Fecha o último sopro no ``t_ms`` dado (botão da placa) ou no da última leitura.
 
-        ``None`` se não houver sopro aberto ou se ainda não chegou leitura
-        depois do início (o fim precisa ser posterior ao início).
+        ``None`` se não houver sopro aberto, se faltar instante (Enter sem
+        leitura) ou se o fim não for posterior ao início.
         """
         if not self.sopros or self.sopros[-1].fim_ms is not None:
+            return None
+        if t_ms is None and self.ultimo_t_ms is None:
             return None
         sopro = self.sopros[-1]
         instante = self.ultimo_t_ms if t_ms is None else t_ms

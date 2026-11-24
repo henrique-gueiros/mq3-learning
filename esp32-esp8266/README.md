@@ -114,8 +114,9 @@ e no LittleFS, `/leituras_N.eventos.csv` ao lado de `/leituras_N.csv`, com cabe�
 placa), então cada par `sopro_inicio` / `sopro_fim` vira uma linha do `attempts.csv`:
 `blow_start_s` = (`t_ms` do início − `t_ms` da primeira leitura) / 1000, e `blow_end_s` o
 mesmo com o fim; `session_file` é o `<arquivo>` e `condition` vem do caso da rodada. A
-**ponte ainda não lê `CSV_EVENTO`** (será ajustada na integração; `applications/` não foi
-alterado): hoje os sopros do botão só chegam pelo MQTT.
+**ponte lê `CSV_EVENTO`** se o firmware emitir (mesmo papel do Enter/`f` no `t_ms` da
+placa). Na coleta da equipe o sopro é marcado na ponte (Enter / `f`), sem usar o
+botão BOOT; o suporte ao botão fica no firmware para quem quiser testar.
 
 **Risco do QoS 0:** se o `sopro_fim` (ou o `sopro_inicio`) se perder no MQTT, o banco fica sem
 a janela do sopro e o modelo ao vivo não roda para aquela tentativa. A serial e o arquivo

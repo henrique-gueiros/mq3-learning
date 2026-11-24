@@ -85,7 +85,10 @@ dois sopros da mesma sessão precisam de ~50 s de intervalo. Features em `ml/src
 
 ### MQTT (contrato único)
 
-Formato em `applications/coleta/mensagens.py`; JSON, QoS 1, `null` para ausentes.
+Formato em `applications/coleta/mensagens.py`; JSON, `null` para ausentes. O contrato
+pede QoS 1; o firmware com `PubSubClient` publica leituras e eventos em QoS 0 (last
+will em QoS 1). A perda no ar é coberta pelo CSV na placa, pelo `*.eventos.csv` e
+pela ponte USB. Ponte, simulador e serviços Python publicam em QoS 1.
 
 | Tópico | Quem publica | Conteúdo |
 | --- | --- | --- |
