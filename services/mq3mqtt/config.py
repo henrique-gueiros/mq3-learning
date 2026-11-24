@@ -42,11 +42,16 @@ def load_settings() -> Settings:
 
 
 def connect_with_retry(database_url: str, attempts: int = 30, pause_s: float = 1.0):
-    """Abre o banco em autocommit, tentando de novo enquanto o Postgres do Compose sobe."""
+    """Abre o banco em autocommit, tentando de novo enquanto o Postgres do Compose sobe.
+
+    ``attempts=0`` tenta para sempre (o servidor ao vivo espera o banco voltar).
+    """
+    import itertools
+
     import psycopg
 
     last_error: Exception | None = None
-    for _ in range(attempts):
+    for _ in itertools.count() if attempts == 0 else range(attempts):
         try:
             return psycopg.connect(database_url, autocommit=True)
         except psycopg.OperationalError as exc:

@@ -175,3 +175,21 @@ def test_reconecta_quando_o_banco_cai():
     agenda.rodar()
     assert len(publicados) == 1
     assert tentativas[0] is not tentativas[1]
+
+
+def test_connect_with_retry_insiste_ate_o_banco_subir(monkeypatch):
+    import psycopg
+
+    from mq3mqtt import config
+
+    tentativas = []
+
+    def conectar(url, autocommit):
+        tentativas.append(url)
+        if len(tentativas) < 50:
+            raise psycopg.OperationalError("ainda subindo")
+        return "conexao"
+
+    monkeypatch.setattr(psycopg, "connect", conectar)
+    assert config.connect_with_retry("postgresql://x", attempts=0, pause_s=0) == "conexao"
+    assert len(tentativas) == 50

@@ -26,12 +26,33 @@ Há dois momentos. Primeiro a equipe junta CSVs e treina. Depois, com o arquivo 
         |
         v
 3. Docker no computador da bancada
-   ESP32 --MQTT--> Mosquitto --> worker --> Postgres
-                                    |
-                                    +--> servidor do modelo --> mq3/<placa>/resultado
+   ESP32 --Wi-Fi/MQTT--> Mosquitto --> ingestor --> Postgres --> API --> tela
+                             |
+                             +--> servidor do modelo --> mq3/<placa>/resultado --> tela, alerta
 ```
 
-A placa só conversa com o Mosquitto. O Mosquitto é o programa que entrega as mensagens MQTT (porta 1883). O worker e o servidor do modelo também falam com ele. Os três ficam no Docker, no computador que está na mesma rede da ESP32.
+A placa só conversa com o Mosquitto. O Mosquitto é o programa que entrega as mensagens MQTT (porta 1883, em IPv4 e IPv6). O ingestor e o servidor do modelo também falam com ele. Tudo fica no Docker, no computador que está na mesma rede da ESP32.
+
+## Subir tudo
+
+Na raiz do repositório, com o Docker ligado (o Airflow pede uns 4 GB de memória para o Docker):
+
+```bash
+cp .env.example .env   # uma vez; troque as senhas
+docker compose up -d --build
+```
+
+| O quê | Endereço |
+| --- | --- |
+| Tela (ao vivo, análise e aba Modelo) | http://localhost:8080 |
+| API (somente leitura) | http://localhost:8000/api/docs |
+| Servidor do modelo (aba Modelo) | http://localhost:8010/modelo/saude |
+| Airflow (DAG `dataset_para_treino`) | http://localhost:8088 |
+| MLflow (experimentos) | http://localhost:5050 (a 5000 do macOS é do AirPlay) |
+| MQTT | `localhost:1883` (IPv4 e IPv6); WebSocket em `127.0.0.1:9001` |
+| PostgreSQL | `127.0.0.1:5432` |
+
+A rede do Compose tem IPv4 e IPv6 (rede local `fd00:5050:5a::/64`). Banco criado antes de 24/11/2026 precisa das migrações de `applications/db/migracoes/` com essa data.
 
 ## 1. Captar os dados
 
@@ -85,13 +106,7 @@ python -m src.cli all
 
 Esse arquivo é o modelo. Ele ainda não existe: falta coleta das duas classes, com várias pessoas. Três sessões de uma pessoa só não fecham o treino. Os detalhes dos comandos estão em `ml/README.md`.
 
-Quando a rodada já está no Postgres, o mesmo fluxo roda no Airflow. O `docker compose up` não sobe esse serviço.
-
-Na raiz do repositório:
-
-```bash
-docker compose --profile airflow up -d --build
-```
+Quando a rodada já está no Postgres, o mesmo fluxo roda no Airflow, que sobe junto com o resto (`docker compose up -d --build`). Cada treino fica registrado no MLflow (http://localhost:5050).
 
 A interface fica em http://localhost:8088. O usuário é `admin`. A senha:
 

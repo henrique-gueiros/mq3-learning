@@ -28,7 +28,7 @@ simulador (CSV real) ─────┤ MQTT  mq3/<placa>/{rodada,leituras,event
 ml/ (offline ou Airflow): CSVs + attempts.csv ──▶ validação ──▶ features ──▶ treino ──▶ ml/models/sob_efeito.joblib
 ```
 
-O DAG `dataset_para_treino` (perfil `airflow` do Compose, http://localhost:8088) lê as
+O DAG `dataset_para_treino` (http://localhost:8088; registra no MLflow, http://localhost:5050) lê as
 rodadas encerradas no Postgres, grava sessão e tentativas que ainda não existem em
 `ml/data/raw/` e roda a mesma preparação de `python -m src.cli prepare`. O arquivo
 `ml/data/processed/disponivel.json` marca o dataset como pronto para o treino. CSV de
@@ -139,7 +139,11 @@ Rodadas com `origem = 'simulador'` ficam fora da análise por padrão.
 | API | 127.0.0.1:8000 | idem |
 | Tela (nginx: serve o build e encaminha `/api` e `/mqtt`) | 127.0.0.1:8080 | idem (`applications/frontend/Dockerfile`) |
 | Tela (dev) | 5173 | `npm run dev` em `applications/frontend` (usa 8000 e 9001 do host) |
-| Airflow (perfil `airflow`) | 127.0.0.1:8088 | idem; DAG `dataset_para_treino` |
+| Airflow | 127.0.0.1:8088 | idem; DAG `dataset_para_treino` |
+| MLflow | 127.0.0.1:5050 (contêiner: 5000) | idem; SQLite e artefatos no volume `mlflow-dados` |
+| Servidor do modelo | 127.0.0.1:8010 | idem (`services/Dockerfile.model`) |
+
+Tudo sobe com `docker compose up -d --build`. A rede padrão tem IPv6 (`fd00:5050:5a::/64`); o Mosquitto escuta em IPv4 e IPv6.
 
 Ambiente Python: um só, `ml/.venv` (criação em `ml/README.md`), com
 `ml/requirements.txt`, `applications/coleta/requirements.txt` e

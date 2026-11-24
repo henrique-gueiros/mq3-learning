@@ -61,25 +61,25 @@
 - Aplicado no banco local; a API responde 200 com `leitor`. Testes: `applications` 115, front 205 e o build passam.
 - **Quem tem banco antigo:** rodar as duas migrações de 24/11 (`resultados-e-origem-placa` e `leitor`) e, no `.env`, renomear `GRAFANA_PG_SENHA` para `LEITOR_PG_SENHA`. Sem renomear também funciona.
 
-### Etapa 8 — compose único (com serviço `mlflow`) e IPv6: **pendente** (próxima, em `fecha-requisitos`)
+### Etapa 8 — compose único, MLflow e IPv6: **feita na parte do compose** (commit "Sobe tudo com um comando, com MLflow e rede IPv6")
 
-Roteiro:
-1. **MLflow no compose.**
-   - Serviço `mlflow` com a imagem `ghcr.io/mlflow/mlflow` (versão fixa igual à que a branch de ML puser em `ml/requirements.txt`).
-   - `mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri postgresql://.../mlflow --artifacts-destination /mlartifacts`; volume `mlflow-dados`; porta `127.0.0.1:5000:5000`.
-   - O banco `mlflow` é criado por um script novo `applications/db/03-mlflow.sh` (`CREATE DATABASE mlflow`) e por uma migração para banco antigo.
-   - A imagem oficial não traz `psycopg2`. Se faltar, usar `backend-store-uri sqlite:////mlflow/mlflow.db` no volume e documentar.
-2. **Airflow com `MLFLOW_TRACKING_URI=http://mlflow:5000`.**
-   - Tirar `profiles: ["airflow"]` de `airflow-init` e `airflow`, para `docker compose up -d --build` subir tudo.
-   - Conferir a memória: o Airflow standalone pesa; documentar o mínimo de RAM do Docker.
-3. **IPv6.**
-   - Em `networks: default:`, `enable_ipv6: true` e `ipam` com subnet `fd00:dead:beef::/48`.
-   - Em `applications/mosquitto/mosquitto.conf`, `listener 1883` sem bind, para escutar em `::` e `0.0.0.0`; conferir no log do mosquitto (`Opening ipv6 listen socket on port 1883`).
-   - Testar `docker compose exec mosquitto mosquitto_sub -h ::1 -t '$SYS/#' -C 1`.
-   - O lado da placa vem da branch do firmware.
-   - Hipótese: depende de o Docker Desktop ter IPv6 ligado (Settings → Docker Engine, `"ipv6": true`). Documentar no README.
-4. **README.** Seção "Subir tudo" com um comando e a tabela de portas (8080 tela, 8000 API, 8010 modelo, 8088 Airflow, 5000 MLflow, 1883/9001 MQTT, 5432 Postgres); atualizar `ARCHITECTURE.md` (portas e diagrama).
-5. **Verificar.** `docker compose down && docker compose up -d --build`: todos os serviços `Up`/`healthy`; tela, Airflow e MLflow abrindo; DAG rodando e criando runs no MLflow. Isso depende do merge da branch de ML.
+- `docker compose up -d --build` sobe os 9 serviços, sem perfis: mosquitto, postgres, ingestor, api, frontend, model, alerta, airflow e mlflow.
+- **MLflow:**
+  - `ghcr.io/mlflow/mlflow:v2.17.2` (o cliente na branch de ML é `mlflow>=2.17,<3`);
+  - SQLite e artefatos no volume `mlflow-dados`;
+  - host **127.0.0.1:5050**, porque a 5000 do macOS é do AirPlay e responde 403. Dentro da rede é `http://mlflow:5000`.
+- **Airflow:** com `MLFLOW_TRACKING_URI=http://mlflow:5000`.
+- **IPv6:**
+  - rede padrão com `enable_ipv6` e `fd00:5050:5a::/64`;
+  - o Mosquitto abre sockets IPv4 e IPv6 nas portas 1883 e 9001;
+  - testado com pub/sub em `::1` e conexão TCP por IPv6 de outro contêiner.
+- **Servidor do modelo:** sobe o HTTP antes de esperar o banco e tenta conectar até conseguir (`connect_with_retry(attempts=0)`).
+- **Verificado:** `docker compose down && up -d --build` deixa os 9 serviços no ar; a tela, a API, o modelo, o MLflow e o Airflow respondem 200; o ponta a ponta com o simulador publica o `resultado`, assinado por IPv6.
+- **Cuidado:** ao trocar a configuração da rede com o compose no ar, os contêineres antigos perdem o DNS (`failed to resolve host 'postgres'`). A solução é `docker compose down` e `up`.
+- **Falta, depende do merge da branch de ML:**
+  1. Disparar o DAG e ver os runs e as figuras no MLflow.
+  2. Corrigir `ml/README.md` (linha ~164 ainda manda `--profile airflow`; linha ~197 fala do worker antigo de `services/`).
+
 ### Etapas 2, 3–4 e 5: **em andamento nas worktrees** (ver tabela acima)
 
 ## Contexto

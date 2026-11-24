@@ -45,7 +45,7 @@ Ainda não existe:
 - [ ] Análise exploratória e revisão das features com dados reais.
 - [ ] Modelo treinado e avaliado com dados reais (métricas dos testes automatizados **não** dizem nada sobre o sensor).
 - [ ] Wi-Fi/MQTT na ESP32 (hoje a ponte publica no lugar da placa).
-- [ ] MLflow e um Compose único com todos os serviços da entrega final (o Airflow já está no perfil `airflow`).
+- [x] MLflow e um Compose único com todos os serviços (24/11): `docker compose up -d --build` sobe broker, banco, ingestor, API, tela, modelo, alerta, Airflow e MLflow; rede com IPv6.
 
 ## Próximas tarefas, em ordem
 

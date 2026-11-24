@@ -212,8 +212,10 @@ def main() -> None:
         timer.daemon = True
         timer.start()
 
+    # O HTTP da aba Modelo não depende do banco: sobe antes, mesmo com o Postgres fora.
+    iniciar_em_fundo(settings.model_path)
     servidor = ServidorAoVivo(
-        conectar=lambda: connect_with_retry(settings.database_url),
+        conectar=lambda: connect_with_retry(settings.database_url, attempts=0),
         model_path=settings.model_path,
         publicar=lambda topico, corpo: cliente.publish(topico, corpo, qos=1),
         agendar=agendar,
@@ -226,7 +228,6 @@ def main() -> None:
         cli.subscribe("mq3/+/eventos", qos=1)
         log.info("assinando mq3/+/eventos")
 
-    iniciar_em_fundo(settings.model_path)
     cliente.on_connect = ao_conectar
     cliente.on_message = lambda _cli, _userdata, mensagem: servidor.ao_receber(mensagem.topic, mensagem.payload)
     cliente.connect_async(settings.mqtt_host, settings.mqtt_port)

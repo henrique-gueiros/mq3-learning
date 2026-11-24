@@ -128,7 +128,6 @@ services:
 
   # Arruma a pasta do Airflow antes do processo (o volume nasce como root).
   airflow-init:
-    profiles: ["airflow"]
     build:
       context: ./airflow
     user: "0:0"
@@ -140,7 +139,6 @@ services:
   # Interface em http://localhost:8088 (8080 fica com a tela). DAG dataset_para_treino.
   # Senha do admin: docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt
   airflow:
-    profiles: ["airflow"]
     build:
       context: ./airflow
     user: "50000:0"
@@ -153,6 +151,7 @@ services:
       ML_ROOT: /opt/ml
       PYTHONPATH: /opt/ml
       PG_DSN: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     ports:
       - "127.0.0.1:8088:8080"
     volumes:
@@ -164,9 +163,41 @@ services:
         condition: service_completed_successfully
       postgres:
         condition: service_healthy
+      mlflow:
+        condition: service_started
     restart: unless-stopped
+
+  # Rastreio dos experimentos de ML (http://localhost:5050; a 5000 do macOS é do
+  # AirPlay). O DAG do Airflow e o `python -m src.cli` (com
+  # MLFLOW_TRACKING_URI=http://localhost:5050) registram
+  # parâmetros, métricas, figuras e o modelo. Banco SQLite e artefatos no volume.
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.17.2
+    command:
+      - mlflow
+      - server
+      - --host=0.0.0.0
+      - --port=5000
+      - --backend-store-uri=sqlite:////mlflow/mlflow.db
+      - --artifacts-destination=/mlflow/artefatos
+    ports:
+      - "127.0.0.1:5050:5000"
+    volumes:
+      - mlflow-dados:/mlflow
+    restart: unless-stopped
+
+# Rede com IPv4 e IPv6 (bônus da disciplina). O endereço IPv6 é local (ULA). O
+# Mosquitto escuta nos dois; a placa pode usar o IPv6 do computador (ver
+# esp32-esp8266/README.md).
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd00:5050:5a::/64
 
 volumes:
   mosquitto-dados:
   postgres-dados:
   airflow-home:
+  mlflow-dados:
