@@ -1,6 +1,6 @@
 {
   "sensor_set": "mq3+mq135+dht11",
-  "model": "logistic_regression",
+  "model": "random_forest",
   "features": [
     "mq3_before",
     "mq3_peak",
@@ -25,17 +25,18 @@
     "sob_efeito"
   ],
   "best_params": {
-    "clf__C": 0.1
+    "clf__max_depth": 3,
+    "clf__min_samples_leaf": 3
   },
-  "n_train_attempts": 11289,
-  "n_test_attempts": 1562,
+  "n_train_attempts": 11839,
+  "n_test_attempts": 681,
   "test_metrics": {
-    "f1_macro": 0.6612302364733301,
-    "balanced_accuracy": 0.880679307332614,
-    "recall_sem_efeito": 0.884435537742151,
-    "precision_sem_efeito": 0.993993993993994,
-    "recall_sob_efeito": 0.8769230769230769,
-    "precision_sob_efeito": 0.24782608695652175
+    "f1_macro": 1.0,
+    "balanced_accuracy": 1.0,
+    "recall_sem_efeito": 1.0,
+    "precision_sem_efeito": 1.0,
+    "recall_sob_efeito": 1.0,
+    "precision_sob_efeito": 1.0
   },
   "confusion_matrix": {
     "labels": [
@@ -44,15 +45,15 @@
     ],
     "matrix": [
       [
-        1324,
-        173
+        260,
+        0
       ],
       [
-        8,
-        57
+        0,
+        421
       ]
     ]
   },
   "selected_by": "f1_macro",
-  "cv_score": 0.6814526872817739
+  "cv_score": 0.8583385334786915
 }
