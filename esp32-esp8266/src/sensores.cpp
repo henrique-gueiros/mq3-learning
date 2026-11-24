@@ -1,5 +1,5 @@
 // tarefaSensores: le MQ-3, MQ-135 e DHT11 a cada INTERVALO_LEITURA_MS e
-// manda cada Leitura para a fila de registros.
+// manda cada Leitura para a fila da rede. A amostra e numerada la.
 //
 // vTaskDelayUntil (e nao vTaskDelay) mantem o periodo de 1 s mesmo que a
 // leitura demore: ele acorda a tarefa em instantes fixos, contados a
@@ -66,9 +66,7 @@ void tarefaSensores(void *parametro) {
       }
     }
 
-    Registro registro = {};
-    registro.tipo = TipoRegistro::LEITURA;
-    Leitura &l = registro.leitura;
+    Leitura l = {};
     l.tMs = agora;
     l.mq3 = analogRead(PINO_MQ3);
     l.tensaoAtualMv = analogReadMilliVolts(PINO_MQ3);
@@ -82,9 +80,9 @@ void tarefaSensores(void *parametro) {
 
     digitalWrite(PINO_LED, l.alcool ? HIGH : LOW);
 
-    // Espera ate 100 ms por espaco; a fila cheia indica armazenamento travado.
-    if (xQueueSend(filas->registros, &registro, pdMS_TO_TICKS(100)) != pdTRUE) {
-      logf("Fila de registros cheia: leitura de %lu ms perdida", static_cast<unsigned long>(agora));
+    // Espera ate 100 ms por espaco; a fila cheia indica a rede travada.
+    if (xQueueSend(filas->leituras, &l, pdMS_TO_TICKS(100)) != pdTRUE) {
+      logf("Fila de leituras cheia: leitura de %lu ms perdida", static_cast<unsigned long>(agora));
     }
   }
 }

@@ -62,7 +62,7 @@ A rede do Compose tem IPv4 e IPv6 (rede local `fd00:5050:5a::/64`). Banco criado
 - **Compose único** na raiz: `docker compose up -d --build` sobe broker, banco, ingestor, API, tela, modelo, alerta, Airflow e MLflow (sem `--profile`).
 - **MLflow** em http://localhost:5050 (a porta 5000 do macOS é do AirPlay). Treino local usa `mlflow-skinny` no Python 3.14.
 - **Rede IPv6** no Compose (`fd00:5050:5a::/64`); Mosquitto escuta IPv4 e IPv6.
-- **Firmware FreeRTOS** (Wi-Fi, MQTT, CSV na placa). Na coleta da equipe o sopro é marcado na **ponte** (Enter / `f`), não por botão na ESP32.
+- **Firmware FreeRTOS ao vivo** (Wi-Fi, MQTT). Sem CSV e sem botão na placa. O sopro, quando houver, é marcado na **ponte** (Enter / `f`).
 - **EDA** do lote bootstrap em `ml/notebooks/01_eda.ipynb` (figuras em `ml/reports/figuras_eda/`).
 
 ## Como testar cada coisa
@@ -82,11 +82,11 @@ Com o ambiente do ML ativo (`source ml/.venv/bin/activate`) e, quando pedido, o 
 | Alerta | `docker compose logs alerta` (Telegram só com `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID` no `.env`) |
 | DAG e MLflow | Airflow em http://localhost:8088 (senha: `docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt`); dispare `dataset_para_treino`. Runs em http://localhost:5050. Sem rodada no banco: copie o lote para `ml/data/raw/sessions/` (como em `applications/dados/lote-2026-11.csv`) e rode `cd ml && MLFLOW_TRACKING_URI=http://localhost:5050 python -m src.cli all --group-by session_file` |
 | IPv6 | `mosquitto_sub -h ::1 -t 'mq3/+/leituras' -v` (broker escuta em `[::]:1883`) |
-| Placa | Copie `esp32-esp8266/include/segredos.exemplo.h` → `segredos.h`, grave Wi-Fi/broker/`PLACA`, `pio run -t upload`. Sopro: Enter / `f` na ponte USB (`applications/README.md`, "Dia de coleta"). O ML ignora `*.eventos.csv` se alguém copiar a pasta inteira da placa. |
+| Placa | Copie `esp32-esp8266/include/segredos.exemplo.h` → `segredos.h`, grave Wi-Fi/broker/`PLACA`, `pio run -t upload`. A placa publica `rodada` e `leituras`; não grava CSV nem envia `eventos`. |
 
 ## 1. Captar os dados
 
-A ESP32 grava uma linha por segundo num CSV da sessão (`leituras_N.csv`), do ligar até o reiniciar. Cada linha tem o tempo `t_ms` e as leituras dos três sensores. A equipe **não usa botão na placa**: quem conduz o teste marca início e fim do sopro na ponte USB (Enter e `f`), que publica o evento no MQTT e anota no `attempts.csv`.
+A ESP32 ao vivo publica uma leitura por segundo no MQTT (`mq3/<placa>/leituras`). Não grava CSV e não marca sopro. Os CSVs de treino são os que a equipe já coletou (cópia para `ml/data/raw/sessions/`, ou a ponte com um firmware que ainda escreva `CSV_LINHA`). Quem conduz um teste pela USB marca início e fim do sopro na ponte (Enter e `f`).
 
 Para cada bateria (30 s ou 60 s, por exemplo):
 
@@ -202,7 +202,7 @@ Troque o CSV e os segundos pelos do teste de vocês. Os tópicos estão em `ARCH
 
 | Pasta | Função |
 | --- | --- |
-| `esp32-esp8266/` | ESP32 (FreeRTOS): CSV, Wi-Fi/MQTT. |
+| `esp32-esp8266/` | ESP32 (FreeRTOS): Wi-Fi/MQTT ao vivo, sem CSV e sem botão. |
 | `ml/` | Validação, recorte, treino, EDA e previsão nos arquivos. |
 | `services/` | Servidor do modelo (ao vivo + HTTP) e alerta Telegram. |
 | `applications/` | Ponte serial, ingestor, simulador, API e tela React. |

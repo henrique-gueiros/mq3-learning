@@ -1,6 +1,5 @@
-// Saida serial protegida por mutex. Varias tarefas escrevem na serial; sem
-// o mutex, uma linha CSV_LINHA podia sair misturada com outra mensagem e a
-// ponte (applications/coleta/ponte.py) perderia a leitura.
+// Saida serial protegida por mutex. Sensores e rede escrevem na serial; sem
+// o mutex, uma linha podia sair misturada com outra.
 #pragma once
 
 void iniciarLogSerial();

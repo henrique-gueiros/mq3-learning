@@ -8,8 +8,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-// Uma leitura dos sensores. "amostra" e numerada pela tarefa de
-// armazenamento (1, 2, 3... dentro de cada rodada); o resto vem da tarefa
+// Uma leitura dos sensores. "amostra" e numerada pela tarefa de rede
+// (1, 2, 3... dentro da rodada aberta na partida); o resto vem da tarefa
 // de sensores. NAN marca o que nao foi lido (DHT11 nos primeiros segundos).
 struct Leitura {
   uint32_t amostra;

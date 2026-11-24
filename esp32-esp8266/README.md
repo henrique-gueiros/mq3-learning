@@ -1,9 +1,10 @@
 # Firmware ESP32 — Sopro Seguro
 
-Firmware PlatformIO (Arduino + FreeRTOS) do detector de álcool: lê o MQ-3, o MQ-135
-e o DHT11 a cada 1 s, grava o CSV de sessão no LittleFS, escreve as linhas na serial
-(para a ponte `applications/coleta/ponte.py`) e publica no MQTT, no mesmo contrato da
-coleta. A parte de machine learning fica em `ml/`.
+Firmware PlatformIO (Arduino + FreeRTOS) do detector de álcool, no modo ao vivo:
+lê o MQ-3, o MQ-135 e o DHT11 a cada 1 s e publica no MQTT, no mesmo contrato da
+coleta. Não grava CSV e não lê botão. A coleta rotulada continua nos CSVs que a
+equipe já tem (e na ponte, quando o firmware antigo escrevia `CSV_LINHA`). A parte
+de machine learning fica em `ml/`.
 
 Placa: `esp32dev`. Plataforma `espressif32@7.0.1` (core arduino-esp32 **2.0.17**).
 
@@ -11,23 +12,15 @@ Placa: `esp32dev`. Plataforma `espressif32@7.0.1` (core arduino-esp32 **2.0.17**
 
 | Tarefa | Arquivo | Núcleo / prio. | O que faz |
 | --- | --- | --- | --- |
-| `tarefaSensores` | `src/sensores.cpp` | 1 / 3 | `vTaskDelayUntil` de 1 s; lê MQ-3, MQ-135, DHT11; calcula ppm; acende o LED; manda um `Registro` (leitura) para a fila |
-| `tarefaBotao` | `src/botao.cpp` | 1 / 3 | Espera o semáforo que a interrupção do botão libera; filtra repique; decide o evento e manda um `Registro` (evento) |
-| `tarefaArmazenamento` | `src/armazenamento.cpp` | 1 / 2 | Dona do CSV: numera a amostra, grava no LittleFS, escreve `CSV_LINHA,...` na serial e passa a mensagem para a rede. Abre a rodada (UUID v4, CSV novo) |
-| `tarefaRede` | `src/rede.cpp` | 0 / 1 | Wi-Fi com reconexão, MQTT (last will), fila de pendentes limitada (120), NTP |
+| `tarefaSensores` | `src/sensores.cpp` | 1 / 2 | `vTaskDelayUntil` de 1 s; lê MQ-3, MQ-135, DHT11; calcula ppm; acende o LED; manda uma `Leitura` para a fila |
+| `tarefaRede` | `src/rede.cpp` | 0 / 1 | Abre a rodada (UUID v4, `arquivo_sessao` `ao_vivo`), numera a amostra, Wi-Fi, MQTT (last will), fila de pendentes (120), NTP |
 
 ```
-tarefaSensores ─┐                                ┌─ CSV (LittleFS)
-                ├─ fila "registros" ─> tarefaArmazenamento ─┼─ serial: CSV_LINHA
-tarefaBotao ────┘                                └─ fila "rede" ─> tarefaRede ─> MQTT
-     ▲
-     └── semáforo, liberado pela interrupção do botão
+tarefaSensores ─ fila "leituras" ─> tarefaRede ─> MQTT
 ```
 
-As tarefas só se falam pelas filas e pelo semáforo (`include/filas.h`). O estado do CSV
-é privado da `tarefaArmazenamento` e a lista de pendentes é privada da `tarefaRede`:
-não há variável global compartilhada. A serial tem um mutex (`src/log_serial.cpp`) para
-que uma linha `CSV_LINHA` nunca saia misturada com outra mensagem.
+As tarefas só se falam pela fila (`include/filas.h`). A lista de pendentes é privada
+da `tarefaRede`. A serial tem um mutex (`src/log_serial.cpp`) para o log não sair misturado.
 
 O formato (CSV, JSON, UUID, ppm) fica em `lib/protocolo/` e não depende do Arduino:
 é testado no PC.
@@ -41,16 +34,16 @@ O formato (CSV, JSON, UUID, ppm) fica em `lib/protocolo/` e não depende do Ardu
    ```
    Edite `WIFI_SSID`, `WIFI_SENHA`, `MQTT_HOST` (IPv4, IPv6 ou nome do PC que roda o
    Mosquitto do `docker-compose.yml`) e `PLACA`. Sem `segredos.h` o firmware compila
-   com os valores de exemplo, não conecta em rede nenhuma e segue gravando CSV e serial.
+   com os valores de exemplo e não conecta em rede nenhuma.
 2. Compilar e gravar:
    ```bash
    pio run
    pio run -t upload
    pio device monitor
    ```
-3. Botão (o **BOOT** da placa, GPIO 0): aperto curto alterna `sopro_inicio` / `sopro_fim`;
-   segurar 2 s envia `rodada_fim` e abre uma rodada nova (CSV e `rodada_id` novos).
-   Os sopros marcados no botão são os mesmos que o Enter e o `f` da ponte marcam.
+3. Sopro: a placa não tem botão e não publica `eventos`. Quem marca o sopro é a ponte
+   (Enter / `f`) quando a coleta passa pela USB, ou o simulador. Neste firmware a placa
+   só publica `rodada`, `leituras` e `status`.
 
 ## Como testar
 
@@ -64,8 +57,8 @@ mosquitto_sub -t 'mq3/#' -v
 ```
 
 Esperado, na ordem: `mq3/<placa>/status {"estado":"online"}`, `mq3/<placa>/rodada {...}`
-(retida), uma `mq3/<placa>/leituras` por segundo e, ao apertar o botão,
-`mq3/<placa>/eventos {"tipo":"sopro_inicio",...}`. Desligar a placa deve publicar
+(retida, `arquivo_sessao` `ao_vivo`) e uma `mq3/<placa>/leituras` por segundo.
+Não há `eventos` desta placa. Desligar a placa deve publicar
 `{"estado":"offline"}` (last will). Para testar a reconexão, derrube o broker por 1 min e
 suba de novo: as leituras do intervalo chegam em seguida (até 120; as mais antigas
 são descartadas e o aviso aparece na serial).
@@ -74,9 +67,8 @@ são descartadas e o aviso aparece na serial).
 
 | Tópico | Retida | Mensagem |
 | --- | --- | --- |
-| `mq3/<placa>/rodada` | sim | `rodada_id` (UUID v4 gerado na placa), `placa`, `caso: null`, `participante: null`, `inicio` (ISO em UTC se o NTP já acertou o relógio, senão `null`), `arquivo_sessao` (nome do CSV), `origem: "placa"` |
+| `mq3/<placa>/rodada` | sim | `rodada_id` (UUID v4 gerado na placa), `placa`, `caso: null`, `participante: null`, `inicio` (ISO em UTC se o NTP já acertou o relógio, senão `null`), `arquivo_sessao: "ao_vivo"`, `origem: "placa"` |
 | `mq3/<placa>/leituras` | não | `rodada_id`, `amostra`, `t_ms`, `mq3_raw`, `ppm`, `mq135_raw`, `mq135_mv`, `temperature_c`, `humidity_pct`, `alcool` (`null` quando o DHT11 não leu) |
-| `mq3/<placa>/eventos` | não | `rodada_id`, `tipo` (`sopro_inicio`, `sopro_fim`, `rodada_fim`), `t_ms` |
 | `mq3/<placa>/status` | sim | `{"estado":"online"}`; last will `{"estado":"offline"}` (QoS 1) |
 
 ### Pendências de integração
@@ -99,40 +91,18 @@ são descartadas e o aviso aparece na serial).
 - Se a ponte serial e a placa publicarem ao mesmo tempo, use `PLACA` diferente de
   `placa01` (padrão da ponte), senão as duas gravam nos mesmos tópicos.
 
-## Eventos do botão: serial e arquivo (não dependem do MQTT)
-
-Cada evento (`sopro_inicio`, `sopro_fim`, `rodada_fim`) sai por três caminhos: MQTT, serial
-e arquivo na placa. Na serial:
-
-```
-CSV_EVENTO,<arquivo>,<tipo>,<t_ms>
-CSV_EVENTO,leituras_3.csv,sopro_inicio,41230
-```
-
-e no LittleFS, `/leituras_N.eventos.csv` ao lado de `/leituras_N.csv`, com cabeçalho
-`tipo,t_ms`. O `t_ms` é o mesmo da coluna `t_ms` do CSV de leituras (ms desde a partida da
-placa), então cada par `sopro_inicio` / `sopro_fim` vira uma linha do `attempts.csv`:
-`blow_start_s` = (`t_ms` do início − `t_ms` da primeira leitura) / 1000, e `blow_end_s` o
-mesmo com o fim; `session_file` é o `<arquivo>` e `condition` vem do caso da rodada. A
-**ponte lê `CSV_EVENTO`** se o firmware emitir (mesmo papel do Enter/`f` no `t_ms` da
-placa). Na coleta da equipe o sopro é marcado na ponte (Enter / `f`), sem usar o
-botão BOOT; o suporte ao botão fica no firmware para quem quiser testar.
-
-**Risco do QoS 0:** se o `sopro_fim` (ou o `sopro_inicio`) se perder no MQTT, o banco fica sem
-a janela do sopro e o modelo ao vivo não roda para aquela tentativa. A serial e o arquivo
-de eventos guardam o que o MQTT pode perder.
-
 ## Decisões e limites
 
+- **Sem CSV e sem botão.** A placa não grava LittleFS e não publica `eventos`. Uma leitura
+  que a fila de pendentes descarta (broker fora por mais de ~2 min) se perde. O sopro, para
+  o modelo ao vivo, precisa chegar por outro publicador (`sopro_inicio` / `sopro_fim` no
+  contrato); este firmware não o envia.
 - **QoS 0 nas publicações.** O `PubSubClient` só publica com QoS 0 (sem confirmação do
-  broker), embora o contrato peça QoS 1. O last will vai com QoS 1. A perda é coberta
-  pelo CSV na placa e pelo CSV da ponte; para QoS 1 de verdade, trocar a biblioteca por
-  `256dpi/MQTT` (mudança só em `src/rede.cpp`).
+  broker), embora o contrato peça QoS 1. O last will vai com QoS 1. Para QoS 1 de verdade,
+  trocar a biblioteca por `256dpi/MQTT` (mudança só em `src/rede.cpp`).
 - **Fila de pendentes limitada** (`MAX_PENDENTES_REDE`, 120 mensagens, ~2 min de leituras).
-  Cheia, descarta a leitura mais antiga e, sem leituras, o evento mais antigo; a mensagem `rodada` nunca é descartada.
+  Cheia, descarta a leitura mais antiga; a mensagem `rodada` nunca é descartada.
 - **Wi-Fi:** `setAutoReconnect` e, se ficar 30 s sem conexão, recomeça com `WiFi.begin`.
-- O CSV (13 colunas) e a linha `CSV_LINHA` são idênticos aos do firmware anterior; o
-  filtro `monitor/filter_leituras.py` e a ponte continuam funcionando.
 - O ppm continua vindo da curva do datasheet e o campo `alcool` (leitura acima da
   referência + 80) segue como indicação local: nem rótulo, nem feature, nem decisão.
 
@@ -154,7 +124,6 @@ log do Wi-Fi imprime só o IPv4; o IPv6 não é impresso.
 | `pio run` (compila para `esp32dev`) | testado |
 | `pio test -e native` (protocolo no PC) | testado |
 | Wi-Fi, MQTT, last will, reconexão, fila de pendentes | **não testado em hardware** |
-| Botão (interrupção, repique, aperto longo) | **não testado em hardware** |
 | Pilhas das tarefas (`PILHA_*` em `include/config.h`) | dimensionadas sem medição; conferir com `uxTaskGetStackHighWaterMark` |
 | IPv6 | **não testado** (hipótese acima) |
 | Ingestão no Postgres com `origem = 'placa'` | depende da migração acima |

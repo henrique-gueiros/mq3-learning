@@ -44,10 +44,10 @@ Ainda não existe:
 - [ ] Coleta rotulada suficiente (`attempts.csv` com sopros marcados), com as duas classes.
 - [ ] Revisão das features com dados reais. A análise exploratória existe em `ml/notebooks/01_eda.ipynb` (figuras em `ml/reports/figuras_eda/`), com as seções do diário e o veredito de cada uma; falta a equipe interpretar (células "[EQUIPE: interpretar]") e decidir as sessões anteriores a 10/11, o aquecimento do MQ-3 e os trios de bebida.
 - [ ] Modelo treinado e avaliado com dados reais (métricas dos testes automatizados **não** dizem nada sobre o sensor).
-- [ ] Testar na placa o firmware FreeRTOS (Wi-Fi, MQTT, IPv6). Sem rede, a ponte USB ainda publica no lugar da placa; o sopro continua marcado na ponte (Enter / `f`), sem botão na ESP32.
+- [ ] Testar na placa o firmware FreeRTOS ao vivo (Wi-Fi, MQTT, IPv6). A placa não grava CSV nem marca sopro.
 - [x] MLflow e um Compose único com todos os serviços (24/11): `docker compose up -d --build` sobe broker, banco, ingestor, API, tela, modelo, alerta, Airflow e MLflow; rede com IPv6.
 - [x] Registro no MLflow (`ml/src/rastreio.py`), métricas por fold, F1 treino × validação, ROC/AUC e figuras (`ml/src/figuras.py`).
-- [x] Firmware com FreeRTOS (4 tarefas), Wi-Fi, MQTT no contrato da coleta e IPv6 — compila e passa nos testes de PC; **falta testar na placa**.
+- [x] Firmware com FreeRTOS (sensores + rede), Wi-Fi e MQTT no contrato da coleta — sem CSV e sem botão; **falta testar na placa**.
 
 ## Próximas tarefas, em ordem
 
@@ -55,4 +55,4 @@ Ainda não existe:
 2. Coleta com a ponte (`applications/README.md`, "Dia de coleta"), com sopros marcados, e conferência com `python -m src.cli validate`.
 3. Equipe: ler o `01_eda.ipynb`, interpretar e decidir as pendências marcadas. A EDA aponta o que coletar: sopros sem álcool (`clean` e `mouthwash` com sopro), `alcohol70_hands`/`alcohol70_spray`, mais de um participante e anotar gelo e boca aberta em `notes`.
 4. Rodar o experimento com dados reais pelo DAG; o registro no MLflow, o desvio entre folds e a comparação treino × validação já existem.
-5. Testar o firmware na placa (Wi-Fi, MQTT, IPv6) com quem mantém o firmware; sopro pela ponte.
+5. Testar o firmware na placa (Wi-Fi, MQTT, IPv6) com quem mantém o firmware.

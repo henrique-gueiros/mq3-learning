@@ -1,14 +1,14 @@
 // tarefaRede: Wi-Fi, MQTT e uma fila de mensagens pendentes limitada.
 //
-// Recebe MensagemRede da tarefaArmazenamento, guarda numa fila interna
-// (MAX_PENDENTES_REDE) e publica quando o broker esta conectado. Sem Wi-Fi
-// ou broker, o CSV e a serial continuam: a rede e o canal rapido, nao a
-// fonte de verdade.
+// Na partida abre uma rodada (UUID v4, arquivo_sessao "ao_vivo": nao ha
+// CSV na placa). Recebe Leitura da tarefaSensores, numera a amostra e
+// publica quando o broker esta conectado. Sem Wi-Fi ou broker, as
+// leituras ficam na fila interna (MAX_PENDENTES_REDE); o que nao cabe
+// e descartado. O sopro nao e marcado aqui: a equipe marca na ponte.
 //
 // Topicos (contrato de applications/coleta/mensagens.py):
-//   mq3/<placa>/rodada    retida, no inicio de cada rodada
+//   mq3/<placa>/rodada    retida, na partida
 //   mq3/<placa>/leituras  uma leitura por mensagem
-//   mq3/<placa>/eventos   sopro_inicio, sopro_fim, rodada_fim
 //   mq3/<placa>/status    retida; {"estado":"online"} ao conectar e
 //                         {"estado":"offline"} como last will
 //
@@ -17,6 +17,7 @@
 #include <Arduino.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
+#include <esp_system.h>
 #include <string.h>
 #include <time.h>
 
@@ -28,8 +29,18 @@
 
 namespace {
 
+enum class TipoMensagem : uint8_t { RODADA, LEITURA };
+
+struct MensagemRede {
+  TipoMensagem tipo;
+  char rodadaId[TAMANHO_UUID];
+  Leitura leitura;
+  uint32_t tMs;      // RODADA: millis da abertura
+  char arquivo[24];  // RODADA: nome logico (nao e um arquivo na placa)
+};
+
 // Fila de pendentes em vetor (so esta tarefa a usa; sem mutex).
-// Cheia: descarta a leitura mais antiga, depois o evento mais antigo; nunca a rodada.
+// Cheia: descarta a leitura mais antiga; a mensagem rodada nunca sai.
 class Pendentes {
  public:
   size_t tamanho() const { return _n; }
@@ -52,15 +63,10 @@ class Pendentes {
 
  private:
   size_t indiceDescartavel() const {
-    // Primeiro a leitura mais antiga; sem leituras, o evento mais antigo.
-    // A rodada (retida) nunca e descartada. Devolve _n se nao ha o que tirar.
+    // A leitura mais antiga. A rodada (retida) nunca e descartada.
+    // Devolve _n se nao ha o que tirar.
     for (size_t i = 0; i < _n; i++) {
       if (_itens[i].tipo == TipoMensagem::LEITURA) {
-        return i;
-      }
-    }
-    for (size_t i = 0; i < _n; i++) {
-      if (_itens[i].tipo == TipoMensagem::EVENTO) {
         return i;
       }
     }
@@ -115,16 +121,18 @@ bool publicar(PubSubClient &mqtt, const MensagemRede &m) {
     case TipoMensagem::LEITURA:
       coube = jsonLeitura(json, sizeof(json), m.rodadaId, m.leitura);
       break;
-    case TipoMensagem::EVENTO:
-      coube = jsonEvento(json, sizeof(json), m.rodadaId, nomeEvento(m.evento), m.tMs);
-      tipoTopico = "eventos";
-      break;
   }
   if (!coube || !montarTopico(topico, sizeof(topico), PLACA, tipoTopico)) {
     logf("Mensagem MQTT maior que o buffer: descartada");
     return true;  // nao adianta tentar de novo
   }
   return mqtt.publish(topico, json, retida);
+}
+
+void gerarRodadaId(char saida[TAMANHO_UUID]) {
+  uint8_t bytes[16];
+  esp_fill_random(bytes, sizeof(bytes));
+  uuidV4(bytes, saida);
 }
 
 }  // namespace
@@ -152,6 +160,18 @@ void tarefaRede(void *parametro) {
   logf("Wi-Fi: conectando a \"%s\"", WIFI_SSID);
 
   static Pendentes pendentes;  // 120 x ~150 bytes: fora da pilha da tarefa
+  char rodadaId[TAMANHO_UUID];
+  gerarRodadaId(rodadaId);
+  uint32_t proximaAmostra = 1;
+  {
+    MensagemRede rodada = {};
+    rodada.tipo = TipoMensagem::RODADA;
+    strlcpy(rodada.rodadaId, rodadaId, sizeof(rodada.rodadaId));
+    strlcpy(rodada.arquivo, ARQUIVO_AO_VIVO, sizeof(rodada.arquivo));
+    rodada.tMs = millis();
+    pendentes.adicionar(rodada);
+    logf("Rodada %s (ao vivo, sem CSV na placa)", rodadaId);
+  }
   ClienteTcp tcp(brokerEhIpv6(), TIMEOUT_TCP_MS);
   PubSubClient mqtt(tcp);
   mqtt.setServer(MQTT_HOST, MQTT_PORTA);
@@ -167,17 +187,24 @@ void tarefaRede(void *parametro) {
   uint32_t descartadasAvisadas = 0;
 
   for (;;) {
-    // 1. Recebe do armazenamento (espera ate 200 ms: tambem serve de ritmo do laco).
-    MensagemRede mensagem;
-    if (xQueueReceive(filas->rede, &mensagem, pdMS_TO_TICKS(200)) == pdTRUE) {
-      pendentes.adicionar(mensagem);
-      while (xQueueReceive(filas->rede, &mensagem, 0) == pdTRUE) {
+    // 1. Recebe dos sensores (espera ate 200 ms: tambem serve de ritmo do laco).
+    Leitura leitura;
+    if (xQueueReceive(filas->leituras, &leitura, pdMS_TO_TICKS(200)) == pdTRUE) {
+      do {
+        leitura.amostra = proximaAmostra++;
+        MensagemRede mensagem = {};
+        mensagem.tipo = TipoMensagem::LEITURA;
+        strlcpy(mensagem.rodadaId, rodadaId, sizeof(mensagem.rodadaId));
+        mensagem.leitura = leitura;
         pendentes.adicionar(mensagem);
-      }
+        logf("Leitura %lu  ppm: %.1f  mq135: %d  umidade: %s",
+             static_cast<unsigned long>(leitura.amostra), leitura.ppm, leitura.mq135,
+             isnan(leitura.umidade) ? "--" : String(leitura.umidade, 1).c_str());
+      } while (xQueueReceive(filas->leituras, &leitura, 0) == pdTRUE);
     }
     if (pendentes.descartadas() != descartadasAvisadas) {
       descartadasAvisadas = pendentes.descartadas();
-      logf("Rede: %lu leituras antigas descartadas (broker fora do ar; o CSV esta completo)",
+      logf("Rede: %lu leituras antigas descartadas (broker fora do ar)",
            static_cast<unsigned long>(descartadasAvisadas));
     }
 

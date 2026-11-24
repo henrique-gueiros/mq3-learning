@@ -1,14 +1,12 @@
-// Sopro Seguro: firmware da ESP32 (MQ-3, MQ-135 e DHT11).
+// Sopro Seguro: firmware da ESP32 (MQ-3, MQ-135 e DHT11), so ao vivo.
 //
-// O setup() so cria as filas e as tarefas do FreeRTOS; o trabalho esta em
-// cada arquivo de tarefa:
+// O setup() cria a fila e as tarefas do FreeRTOS:
 //
-//   sensores.cpp       tarefaSensores       le os sensores a cada 1 s
-//   armazenamento.cpp  tarefaArmazenamento  CSV no LittleFS + serial (CSV_LINHA)
-//   rede.cpp           tarefaRede           Wi-Fi + MQTT, fila de pendentes
-//   botao.cpp          tarefaBotao          sopro_inicio / sopro_fim / rodada_fim
+//   sensores.cpp  tarefaSensores  le os sensores a cada 1 s
+//   rede.cpp      tarefaRede      Wi-Fi + MQTT (rodada na partida, leituras)
 //
-// Como configurar e testar: README.md desta pasta.
+// Nao grava CSV e nao le botao. O sopro, quando houver, e marcado fora da
+// placa. Como configurar e testar: README.md desta pasta.
 #include <Arduino.h>
 
 #include "config.h"
@@ -28,21 +26,17 @@ static void criarTarefa(TaskFunction_t funcao, const char *nome, uint32_t pilha,
 void setup() {
   iniciarLogSerial();
 
-  filas.registros = xQueueCreate(TAMANHO_FILA_REGISTROS, sizeof(Registro));
-  filas.rede = xQueueCreate(TAMANHO_FILA_REDE, sizeof(MensagemRede));
-  filas.botao = xSemaphoreCreateBinary();
-  if (filas.registros == nullptr || filas.rede == nullptr || filas.botao == nullptr) {
-    logf("ERRO: sem memoria para as filas; reiniciando");
+  filas.leituras = xQueueCreate(TAMANHO_FILA_LEITURAS, sizeof(Leitura));
+  if (filas.leituras == nullptr) {
+    logf("ERRO: sem memoria para a fila; reiniciando");
     delay(1000);
     ESP.restart();
   }
 
-  // Nucleo 1 (o do loop() do Arduino) para o que mede e grava; nucleo 0
+  // Nucleo 1 (o do loop() do Arduino) para a leitura periodica; nucleo 0
   // (o do Wi-Fi) para a rede. Prioridade maior = mais urgente: a leitura
-  // periodica nao pode atrasar por causa de CSV ou rede.
-  criarTarefa(tarefaSensores, "sensores", PILHA_SENSORES, 3, 1);
-  criarTarefa(tarefaBotao, "botao", PILHA_BOTAO, 3, 1);
-  criarTarefa(tarefaArmazenamento, "armazenamento", PILHA_ARMAZENAMENTO, 2, 1);
+  // nao pode atrasar por causa da rede.
+  criarTarefa(tarefaSensores, "sensores", PILHA_SENSORES, 2, 1);
   criarTarefa(tarefaRede, "rede", PILHA_REDE, 1, 0);
 }
 
