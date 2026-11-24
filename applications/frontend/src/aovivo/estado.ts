@@ -8,7 +8,7 @@
  */
 
 import { novoDetector, passo, type Detector, type EstadoSopro } from './detector'
-import type { Evento, Leitura, Mensagem, Rodada } from './mensagens'
+import type { Evento, Leitura, Mensagem, Resultado, Rodada } from './mensagens'
 
 /** Quanto do passado a tela guarda: o gráfico mostra menos que isso. */
 export const JANELA_MS = 5 * 60 * 1000
@@ -24,7 +24,7 @@ export interface Trecho {
 export interface Aviso {
   id: number
   texto: string
-  tipo: 'sopro' | 'marcacao' | 'rodada'
+  tipo: 'sopro' | 'marcacao' | 'rodada' | 'resultado' | 'alerta'
 }
 
 export interface EstadoAoVivo {
@@ -42,13 +42,15 @@ export interface EstadoAoVivo {
   statusPorPlaca: Record<string, 'online' | 'offline'>
   /** Eventos de rodadas que ainda não são a atual, por rodada_id. */
   pendentes: Record<string, Evento[]>
+  /** Classificações do servidor do modelo, por rodada_id, na ordem em que chegaram. */
+  resultadosPorRodada: Record<string, Resultado[]>
 }
 
 /** Estado vazio, antes da primeira mensagem do broker. */
 export function estadoInicial(): EstadoAoVivo {
   return {
     placa: null, rodada: null, leituras: [], eventos: [], detector: novoDetector(), trechos: [],
-    ultimaLeituraEm: null, aviso: null, rodadasPorPlaca: {}, statusPorPlaca: {}, pendentes: {},
+    ultimaLeituraEm: null, aviso: null, rodadasPorPlaca: {}, statusPorPlaca: {}, pendentes: {}, resultadosPorRodada: {},
   }
 }
 
@@ -71,6 +73,7 @@ function recomecar(e: EstadoAoVivo, placa: string, rodada: Rodada): EstadoAoVivo
     aviso: e.aviso,
     rodadasPorPlaca: e.rodadasPorPlaca,
     statusPorPlaca: e.statusPorPlaca,
+    resultadosPorRodada: e.resultadosPorRodada,
   }
 }
 
@@ -139,6 +142,18 @@ function comEvento(e: EstadoAoVivo, ev: Evento): EstadoAoVivo {
   return { ...e, eventos }
 }
 
+function comResultado(e: EstadoAoVivo, r: Resultado): EstadoAoVivo {
+  const lista = e.resultadosPorRodada[r.rodada_id] ?? []
+  if (lista.some((x) => x.t_ms === r.t_ms)) return e
+  const resultadosPorRodada = { ...e.resultadosPorRodada, [r.rodada_id]: [...lista, r] }
+  if (e.rodada?.rodada_id !== r.rodada_id) return { ...e, resultadosPorRodada }
+  const aviso =
+    r.prediction === 'sob_efeito'
+      ? avisar(e, 'Alerta: o modelo classificou o sopro como sob efeito', 'alerta')
+      : avisar(e, r.prediction === 'sem_efeito' ? 'Modelo: sem efeito' : 'Modelo: sem classificação', 'resultado')
+  return { ...e, resultadosPorRodada, aviso }
+}
+
 /** Aplica uma mensagem do broker. `agora` é o relógio do navegador (ms). */
 export function reduzir(e: EstadoAoVivo, m: Mensagem, agora: number): EstadoAoVivo {
   switch (m.tipo) {
@@ -155,6 +170,9 @@ export function reduzir(e: EstadoAoVivo, m: Mensagem, agora: number): EstadoAoVi
     case 'eventos':
       // de outra placa: fica guardado, caso a tela passe a seguir essa placa
       return comEvento(e, m.dados)
+
+    case 'resultado':
+      return comResultado(e, m.dados)
 
     case 'status':
       return { ...e, statusPorPlaca: { ...e.statusPorPlaca, [m.placa]: m.dados.estado } }

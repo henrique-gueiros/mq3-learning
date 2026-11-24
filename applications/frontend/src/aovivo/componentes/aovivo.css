@@ -218,3 +218,47 @@
 .aviso[data-tipo='marcacao'] .aviso-ponto {
   background: var(--azul);
 }
+.aviso[data-tipo='alerta'] .aviso-ponto {
+  background: var(--vermelho);
+}
+.aviso[data-tipo='resultado'] .aviso-ponto {
+  background: var(--verde);
+}
+
+/* Classe do modelo de ML para o último sopro (mq3/<placa>/resultado) */
+.aovivo-modelo {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--e-2);
+  padding: var(--e-6);
+  border-radius: var(--raio-xl);
+  background: var(--cartao);
+  box-shadow: var(--sombra-2);
+}
+.aovivo-modelo[data-classe='sob_efeito'] {
+  box-shadow: var(--sombra-2), inset 3px 0 0 var(--vermelho);
+}
+.aovivo-modelo[data-classe='sem_efeito'] {
+  box-shadow: var(--sombra-2), inset 3px 0 0 var(--verde);
+}
+.aovivo-modelo[data-classe='atencao'] {
+  box-shadow: var(--sombra-2), inset 3px 0 0 var(--ambar);
+}
+.aovivo-modelo .corpo-sm {
+  max-width: 62ch;
+}
+.aovivo-modelo-alerta {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.14px;
+  color: var(--vermelho);
+}
+.aovivo-modelo-probs {
+  display: flex;
+  gap: var(--e-8);
+  margin: var(--e-2) 0 0;
+}
+.aovivo-modelo-probs dd {
+  margin: 0;
+}

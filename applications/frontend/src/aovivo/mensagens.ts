@@ -38,13 +38,28 @@ export interface Status {
   estado: 'online' | 'offline'
 }
 
+/** Resposta do servidor do modelo para um sopro_fim (services/mq3mqtt/ao_vivo.py). */
+export interface Resultado {
+  rodada_id: string
+  /** t_ms do sopro_fim que o servidor classificou. */
+  t_ms: number
+  sessao: string
+  attempt_id: string | null
+  status: string
+  prediction: 'sob_efeito' | 'sem_efeito' | null
+  prob_sem_efeito: number | null
+  prob_sob_efeito: number | null
+  detalhe: string
+}
+
 export type Mensagem =
   | { placa: string; tipo: 'rodada'; dados: Rodada }
   | { placa: string; tipo: 'leituras'; dados: Leitura }
   | { placa: string; tipo: 'eventos'; dados: Evento }
   | { placa: string; tipo: 'status'; dados: Status }
+  | { placa: string; tipo: 'resultado'; dados: Resultado }
 
-export const TOPICOS = ['mq3/+/rodada', 'mq3/+/leituras', 'mq3/+/eventos', 'mq3/+/status']
+export const TOPICOS = ['mq3/+/rodada', 'mq3/+/leituras', 'mq3/+/eventos', 'mq3/+/status', 'mq3/+/resultado']
 
 type Objeto = Record<string, unknown>
 
@@ -92,6 +107,26 @@ function lerRodada(o: Objeto, placa: string): Rodada | null {
   }
 }
 
+function lerResultado(o: Objeto): Resultado | null {
+  const rodada_id = texto(o.rodada_id)
+  const t_ms = numero(o.t_ms)
+  const status = texto(o.status)
+  const p = o.prediction
+  if (rodada_id === null || t_ms === null || status === null) return null
+  if (p !== null && p !== 'sob_efeito' && p !== 'sem_efeito') return null
+  return {
+    rodada_id,
+    t_ms,
+    sessao: texto(o.sessao) ?? '',
+    attempt_id: texto(o.attempt_id),
+    status,
+    prediction: p,
+    prob_sem_efeito: numero(o.prob_sem_efeito),
+    prob_sob_efeito: numero(o.prob_sob_efeito),
+    detalhe: texto(o.detalhe) ?? '',
+  }
+}
+
 /** Converte uma mensagem do broker; devolve `null` para o que a tela não usa ou não entende. */
 export function parsearMensagem(topico: string, corpo: string): Mensagem | null {
   const partes = topico.split('/')
@@ -116,6 +151,10 @@ export function parsearMensagem(topico: string, corpo: string): Mensagem | null 
     }
     case 'rodada': {
       const dados = lerRodada(objeto, placa)
+      return dados && { placa, tipo, dados }
+    }
+    case 'resultado': {
+      const dados = lerResultado(objeto)
       return dados && { placa, tipo, dados }
     }
     case 'status':

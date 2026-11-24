@@ -29,9 +29,21 @@ describe('parsearMensagem', () => {
 
   it('ignora tópico desconhecido, JSON quebrado e campos obrigatórios faltando', () => {
     expect(parsearMensagem('mq3/p/resultado', json({}))).toBeNull()
+    expect(parsearMensagem('mq3/p/desconhecido', json({ rodada_id: 'r' }))).toBeNull()
     expect(parsearMensagem('outro/p/leituras', json({}))).toBeNull()
     expect(parsearMensagem('mq3/p/leituras', '{quebrado')).toBeNull()
     expect(parsearMensagem('mq3/p/leituras', json({ rodada_id: 'r', amostra: 1 }))).toBeNull()
     expect(parsearMensagem('mq3/p/eventos', json({ rodada_id: 'r', tipo: 'outro', t_ms: 1 }))).toBeNull()
+  })
+
+  it('lê o resultado do servidor do modelo', () => {
+    const corpo = {
+      rodada_id: 'r', t_ms: 45000, sessao: 'a.csv', attempt_id: 'a@40s', status: 'classificado',
+      prediction: 'sob_efeito', prob_sem_efeito: 0.2, prob_sob_efeito: 0.8, detalhe: '',
+    }
+    expect(parsearMensagem('mq3/p/resultado', json(corpo))).toEqual({ placa: 'p', tipo: 'resultado', dados: corpo })
+    expect(parsearMensagem('mq3/p/resultado', json({ ...corpo, prediction: null, status: 'sem_modelo', prob_sob_efeito: null, prob_sem_efeito: null }))?.dados)
+      .toMatchObject({ prediction: null, status: 'sem_modelo' })
+    expect(parsearMensagem('mq3/p/resultado', json({ ...corpo, prediction: 'outra' }))).toBeNull()
   })
 })

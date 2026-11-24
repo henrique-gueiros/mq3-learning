@@ -37,7 +37,7 @@ Pronto e testado:
 - Pipeline de ML em `ml/src/` (validação, recorte, features, separação por participante, 4 modelos × 4 conjuntos de sensores, Grid Search aninhado por grupo, modelo final e previsão), testado com curvas montadas à mão.
 - Coleta em `applications/`: ponte serial, ingestor, simulador, importador, lote dos 12 CSVs válidos, Compose com Mosquitto, Postgres e API.
 - Tela React no Compose (http://localhost:8080): ao vivo, detector ambiente × sopro e as quatro seções de análise, com os números conferidos contra o Grafana local. O acabamento visual da etapa 5 está feito. O Lighthouse de acessibilidade deu 100 em 17/11. Plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
-- Contrato MQTT único (o da coleta, 24/11): o servidor do modelo (`services/mq3mqtt/ao_vivo.py`) assina `eventos`, lê a rodada no banco da coleta, grava em `resultados` e publica `mq3/<placa>/resultado` (`sem_modelo` até haver modelo). O simulador publica início e fim de sopro. A stack paralela de `services/` foi removida.
+- Contrato MQTT único (o da coleta, 24/11): o servidor do modelo (`services/mq3mqtt/ao_vivo.py`) assina `eventos`, lê a rodada no banco da coleta, grava em `resultados` e publica `mq3/<placa>/resultado` (`sem_modelo` até haver modelo). O simulador publica início e fim de sopro. A stack paralela de `services/` foi removida. A aba Ao vivo mostra a classe do modelo e o alerta; o serviço `alerta` envia pelo Telegram (bônus).
 - DAG do Airflow `dataset_para_treino`: lê rodadas encerradas no Postgres, grava o que ainda não está em `ml/data/raw/` e disponibiliza `ml/data/processed/disponivel.json`. Sobe com `docker compose --profile airflow up -d --build` (interface em http://localhost:8088).
 
 Ainda não existe:
@@ -54,4 +54,4 @@ Ainda não existe:
 3. Análise exploratória, revisão das features, dos tempos do protocolo e dos limiares do detector da tela.
 4. Experimento com dados reais no MLflow, com k-fold e overfitting. Aí `ml/models/sob_efeito.joblib` passa a existir.
 5. A ESP32 passa a publicar no contrato da coleta, com FreeRTOS (branch `firmware-freertos-mqtt`, em andamento; revisão de quem mantém o firmware).
-6. Resultado do modelo na tela, MLflow e um Compose único.
+6. MLflow e um Compose único (plano `docs/superpowers/plans/2026-11-24-fecha-requisitos.md`).

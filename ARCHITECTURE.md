@@ -107,6 +107,12 @@ folga), lê a rodada no Postgres, recorta e classifica com o mesmo código de
 `ml/models/sob_efeito.joblib` o `status` é `sem_modelo` e a classe fica vazia.
 O simulador publica `sopro_fim` 5 s depois de cada início (`--duracao`).
 
+A aba Ao vivo assina `resultado`: o card "Modelo de ML" mostra a classe do último
+sopro da rodada, as probabilidades e "Alerta de detecção." quando `sob_efeito`
+(`applications/frontend/src/aovivo/componentes/ResultadoAoVivo.tsx`). O serviço
+`alerta` (`services/mq3mqtt/alerta.py`) manda a mesma detecção pelo Telegram quando
+`TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID` estão no `.env`; sem eles, só registra no log.
+
 A aba Modelo da tela não passa pelo banco. Ela faz `POST /modelo/classificar`
 com um recorte de sopro (leituras e o instante do sopro) e recebe o mesmo corpo
 do `resultado`. No Compose da raiz o serviço é o container `model` (porta 8010).

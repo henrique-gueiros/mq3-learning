@@ -140,6 +140,8 @@ Num teste, com a placa ligada na mesma rede:
 3. O ingestor recebe essas mensagens e grava no PostgreSQL. A mesma amostra da mesma rodada não entra duas vezes.
 4. A cada `sopro_fim`, o servidor do modelo espera 35 s (a janela depois do sopro usada no treino), lê a rodada no banco, recorta o sopro como no treino, grava em `resultados` e publica em `mq3/<placa>/resultado`.
 
+A aba Ao vivo da tela mostra essa classe no card "Modelo de ML", com um alerta quando é `sob_efeito`. Com `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID` no `.env`, o serviço `alerta` manda a mesma detecção pelo Telegram.
+
 Os CSVs usados no treino não passam de novo pelo MQTT. O MQTT leva o teste que está acontecendo agora.
 
 Sem a placa, o simulador republica um CSV que ela já gravou. `--sopros` são os segundos em que cada sopro começou, os mesmos do `attempts.csv`; o fim sai `--duracao` segundos depois (padrão 5). De dentro de `applications/`:

@@ -10,7 +10,7 @@ exemplo concreto.
 
 - **Mapa do sistema** (peças, fluxo, contratos MQTT, banco, portas): `ARCHITECTURE.md`.
 - **Estado, entregáveis, datas e próximas tarefas:** `docs/roadmap.md`.
-- **Plano em andamento** (tela React): `docs/superpowers/plans/2026-11-17-frontend-react.md`.
+- **Plano em andamento** (fechar os requisitos, com o andamento de cada etapa): `docs/superpowers/plans/2026-11-24-fecha-requisitos.md`. O da tela React (`2026-11-17-frontend-react.md`) só tem a etapa do Grafana pendente, coberta pelo plano novo.
 - **Regras de cada área:** o `AGENTS.md` dentro de `applications/`, `applications/frontend/` e `ml/`.
 - **Requisitos das disciplinas:** `docs/`. O `decisoes_projeto_ml.pdf` vale, exceto nas classes (ainda fala em 3); valem as duas abaixo.
 

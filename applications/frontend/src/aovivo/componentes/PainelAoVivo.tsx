@@ -8,9 +8,10 @@ import type { EstadoAoVivo } from '../estado'
 import { janelasMarcadas } from '../janelas'
 import { CartaoEstado } from './CartaoEstado'
 import { GraficoAoVivo } from './GraficoAoVivo'
+import { ResultadoAoVivo } from './ResultadoAoVivo'
 import './aovivo.css'
 
-/** Conteúdo da seção "Ao vivo": estado do detector, três números e o gráfico. */
+/** Conteúdo da seção "Ao vivo": estado do detector, três números, a classe do modelo e o gráfico. */
 export function PainelAoVivo({ estado }: { estado: EstadoAoVivo }) {
   const { tema } = useTema()
   const marcadas = useMemo(() => janelasMarcadas(estado.eventos), [estado.eventos])
@@ -52,6 +53,7 @@ export function PainelAoVivo({ estado }: { estado: EstadoAoVivo }) {
           variacao={base ? variacao(ultima.humidity_pct, base.umid) : undefined}
         />
       </div>
+      <ResultadoAoVivo resultados={rodada ? (estado.resultadosPorRodada[rodada.rodada_id] ?? []) : []} />
       <dl className="aovivo-rodada">
         <div>
           <dt className="legenda">Caso</dt>

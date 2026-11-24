@@ -107,6 +107,25 @@ services:
     command: ["python", "-m", "mq3mqtt.ao_vivo"]
     restart: unless-stopped
 
+  # Bônus: alerta pelo Telegram a cada resultado sob_efeito. Sem TELEGRAM_TOKEN e
+  # TELEGRAM_CHAT_ID no .env, só registra no log (docker compose logs alerta).
+  alerta:
+    build:
+      context: .
+      dockerfile: services/Dockerfile.model
+    environment:
+      MQTT_HOST: mosquitto
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      PYTHONPATH: /opt/services
+    volumes:
+      - ./services:/opt/services
+    depends_on:
+      mosquitto:
+        condition: service_started
+    command: ["python", "-m", "mq3mqtt.alerta"]
+    restart: unless-stopped
+
   # Túnel de saída até o Grafana Cloud (Private Data Source Connect).
   # Sobe só com: docker compose --profile cloud up -d
   pdc:

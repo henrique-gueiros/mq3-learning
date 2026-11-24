@@ -148,4 +148,45 @@ describe('estado ao vivo', () => {
     const off = aplicar([{ placa: 'placa01', tipo: 'status', dados: { estado: 'offline' } }], e, 56_000)
     expect(situacaoPlaca(off, 56_000)).toBe('offline')
   })
+
+  describe('resultado do modelo', () => {
+    const resultado = (prediction: 'sob_efeito' | 'sem_efeito' | null, t_ms = 45000, rodada_id = 'r1'): Mensagem => ({
+      placa: 'placa01',
+      tipo: 'resultado',
+      dados: {
+        rodada_id, t_ms, sessao: 'a.csv', attempt_id: null,
+        status: prediction ? 'classificado' : 'sem_modelo', prediction,
+        prob_sem_efeito: prediction ? 0.2 : null, prob_sob_efeito: prediction ? 0.8 : null, detalhe: '',
+      },
+    })
+
+    it('guarda o resultado da rodada e alerta quando é sob_efeito', () => {
+      const e = aplicar([leitura(1), resultado('sob_efeito')])
+      expect(e.resultadosPorRodada.r1).toHaveLength(1)
+      expect(e.aviso).toMatchObject({ tipo: 'alerta', texto: 'Alerta: o modelo classificou o sopro como sob efeito' })
+    })
+
+    it('sem_efeito e sem_modelo só avisam, sem alerta', () => {
+      expect(aplicar([leitura(1), resultado('sem_efeito')]).aviso).toMatchObject({ tipo: 'resultado', texto: 'Modelo: sem efeito' })
+      expect(aplicar([leitura(1), resultado(null)]).aviso).toMatchObject({ tipo: 'resultado', texto: 'Modelo: sem classificação' })
+    })
+
+    it('resultado repetido não duplica nem avisa de novo', () => {
+      const uma = aplicar([leitura(1), resultado('sob_efeito')])
+      const duas = reduzir(uma, resultado('sob_efeito'), 1_000)
+      expect(duas.resultadosPorRodada.r1).toHaveLength(1)
+      expect(duas.aviso?.id).toBe(uma.aviso?.id)
+    })
+
+    it('resultado de outra rodada fica guardado sem aviso', () => {
+      const e = aplicar([leitura(1), resultado('sob_efeito', 45000, 'r-antiga')])
+      expect(e.resultadosPorRodada['r-antiga']).toHaveLength(1)
+      expect(e.aviso).toBeNull()
+    })
+
+    it('troca de rodada mantém os resultados guardados', () => {
+      const e = aplicar([leitura(1), resultado('sem_efeito'), leitura(1, {}, 'r2')])
+      expect(e.resultadosPorRodada.r1).toHaveLength(1)
+    })
+  })
 })
