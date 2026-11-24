@@ -99,7 +99,7 @@ def run_train(paths: ProjectPaths, select_by: str, seed: int) -> None:
     resultado = avaliar_teste(paths, escolha, seed=seed)
     print(f"Escolhido por {select_by}: {resultado['modelo']} com {resultado['sensor_set']}")
     if resultado["metricas_teste"]:
-        metricas = ", ".join(f"{k}={v:.2f}" for k, v in resultado["metricas_teste"].items())
+        metricas = ", ".join(f"{k}={_fmt_metrica(v)}" for k, v in resultado["metricas_teste"].items())
         print(f"Teste ({resultado['n_teste']} tentativas): {metricas}")
     else:
         print("Aviso: o teste não tem tentativas; nada foi avaliado.")
@@ -236,6 +236,13 @@ def _print_results(results: pd.DataFrame) -> None:
 
 def _counts(values: pd.Series) -> str:
     return ", ".join(f"{k}: {v}" for k, v in values.value_counts().sort_index().items())
+
+
+def _fmt_metrica(valor: float | None) -> str:
+    """Duas casas decimais; ``—`` quando a métrica não pôde ser calculada (ex.: AUC sem as duas classes)."""
+    if valor is None or pd.isna(valor):
+        return "—"
+    return f"{valor:.2f}"
 
 
 def _fmt_contagem(contagem: dict[str, int]) -> str:

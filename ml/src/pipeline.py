@@ -388,12 +388,12 @@ def treinar_modelos(
         figuras.barras_por_modelo(results, paths.figuras_dir / "f1_por_modelo.png"),
         figuras.treino_vs_validacao(folds, paths.figuras_dir / "treino_vs_validacao.png"),
         figuras.curva_aprendizado(
-            specs[str(best["model"])].pipeline,
+            _com_parametros_escolhidos(specs[str(best["model"])].pipeline, best["chosen_params"]),
             train[feature_columns(str(best["sensor_set"]))],
             train["target"],
             train[split.group_by],
             paths.figuras_dir / "curva_aprendizado.png",
-            titulo=f"Curva de aprendizado: {best['model']} com {best['sensor_set']}",
+            titulo=f"Curva de aprendizado: {best['model']} com {best['sensor_set']}\n(hiperparâmetros mais escolhidos nos folds)",
         ),
     ]
     rastreio.registrar_experimento(results, folds=folds, figuras=graficos)
@@ -477,6 +477,19 @@ def avaliar_teste(paths: ProjectPaths, escolha: dict, seed: int = 42) -> dict:
         "modelo_arquivo": _relativo(paths, model_path),
         "relatorio": _relativo(paths, final_report),
     }
+
+
+def _com_parametros_escolhidos(pipeline, chosen_params: str):
+    """Clona o pipeline com os hiperparâmetros que mais vezes venceram nos folds externos."""
+    from collections import Counter
+
+    from sklearn.base import clone
+
+    escolhas = [json.dumps(p, sort_keys=True) for p in json.loads(chosen_params) if p]
+    modelo = clone(pipeline)
+    if escolhas:
+        modelo.set_params(**json.loads(Counter(escolhas).most_common(1)[0][0]))
+    return modelo
 
 
 def _avaliar_rodada(rodada: RodadaColetada, incluir_simulador: bool) -> tuple[str | None, str | None]:

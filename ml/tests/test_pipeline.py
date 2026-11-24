@@ -335,3 +335,14 @@ def test_treino_e_teste_vao_para_o_mlflow_quando_ha_uri(tmp_path, monkeypatch):
 def test_dag_repassa_a_uri_do_mlflow():
     fonte = Path(__file__).resolve().parents[1] / "dags" / "dataset_para_treino.py"
     assert "MLFLOW_TRACKING_URI" in fonte.read_text(encoding="utf-8")
+
+
+def test_curva_de_aprendizado_usa_os_hiperparametros_mais_escolhidos():
+    from src.pipeline import _com_parametros_escolhidos
+    from src.train import model_specs
+
+    pipeline = model_specs()["logistic_regression"].pipeline
+    escolhidos = json.dumps([{"clf__C": 10.0}, {"clf__C": 0.1}, {"clf__C": 10.0}])
+
+    assert _com_parametros_escolhidos(pipeline, escolhidos).get_params()["clf__C"] == 10.0
+    assert _com_parametros_escolhidos(pipeline, "[{}, {}]").get_params()["clf__C"] == pipeline.get_params()["clf__C"]

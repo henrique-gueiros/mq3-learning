@@ -199,10 +199,10 @@ Consequência prática: o que conta é o número de **grupos** (`n_groups`, hoje
 
 ```bash
 MLFLOW_TRACKING_URI=file:./mlruns python -m src.cli train
-mlflow ui --backend-store-uri ./mlruns   # http://localhost:5000
+mlflow ui --backend-store-uri ./mlruns   # http://localhost:5000 (mlflow ui local, sem Compose)
 ```
 
-No Docker Compose (serviço `mlflow`, mantido fora desta pasta) a URI é `http://mlflow:5000`, definida no serviço do Airflow; a DAG não precisa de mais nada. O experimento `sopro-seguro` ganha:
+No Docker Compose (serviço `mlflow`, mantido fora desta pasta) a URI dentro da rede é `http://mlflow:5000`, definida no serviço do Airflow, e a interface no host fica em http://localhost:5050 (a 5000 do macOS é do AirPlay); a DAG não precisa de mais nada. O experimento `sopro-seguro` ganha:
 
 - um run pai `comparacao_de_modelos` com `experiment.csv`, `folds.csv` e as figuras de comparação como artifacts, e um run filho por (conjunto de sensores × modelo) com os params `sensor_set`, `model`, `chosen_params` e todas as métricas, inclusive `*_std`, `f1_macro_treino` e `roc_auc` (o baseline é o run de referência);
 - um run `modelo_final` com o modelo (`model/`), as métricas de teste com prefixo `teste_`, `cv_score` e as figuras de matriz de confusão e ROC.
