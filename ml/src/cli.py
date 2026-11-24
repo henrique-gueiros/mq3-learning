@@ -21,7 +21,7 @@ from pathlib import Path
 import pandas as pd
 
 from src.data_io import load_raw_data, read_dataset_csv, read_session_csv, write_csv
-from src.features import SENSOR_SETS
+from src.features import SENSOR_SET_EXECUCAO, SENSOR_SETS
 from src.inference import predict_attempts
 from src.paths import ML_ROOT, ProjectPaths
 from src.pipeline import executar_pipeline, preparar_dataset
@@ -97,7 +97,9 @@ def run_train(paths: ProjectPaths, select_by: str, seed: int) -> None:
     test = read_dataset_csv(paths.test)
 
     print("\n== Comparação: sob_efeito ou sem_efeito ==")
-    results = run_experiment(train, group_by=split.group_by, seed=seed)
+    results = run_experiment(
+        train, group_by=split.group_by, sensor_sets=[SENSOR_SET_EXECUCAO], seed=seed
+    )
     report = paths.reports_dir / "experiment.csv"
     write_csv(results, report)
     _print_results(results)

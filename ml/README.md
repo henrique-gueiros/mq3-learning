@@ -175,7 +175,7 @@ python -m src.cli pipeline --dsn "$PG_DSN"   # sem --dsn, só prepara os CSVs qu
 ### Como o treino avalia
 
 - **Modelos:** `baseline` (sempre a classe mais comum), regressão logística, árvore de decisão e Random Forest.
-- **Conjuntos de sensores:** `mq3`, `mq3+mq135`, `mq3+dht11`, `mq3+mq135+dht11`. Comparar os conjuntos mostra o quanto cada sensor ajuda.
+- **Sensores:** o treino e o teste usam sempre os três juntos, `mq3+mq135+dht11` (MQ-3, MQ-135 e DHT11).
 - **Validação cruzada aninhada por grupo:** o laço externo avalia com participantes que o modelo não viu; o laço interno escolhe os hiperparâmetros (Grid Search) só com os demais.
 - **Teste final:** usado uma única vez, para o modelo escolhido.
 - **Métricas:** F1 macro, acurácia balanceada, precisão e recall de `sob_efeito` e de `sem_efeito`. O **recall de `sob_efeito`** importa mais: deixar passar quem bebeu é o erro mais grave.

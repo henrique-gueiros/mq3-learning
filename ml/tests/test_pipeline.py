@@ -257,6 +257,7 @@ def test_treino_escolhe_modelo_e_o_teste_mede_uma_vez(tmp_path):
     escolha = treinar_modelos(paths, n_estimators=5)
     resultado = avaliar_teste(paths, escolha, seed=42)
 
+    assert escolha["sensor_set"] == "mq3+mq135+dht11"
     assert escolha["n_treino"] == len(train)
     assert resultado["n_teste"] == len(test)
     assert "recall_sob_efeito" in resultado["metricas_teste"]

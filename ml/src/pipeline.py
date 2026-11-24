@@ -368,6 +368,7 @@ def treinar_modelos(
     A validação cruzada fica em ``reports/experiment.csv``. O teste continua
     intacto para ``avaliar_teste``.
     """
+    from src.features import SENSOR_SET_EXECUCAO
     from src.splitting import load_split
     from src.train import choose_best, model_specs, run_experiment
 
@@ -376,7 +377,11 @@ def treinar_modelos(
         raise FileNotFoundError(f"{paths.split_manifest} não existe; rode a preparação antes")
     train = read_dataset_csv(paths.train)
     results = run_experiment(
-        train, group_by=split.group_by, seed=seed, models=model_specs(seed, n_estimators=n_estimators)
+        train,
+        group_by=split.group_by,
+        sensor_sets=[SENSOR_SET_EXECUCAO],
+        seed=seed,
+        models=model_specs(seed, n_estimators=n_estimators),
     )
     report = paths.reports_dir / "experiment.csv"
     write_csv(results, report)
