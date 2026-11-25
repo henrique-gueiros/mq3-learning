@@ -28,6 +28,8 @@ A melhor combinação na validação é a floresta com MQ-3, MQ-135 e umidade: F
 
 ## Teste nas 1.195 tentativas novas
 
+> **Nota (25/11/2026):** as 1.195 tentativas deste teste são cópias de leituras de sopros que estão no próprio treino. Por isso o recall perto de 1,00 aqui mostra que o modelo reconhece o que já viu, e não que generaliza. Para generalização, veja `grid_search_cinco_testes.md` (arquivo de bebida inédito) e o teste por arquivo em `final.json`.
+
 Cada modelo foi reajustado no treino inteiro, com a grade escolhida por arquivo. O teste só tem sob efeito, então a precisão de sob efeito fica em 1 quando o modelo acerta algum, e o F1 macro não serve para comparar. O número que vale é o recall.
 
 | Sensores | Modelo | Parâmetros | Acertos | Recall sob efeito |

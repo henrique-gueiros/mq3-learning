@@ -81,8 +81,9 @@ Com o ambiente do ML ativo (`source ml/.venv/bin/activate`) e, quando pedido, o 
 | Tela | http://localhost:8080 |
 | Alerta | `docker compose logs alerta` (Telegram só com `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID` no `.env`) |
 | DAG e MLflow | Airflow em http://localhost:8088 (senha: `docker compose exec airflow cat /opt/airflow/standalone_admin_password.txt`); dispare `dataset_para_treino`. Runs em http://localhost:5050. Sem rodada no banco: copie o lote para `ml/data/raw/sessions/` (como em `applications/dados/lote-2026-11.csv`) e rode `cd ml && MLFLOW_TRACKING_URI=http://localhost:5050 python -m src.cli all --group-by session_file` |
+| Modelo contínuo (sem placa) | De `applications/`, `python -m coleta.simulador ../esp32-esp8266/leituras.csv --caso clean --participante p00 --intervalo 0.2 --placa so-placa` (**sem** `--sopros`); `mosquitto_sub -h ::1 -t 'mq3/so-placa/resultado' -v` mostra uma janela a cada 3 s com `"origem": "continuo"` |
 | IPv6 | `mosquitto_sub -h ::1 -t 'mq3/+/leituras' -v` (broker escuta em `[::]:1883`) |
-| Placa | Copie `esp32-esp8266/include/segredos.exemplo.h` → `segredos.h`, grave Wi-Fi/broker/`PLACA`, `pio run -t upload`. A placa publica `rodada` e `leituras`; não grava CSV nem envia `eventos`. |
+| Placa | Copie `esp32-esp8266/include/segredos.exemplo.h` → `segredos.h`, grave Wi-Fi/broker/`PLACA`, `pio run -t upload`. A placa publica `rodada` e `leituras`; não grava CSV nem envia `eventos`. O modelo contínuo classifica as janelas; `docker compose logs model` mostra cada resultado. |
 
 ## 1. Captar os dados
 
@@ -181,9 +182,15 @@ docker compose up -d --build
 Num teste, com a placa ligada na mesma rede:
 
 1. Cada segundo a ESP32 (ou a ponte serial, ou o simulador) publica uma leitura em `mq3/<placa>/leituras`, com as mesmas colunas do CSV.
-2. No começo do sopro publica `sopro_inicio` em `mq3/<placa>/eventos`. No fim, `sopro_fim`.
+2. Com a ponte (ou o simulador `--sopros`), o começo do sopro sai como `sopro_inicio` em `mq3/<placa>/eventos` e o fim como `sopro_fim`. A placa sozinha não publica eventos: o modelo roda contínuo (abaixo).
 3. O ingestor recebe essas mensagens e grava no PostgreSQL. A mesma amostra da mesma rodada não entra duas vezes.
 4. A cada `sopro_fim`, o servidor do modelo espera 35 s (a janela depois do sopro usada no treino), lê a rodada no banco, recorta o sopro como no treino, grava em `resultados` e publica em `mq3/<placa>/resultado`.
+
+**Placa sozinha (sem sopro marcado): modelo contínuo.** O servidor classifica uma janela deslizante:
+- cada janela tem 3 amostras, como os sopros de bebida do treino, com 15 s antes e 30 s depois;
+- sai uma janela a cada 3 s; a primeira fica pronta uns 47 s depois da primeira leitura.
+
+Nenhuma regra escolhe o momento: o modelo classifica todas as janelas. O alerta (tela e Telegram) só sai quando 3 janelas seguidas dão `sob_efeito`, uma vez por sequência. Se a rodada tiver `sopro_inicio`/`sopro_fim` (ponte ou simulador com `--sopros`), vale a marcação e o contínuo não roda.
 
 A aba Ao vivo da tela mostra essa classe no card "Modelo de ML", com um alerta quando é `sob_efeito`. Com `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID` no `.env`, o serviço `alerta` manda a mesma detecção pelo Telegram.
 

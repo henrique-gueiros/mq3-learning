@@ -36,6 +36,7 @@ def test_envia_so_para_sob_efeito():
     alertador.ao_receber("mq3/placa01/resultado", _corpo())
     alertador.ao_receber("mq3/placa01/resultado", _corpo(prediction="sem_efeito", t_ms=90000))
     alertador.ao_receber("mq3/placa01/resultado", _corpo(prediction=None, status="sem_modelo", t_ms=91000))
+    alertador.ao_receber("mq3/placa01/resultado", _corpo(t_ms=92000, origem="continuo", alerta=False))
 
     assert len(enviados) == 1
     url, dados = enviados[0]

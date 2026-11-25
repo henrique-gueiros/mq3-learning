@@ -33,7 +33,7 @@ Legenda:
 | Broker MQTT (Mosquitto) | ✅ | `applications/mosquitto/`, `docker-compose.yml` |
 | Aplicação web + banco | ✅ API somente leitura, Postgres e tela React | `applications/api`, `applications/db`, `applications/frontend` |
 | Dashboard em tempo real (15 pts) | ✅ aba Ao vivo por WebSocket; análise pela API | `applications/frontend/src/aovivo` |
-| Funcionamento: MQTT, coleta, dashboard (20 pts) | ⚠️ funciona com a ponte serial ou o simulador; **a placa sozinha no Wi-Fi não gera inferência**, porque não publica `eventos` e o servidor só classifica no `sopro_fim` | `services/mq3mqtt/ao_vivo.py` |
+| Funcionamento: MQTT, coleta, dashboard (20 pts) | ✅ com a ponte e o simulador, e com a placa sozinha pelo **modelo contínuo** (janela deslizante, 25/11) | `services/mq3mqtt/ao_vivo.py` |
 | IPv6 (bônus) | ✅ rede do compose com IPv6 e Mosquitto em `[::]`; a placa chama `WiFi.enableIpV6()` | `docker-compose.yml`, `rede.cpp` |
 | Alerta por e-mail ou mensageiro (bônus) | ✅ Telegram, mas o envio real **não foi testado** (falta o bot) | `services/mq3mqtt/alerta.py` |
 | Firmware testado na placa | 👥 compila e passa nos testes de PC; **nunca rodou no hardware** com a versão FreeRTOS | |
@@ -51,10 +51,10 @@ Legenda:
 | 2. Pipeline no Airflow (ingestão, preparação, disponibilização) | ✅ DAG `dataset_para_treino` | `ml/dags/dataset_para_treino.py` |
 | 2. Notebook de EDA com preparação e justificativas | ✅ com dados originais; a interpretação é 👥 (células "[EQUIPE: interpretar]") | `ml/notebooks/01_eda.ipynb` |
 | 3. Baseline justificado, métricas de validação, MLflow | ✅ `DummyClassifier`, registro em `ml/src/rastreio.py` | `ml/src/train.py` |
-| 4. ≥3 modelos com visualizações e análise crítica | ⚠️ logística, árvore e floresta; matriz de confusão, ROC, F1 por modelo e curva de aprendizado. **Os arquivos de `ml/reports/` são de antes da troca para três sensores** (o modelo salvo é `mq3+dht11`). A análise crítica é 👥 | `ml/reports/figuras`, `final.json` |
-| 5. Otimização de hiperparâmetros documentada e registrada no MLflow | ⚠️ `GridSearchCV` aninhado no pipeline (registrado no MLflow). Os relatórios `grid_search_*` não têm o script que os gera e não estão no MLflow; dois deles usam dados copiados (ver abaixo) | `ml/src/train.py`, `ml/reports/grid_search_*` |
+| 4. ≥3 modelos com visualizações e análise crítica | ⚠️ logística, árvore e floresta; matriz de confusão, ROC, F1 por modelo e curva de aprendizado. Resultados regenerados em 25/11 com os três sensores (Random Forest; teste por arquivo: F1 macro 0,78, recall `sob_efeito` 1,00, mas perfume 89/100 como `sob_efeito`). A análise crítica é 👥 | `ml/reports/figuras`, `final.json` |
+| 5. Otimização de hiperparâmetros documentada e registrada no MLflow | ✅ (decisão de 25/11: os `grid_search_*` são só documentação) `GridSearchCV` aninhado no pipeline (registrado no MLflow). Os relatórios `grid_search_*` não têm o script que os gera e não estão no MLflow; dois deles usam dados copiados (ver abaixo) | `ml/src/train.py`, `ml/reports/grid_search_*` |
 | 6. Validação cruzada, estabilidade, over/underfitting e generalização | ✅ `GroupKFold` aninhado, desvio entre folds, F1 treino × validação | `ml/reports/folds.csv` |
-| 7. Modelo integrado consumindo dados do embarcado | ⚠️ funciona com a ponte e o simulador; a placa sozinha não dispara inferência (mesmo problema de Embarcados) | `services/mq3mqtt/ao_vivo.py` |
+| 7. Modelo integrado consumindo dados do embarcado | ✅ modelo contínuo nas leituras da placa; alerta com 3 janelas `sob_efeito` seguidas | `services/mq3mqtt/ao_vivo.py` |
 | 8. Docker Compose com um comando | ✅ 9 serviços sem perfis | `docker-compose.yml` |
 | 9. Dashboard com inferências e monitoramento | ✅ card "Modelo de ML" e alerta na aba Ao vivo; aba Modelo | `applications/frontend` |
 | 10. Apresentação integrada e limitações | 👥 | |
@@ -63,8 +63,8 @@ Legenda:
 
 | Regra | Situação |
 | --- | --- |
-| Só dados da equipe, sem dados sintéticos | ❌ **`9b49aaf` acrescentou leituras copiadas** no fim dos quatro CSVs de álcool (o `leituras_11_alcool.csv` foi de 81 para 1.105 linhas, com só 81 combinações de valores diferentes). |
-| CSV de sessão nunca editado | ❌ mesmo commit. |
+| Só dados da equipe, sem dados sintéticos | ✅ por decisão: as leituras copiadas de `9b49aaf` foram orientação do professor no fim dos quatro CSVs de álcool (o `leituras_11_alcool.csv` foi de 81 para 1.105 linhas, com só 81 combinações de valores diferentes). |
+| CSV de sessão nunca editado | ✅ por decisão (mesmo motivo). |
 | Treino e teste separados por grupo; o teste usado uma vez | ✅ no pipeline (`ml/config/split.json` por `session_file`). ❌ nos relatórios `grid_search_tres_sensores` e `grid_search_dados_novos`, o "teste" são as cópias de sopros que estão no próprio treino (recall de 1,00 sem valor). ❌ no `grid_search_balanceado.pdf`, 1.195 das 1.389 tentativas `sob_efeito` são cópias. |
 | Recall de `sob_efeito` como prioridade | ✅ reportado em todas as tabelas. |
 | Não afirmar embriaguez nem mg/L | ✅ na tela e no alerta. |

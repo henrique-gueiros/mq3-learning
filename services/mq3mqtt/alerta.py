@@ -73,6 +73,9 @@ class Alertador:
             resultado = json.loads(corpo.decode("utf-8"))
             if not isinstance(resultado, dict) or resultado.get("prediction") != "sob_efeito":
                 return
+            # modelo contínuo: só a janela que fecha a sequência de N sob_efeito alerta
+            if not resultado.get("alerta", True):
+                return
             chave = (str(resultado["rodada_id"]), int(resultado["t_ms"]))
         except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
             return

@@ -13,18 +13,42 @@ achou quatro problemas de código e de dados, mais as entregas da equipe. As ent
 - relatório CSBC até **03/12**;
 - apresentação em **12/12**.
 
-## Andamento (25/11/2026)
+## Andamento (25/11/2026, noite)
+
+**Decisões do usuário em 25/11:**
+- As leituras copiadas nos CSVs de álcool **ficam**: foram orientação do professor. Não registrar no `AGENTS.md`. Os relatórios que testam nas cópias ganharam nota; o índice está em `ml/reports/LEIA-ME.md`.
+- O grid search **não precisa** ir para o MLflow: os hiperparâmetros já estão definidos. O grid search aninhado do pipeline já registra no MLflow.
+- Inferência ao vivo sem a ponte: **modelo contínuo** (janela deslizante), não regra de umidade.
+- Avaliação **por arquivo**, com as cópias junto do arquivo delas.
+- Treino **pelo DAG**, cujo contêiner tem scikit-learn 1.6.1.
 
 | Etapa | Estado |
 | --- | --- |
-| 0. Ambiente local | pendente |
-| 1. Desfazer as leituras copiadas | pendente (**pedir o aval da equipe**: o commit foi de outro integrante) |
-| 2. Inferência ao vivo sem a ponte | pendente (**a equipe escolhe a opção**) |
-| 3. Resultados de ML com os três sensores | pendente (depende da 1) |
-| 4. Script dos grid searches e MLflow | pendente (depende da 1) |
-| 5. Limpezas do repositório | pendente |
-| 6. Verificação final | pendente |
-| 7. Entregas da equipe | 👥 |
+| 0. Ambiente local | pendente: `.venv` em Python 3.14 com scikit-learn 1.9.1; cópias do Finder `* 2*` |
+| 1. Leituras copiadas | **resolvida por decisão** (ficam); notas nos relatórios |
+| 2. Inferência sem a ponte | **feita**: modelo contínuo em `services/mq3mqtt/ao_vivo.py`; alerta só com 3 janelas `sob_efeito` seguidas (tela e Telegram) |
+| 3. Resultados com os três sensores | **feita**: DAG por `session_file` em 25/11; `final.json` = Random Forest com `mq3+mq135+dht11`; runs no MLflow |
+| 4. Script dos grid searches | **cancelada** (decisão do usuário) |
+| 5. Limpezas | pendente |
+| 6. Verificação final | parcial (testes e ponta a ponta do contínuo feitos) |
+| 7. Equipe | 👥 |
+
+**Desempenho medido em 25/11** (teste com 4 arquivos que o treino não viu; `ml/config/split.json`):
+- validação cruzada no treino: F1 macro 0,98 (± 0,24 entre folds);
+- teste: F1 macro 0,78, acurácia balanceada 0,89, recall `sob_efeito` 1,00, precisão `sob_efeito` 0,51.
+
+| Arquivo de teste | Resultado |
+| --- | --- |
+| `drink_4` (com as cópias dele) | 421/421 `sob_efeito` |
+| `clean_1` | 152/152 `sem_efeito` |
+| `clean_6` | 312/1.627 marcados `sob_efeito` (19% de alarme falso) |
+| `perfume_1` | **89/100 marcados `sob_efeito`** (o treino não tem nenhum perfume) |
+
+No ponta a ponta contínuo com `esp32-esp8266/leituras.csv`, o trecho de álcool no ar **sem sopro** (descrito no `decisoes_projeto_ml.pdf`) saiu `sob_efeito`.
+
+**Próximo passo sugerido para a equipe:** o modelo hoje confunde vapor de álcool no ar com hálito. Para corrigir:
+- colocar perfume e álcool no ar também no treino (mais coleta de `perfume`/`alcohol70_*`, ou um split que deixe um arquivo de perfume no treino);
+- avaliar com validação deixando um arquivo de fora por vez.
 
 ## Etapa 0 — ambiente local
 

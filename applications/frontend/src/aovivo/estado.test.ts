@@ -189,4 +189,26 @@ describe('estado ao vivo', () => {
       expect(e.resultadosPorRodada.r1).toHaveLength(1)
     })
   })
+
+  describe('modelo contínuo', () => {
+    const janela = (t_ms: number, prediction: 'sob_efeito' | 'sem_efeito', alerta: boolean, seguidos: number): Mensagem => ({
+      placa: 'placa01',
+      tipo: 'resultado',
+      dados: {
+        rodada_id: 'r1', t_ms, sessao: 'a.csv', attempt_id: null, status: 'classificado', prediction,
+        prob_sem_efeito: 0.2, prob_sob_efeito: 0.8, detalhe: '', origem: 'continuo', alerta, sob_efeito_seguidos: seguidos,
+      },
+    })
+
+    it('janelas sem alerta não avisam a cada 3 s', () => {
+      const e = aplicar([leitura(1), janela(20000, 'sem_efeito', false, 0), janela(23000, 'sob_efeito', false, 1)])
+      expect(e.resultadosPorRodada.r1).toHaveLength(2)
+      expect(e.aviso).toBeNull()
+    })
+
+    it('a janela que fecha a sequência alerta', () => {
+      const e = aplicar([leitura(1), janela(20000, 'sob_efeito', false, 1), janela(23000, 'sob_efeito', false, 2), janela(26000, 'sob_efeito', true, 3)])
+      expect(e.aviso).toMatchObject({ tipo: 'alerta' })
+    })
+  })
 })
