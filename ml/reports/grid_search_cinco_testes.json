@@ -1,0 +1,1825 @@
+{
+  "sensor_set": "mq3+mq135+dht11",
+  "protocolo": "Cinco recortes, sempre com MQ-3, MQ-135 e DHT11. A grade interna testa C em 0,1, 1 e 10 na logística, profundidade 2, 3, 5 ou livre e folha 1 ou 3 na árvore, profundidade 3 ou livre e folha 1 ou 3 na floresta. O laço externo separa arquivos, exceto no teste do perfume, que separa fatias de tempo. As 1.195 tentativas copiadas no fim dos quatro CSVs de álcool ficam de fora dos cinco testes.",
+  "originais": {
+    "n": 11325,
+    "sob_efeito": 194,
+    "sem_efeito": 11131,
+    "arquivos": [
+      "leituras_11_alcool.csv",
+      "leituras_11_alcool2.csv",
+      "leituras_14_Alcool3.csv",
+      "leituras_17_Alcool.csv",
+      "leituras_1_ambiente.csv",
+      "leituras_25_perfume.csv",
+      "leituras_28_ambiente.csv",
+      "leituras_2_ambiente.csv",
+      "leituras_3_ambiente.csv",
+      "leituras_4_ambiente.csv",
+      "leituras_7_ambiente.csv",
+      "leituras_9_ambiente.csv"
+    ]
+  },
+  "copias_excluidas": {
+    "n": 1195,
+    "sob_efeito": 1195,
+    "sem_efeito": 0,
+    "arquivos": [
+      "leituras_11_alcool.csv",
+      "leituras_11_alcool2.csv",
+      "leituras_14_Alcool3.csv",
+      "leituras_17_Alcool.csv"
+    ]
+  },
+  "testes": [
+    {
+      "id": "sem_arquivo_28",
+      "titulo": "Originais sem o ambiente grande",
+      "descricao": "O treino tira leituras_28_ambiente.csv. A validação cruzada separa os outros 11 arquivos. O teste é o arquivo 28 inteiro: 7.724 tentativas sem efeito e nenhum sopro de álcool.",
+      "sensor_set": "mq3+mq135+dht11",
+      "treino": {
+        "n": 3601,
+        "sob_efeito": 194,
+        "sem_efeito": 3407,
+        "arquivos": [
+          "leituras_11_alcool.csv",
+          "leituras_11_alcool2.csv",
+          "leituras_14_Alcool3.csv",
+          "leituras_17_Alcool.csv",
+          "leituras_1_ambiente.csv",
+          "leituras_25_perfume.csv",
+          "leituras_2_ambiente.csv",
+          "leituras_3_ambiente.csv",
+          "leituras_4_ambiente.csv",
+          "leituras_7_ambiente.csv",
+          "leituras_9_ambiente.csv"
+        ]
+      },
+      "teste": {
+        "n": 7724,
+        "sob_efeito": 0,
+        "sem_efeito": 7724,
+        "arquivos": [
+          "leituras_28_ambiente.csv"
+        ]
+      },
+      "melhor_cv": {
+        "model": "logistic_regression",
+        "f1_macro": 0.7980117697588994,
+        "balanced_accuracy": 0.9278615282665464,
+        "recall_sob_efeito": 0.9123711340206185,
+        "precision_sob_efeito": 0.4783783783783784,
+        "recall_sem_efeito": 0.9433519225124744,
+        "precision_sem_efeito": 0.9947384710615909,
+        "roc_auc": 0.9864166860829281,
+        "f1_macro_treino": 0.9914310386495643
+      },
+      "cv": [
+        {
+          "model": "baseline",
+          "chosen_params": [
+            {},
+            {},
+            {},
+            {},
+            {}
+          ],
+          "f1_macro": 0.4861586757990868,
+          "balanced_accuracy": 0.5,
+          "recall_sem_efeito": 1.0,
+          "precision_sem_efeito": 0.946126076089975,
+          "recall_sob_efeito": 0.0,
+          "precision_sob_efeito": 0.0,
+          "roc_auc": 0.5,
+          "f1_macro_treino": 0.4845157694791773
+        },
+        {
+          "model": "logistic_regression",
+          "chosen_params": [
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            }
+          ],
+          "f1_macro": 0.7980117697588994,
+          "balanced_accuracy": 0.9278615282665464,
+          "recall_sem_efeito": 0.9433519225124744,
+          "precision_sem_efeito": 0.9947384710615909,
+          "recall_sob_efeito": 0.9123711340206185,
+          "precision_sob_efeito": 0.4783783783783784,
+          "roc_auc": 0.9864166860829281,
+          "f1_macro_treino": 0.9914310386495643
+        },
+        {
+          "model": "decision_tree",
+          "chosen_params": [
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 5,
+              "clf__min_samples_leaf": 3
+            }
+          ],
+          "f1_macro": 0.7209883613219629,
+          "balanced_accuracy": 0.8754890628451429,
+          "recall_sem_efeito": 0.9107719401232756,
+          "precision_sem_efeito": 0.9901084875558391,
+          "recall_sob_efeito": 0.8402061855670103,
+          "precision_sob_efeito": 0.3490364025695932,
+          "roc_auc": 0.8799734627616278,
+          "f1_macro_treino": 0.93928662239743
+        },
+        {
+          "model": "random_forest",
+          "chosen_params": [
+            {
+              "clf__max_depth": 3,
+              "clf__min_samples_leaf": 3
+            },
+            {
+              "clf__max_depth": 3,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 3
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 3,
+              "clf__min_samples_leaf": 1
+            }
+          ],
+          "f1_macro": 0.7576894495229888,
+          "balanced_accuracy": 0.9086000925928728,
+          "recall_sem_efeito": 0.9254476078661579,
+          "precision_sem_efeito": 0.9933837429111532,
+          "recall_sob_efeito": 0.8917525773195877,
+          "precision_sob_efeito": 0.405152224824356,
+          "roc_auc": 0.9718045624684171,
+          "f1_macro_treino": 0.9880607061319177
+        }
+      ],
+      "holdout": [
+        {
+          "model": "baseline",
+          "best_params": {},
+          "test_metrics": {
+            "f1_macro": 0.5,
+            "balanced_accuracy": 1.0,
+            "recall_sem_efeito": 1.0,
+            "precision_sem_efeito": 1.0,
+            "recall_sob_efeito": 0.0,
+            "precision_sob_efeito": 0.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                7724,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_28_ambiente.csv",
+              "n": 7724,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 7724,
+              "acertos_sem_efeito": 7724
+            }
+          ]
+        },
+        {
+          "model": "logistic_regression",
+          "best_params": {
+            "clf__C": 0.1
+          },
+          "test_metrics": {
+            "f1_macro": 0.5,
+            "balanced_accuracy": 1.0,
+            "recall_sem_efeito": 1.0,
+            "precision_sem_efeito": 1.0,
+            "recall_sob_efeito": 0.0,
+            "precision_sob_efeito": 0.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                7724,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_28_ambiente.csv",
+              "n": 7724,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 7724,
+              "acertos_sem_efeito": 7724
+            }
+          ]
+        },
+        {
+          "model": "decision_tree",
+          "best_params": {
+            "clf__max_depth": 2,
+            "clf__min_samples_leaf": 1
+          },
+          "test_metrics": {
+            "f1_macro": 0.5,
+            "balanced_accuracy": 1.0,
+            "recall_sem_efeito": 1.0,
+            "precision_sem_efeito": 1.0,
+            "recall_sob_efeito": 0.0,
+            "precision_sob_efeito": 0.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                7724,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_28_ambiente.csv",
+              "n": 7724,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 7724,
+              "acertos_sem_efeito": 7724
+            }
+          ]
+        },
+        {
+          "model": "random_forest",
+          "best_params": {
+            "clf__max_depth": null,
+            "clf__min_samples_leaf": 1
+          },
+          "test_metrics": {
+            "f1_macro": 0.5,
+            "balanced_accuracy": 1.0,
+            "recall_sem_efeito": 1.0,
+            "precision_sem_efeito": 1.0,
+            "recall_sob_efeito": 0.0,
+            "precision_sob_efeito": 0.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                7724,
+                0
+              ],
+              [
+                0,
+                0
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_28_ambiente.csv",
+              "n": 7724,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 7724,
+              "acertos_sem_efeito": 7724
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "perfume_contra_alcool",
+      "titulo": "Perfume contra álcool original",
+      "descricao": "Sem efeito só de leituras_25_perfume.csv. Sob efeito só dos sopros originais dos quatro arquivos de álcool. Cada arquivo entra em quatro fatias de tempo, e a fatia de mesmo número junta perfume e álcool. Assim cada grupo da validação tem as duas classes. Não há teste separado.",
+      "sensor_set": "mq3+mq135+dht11",
+      "treino": {
+        "n": 294,
+        "sob_efeito": 194,
+        "sem_efeito": 100,
+        "arquivos": [
+          "leituras_11_alcool.csv",
+          "leituras_11_alcool2.csv",
+          "leituras_14_Alcool3.csv",
+          "leituras_17_Alcool.csv",
+          "leituras_25_perfume.csv"
+        ]
+      },
+      "teste": null,
+      "melhor_cv": {
+        "model": "logistic_regression",
+        "f1_macro": 0.9665955485980482,
+        "balanced_accuracy": 0.9768041237113403,
+        "recall_sob_efeito": 0.9536082474226805,
+        "precision_sob_efeito": 1.0,
+        "recall_sem_efeito": 1.0,
+        "precision_sem_efeito": 0.9174311926605505,
+        "roc_auc": 0.9996907216494845,
+        "f1_macro_treino": 1.0
+      },
+      "cv": [
+        {
+          "model": "baseline",
+          "chosen_params": [
+            {},
+            {},
+            {},
+            {}
+          ],
+          "f1_macro": 0.3975409836065574,
+          "balanced_accuracy": 0.5,
+          "recall_sem_efeito": 0.0,
+          "precision_sem_efeito": 0.0,
+          "recall_sob_efeito": 1.0,
+          "precision_sob_efeito": 0.6598639455782312,
+          "roc_auc": 0.5,
+          "f1_macro_treino": 0.397534048592956
+        },
+        {
+          "model": "logistic_regression",
+          "chosen_params": [
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 1.0
+            },
+            {
+              "clf__C": 0.1
+            }
+          ],
+          "f1_macro": 0.9665955485980482,
+          "balanced_accuracy": 0.9768041237113403,
+          "recall_sem_efeito": 1.0,
+          "precision_sem_efeito": 0.9174311926605505,
+          "recall_sob_efeito": 0.9536082474226805,
+          "precision_sob_efeito": 1.0,
+          "roc_auc": 0.9996907216494845,
+          "f1_macro_treino": 1.0
+        },
+        {
+          "model": "decision_tree",
+          "chosen_params": [
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            }
+          ],
+          "f1_macro": 0.8496913772679096,
+          "balanced_accuracy": 0.8628350515463917,
+          "recall_sem_efeito": 0.87,
+          "precision_sem_efeito": 0.7565217391304347,
+          "recall_sob_efeito": 0.8556701030927835,
+          "precision_sob_efeito": 0.9273743016759777,
+          "roc_auc": 0.8628350515463917,
+          "f1_macro_treino": 1.0
+        },
+        {
+          "model": "random_forest",
+          "chosen_params": [
+            {
+              "clf__max_depth": 3,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 3,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 3,
+              "clf__min_samples_leaf": 1
+            }
+          ],
+          "f1_macro": 0.9521502347417841,
+          "balanced_accuracy": 0.9664948453608248,
+          "recall_sem_efeito": 1.0,
+          "precision_sem_efeito": 0.8849557522123894,
+          "recall_sob_efeito": 0.9329896907216495,
+          "precision_sob_efeito": 1.0,
+          "roc_auc": 0.9999999999999999,
+          "f1_macro_treino": 1.0
+        }
+      ],
+      "holdout": []
+    },
+    {
+      "id": "sem_leituras_11_alcool",
+      "titulo": "Arquivo inédito: leituras_11_alcool.csv",
+      "descricao": "O treino usa os originais de todos os arquivos menos leituras_11_alcool.csv. O teste é esse arquivo, só com sopros originais de álcool. As cópias não entram.",
+      "sensor_set": "mq3+mq135+dht11",
+      "treino": {
+        "n": 11302,
+        "sob_efeito": 171,
+        "sem_efeito": 11131,
+        "arquivos": [
+          "leituras_11_alcool2.csv",
+          "leituras_14_Alcool3.csv",
+          "leituras_17_Alcool.csv",
+          "leituras_1_ambiente.csv",
+          "leituras_25_perfume.csv",
+          "leituras_28_ambiente.csv",
+          "leituras_2_ambiente.csv",
+          "leituras_3_ambiente.csv",
+          "leituras_4_ambiente.csv",
+          "leituras_7_ambiente.csv",
+          "leituras_9_ambiente.csv"
+        ]
+      },
+      "teste": {
+        "n": 23,
+        "sob_efeito": 23,
+        "sem_efeito": 0,
+        "arquivos": [
+          "leituras_11_alcool.csv"
+        ]
+      },
+      "melhor_cv": {
+        "model": "logistic_regression",
+        "f1_macro": 0.7533428657435279,
+        "balanced_accuracy": 0.9466665195615638,
+        "recall_sob_efeito": 0.9181286549707602,
+        "precision_sob_efeito": 0.3625866050808314,
+        "recall_sem_efeito": 0.9752043841523672,
+        "precision_sem_efeito": 0.9987119330205171,
+        "roc_auc": 0.9894966956516257,
+        "f1_macro_treino": 0.9807133173769509
+      },
+      "cv": [
+        {
+          "model": "baseline",
+          "chosen_params": [
+            {},
+            {},
+            {},
+            {},
+            {}
+          ],
+          "f1_macro": 0.4961886506485981,
+          "balanced_accuracy": 0.5,
+          "recall_sem_efeito": 1.0,
+          "precision_sem_efeito": 0.9848699345248628,
+          "recall_sob_efeito": 0.0,
+          "precision_sob_efeito": 0.0,
+          "roc_auc": 0.5,
+          "f1_macro_treino": 0.49501445428417296
+        },
+        {
+          "model": "logistic_regression",
+          "chosen_params": [
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            }
+          ],
+          "f1_macro": 0.7533428657435279,
+          "balanced_accuracy": 0.9466665195615638,
+          "recall_sem_efeito": 0.9752043841523672,
+          "precision_sem_efeito": 0.9987119330205171,
+          "recall_sob_efeito": 0.9181286549707602,
+          "precision_sob_efeito": 0.3625866050808314,
+          "roc_auc": 0.9894966956516257,
+          "f1_macro_treino": 0.9807133173769509
+        },
+        {
+          "model": "decision_tree",
+          "chosen_params": [
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            }
+          ],
+          "f1_macro": 0.7302744303612447,
+          "balanced_accuracy": 0.9330390705899598,
+          "recall_sem_efeito": 0.9713412990746564,
+          "precision_sem_efeito": 0.9983379501385041,
+          "recall_sob_efeito": 0.8947368421052632,
+          "precision_sob_efeito": 0.3241525423728814,
+          "roc_auc": 0.8941757412127029,
+          "f1_macro_treino": 0.8766213828043409
+        },
+        {
+          "model": "random_forest",
+          "chosen_params": [
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 3,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            }
+          ],
+          "f1_macro": 0.6288179526033645,
+          "balanced_accuracy": 0.6633510227219592,
+          "recall_sem_efeito": 0.9816728056778367,
+          "precision_sem_efeito": 0.989854153455929,
+          "recall_sob_efeito": 0.34502923976608185,
+          "precision_sob_efeito": 0.22433460076045628,
+          "roc_auc": 0.94862380549343,
+          "f1_macro_treino": 0.9881347887992407
+        }
+      ],
+      "holdout": [
+        {
+          "model": "baseline",
+          "best_params": {},
+          "test_metrics": {
+            "f1_macro": 0.0,
+            "balanced_accuracy": 0.0,
+            "recall_sem_efeito": 0.0,
+            "precision_sem_efeito": 0.0,
+            "recall_sob_efeito": 0.0,
+            "precision_sob_efeito": 0.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                0,
+                0
+              ],
+              [
+                23,
+                0
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_11_alcool.csv",
+              "n": 23,
+              "sob_efeito": 23,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            }
+          ]
+        },
+        {
+          "model": "logistic_regression",
+          "best_params": {
+            "clf__C": 0.1
+          },
+          "test_metrics": {
+            "f1_macro": 0.46511627906976744,
+            "balanced_accuracy": 0.8695652173913043,
+            "recall_sem_efeito": 0.0,
+            "precision_sem_efeito": 0.0,
+            "recall_sob_efeito": 0.8695652173913043,
+            "precision_sob_efeito": 1.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                0,
+                0
+              ],
+              [
+                3,
+                20
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_11_alcool.csv",
+              "n": 23,
+              "sob_efeito": 23,
+              "acertos_sob_efeito": 20,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            }
+          ]
+        },
+        {
+          "model": "decision_tree",
+          "best_params": {
+            "clf__max_depth": 5,
+            "clf__min_samples_leaf": 3
+          },
+          "test_metrics": {
+            "f1_macro": 0.4888888888888889,
+            "balanced_accuracy": 0.9565217391304348,
+            "recall_sem_efeito": 0.0,
+            "precision_sem_efeito": 0.0,
+            "recall_sob_efeito": 0.9565217391304348,
+            "precision_sob_efeito": 1.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                22
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_11_alcool.csv",
+              "n": 23,
+              "sob_efeito": 23,
+              "acertos_sob_efeito": 22,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            }
+          ]
+        },
+        {
+          "model": "random_forest",
+          "best_params": {
+            "clf__max_depth": null,
+            "clf__min_samples_leaf": 3
+          },
+          "test_metrics": {
+            "f1_macro": 0.46511627906976744,
+            "balanced_accuracy": 0.8695652173913043,
+            "recall_sem_efeito": 0.0,
+            "precision_sem_efeito": 0.0,
+            "recall_sob_efeito": 0.8695652173913043,
+            "precision_sob_efeito": 1.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                0,
+                0
+              ],
+              [
+                3,
+                20
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_11_alcool.csv",
+              "n": 23,
+              "sob_efeito": 23,
+              "acertos_sob_efeito": 20,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sem_leituras_17_Alcool",
+      "titulo": "Arquivo inédito: leituras_17_Alcool.csv",
+      "descricao": "O treino usa os originais de todos os arquivos menos leituras_17_Alcool.csv. O teste é esse arquivo, só com sopros originais de álcool. As cópias não entram.",
+      "sensor_set": "mq3+mq135+dht11",
+      "treino": {
+        "n": 11260,
+        "sob_efeito": 129,
+        "sem_efeito": 11131,
+        "arquivos": [
+          "leituras_11_alcool.csv",
+          "leituras_11_alcool2.csv",
+          "leituras_14_Alcool3.csv",
+          "leituras_1_ambiente.csv",
+          "leituras_25_perfume.csv",
+          "leituras_28_ambiente.csv",
+          "leituras_2_ambiente.csv",
+          "leituras_3_ambiente.csv",
+          "leituras_4_ambiente.csv",
+          "leituras_7_ambiente.csv",
+          "leituras_9_ambiente.csv"
+        ]
+      },
+      "teste": {
+        "n": 65,
+        "sob_efeito": 65,
+        "sem_efeito": 0,
+        "arquivos": [
+          "leituras_17_Alcool.csv"
+        ]
+      },
+      "melhor_cv": {
+        "model": "logistic_regression",
+        "f1_macro": 0.6969556012359577,
+        "balanced_accuracy": 0.9351482938563228,
+        "recall_sob_efeito": 0.8992248062015504,
+        "precision_sob_efeito": 0.2648401826484018,
+        "recall_sem_efeito": 0.9710717815110952,
+        "precision_sem_efeito": 0.9987987433006837,
+        "roc_auc": 0.992394311856196,
+        "f1_macro_treino": 0.9743107414593724
+      },
+      "cv": [
+        {
+          "model": "baseline",
+          "chosen_params": [
+            {},
+            {},
+            {},
+            {},
+            {}
+          ],
+          "f1_macro": 0.4971193783216471,
+          "balanced_accuracy": 0.5,
+          "recall_sem_efeito": 1.0,
+          "precision_sem_efeito": 0.9885435168738899,
+          "recall_sob_efeito": 0.0,
+          "precision_sob_efeito": 0.0,
+          "roc_auc": 0.5,
+          "f1_macro_treino": 0.4962237200147836
+        },
+        {
+          "model": "logistic_regression",
+          "chosen_params": [
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            }
+          ],
+          "f1_macro": 0.6969556012359577,
+          "balanced_accuracy": 0.9351482938563228,
+          "recall_sem_efeito": 0.9710717815110952,
+          "precision_sem_efeito": 0.9987987433006837,
+          "recall_sob_efeito": 0.8992248062015504,
+          "precision_sob_efeito": 0.2648401826484018,
+          "roc_auc": 0.992394311856196,
+          "f1_macro_treino": 0.9743107414593724
+        },
+        {
+          "model": "decision_tree",
+          "chosen_params": [
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 3
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 3
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            }
+          ],
+          "f1_macro": 0.5913651882983756,
+          "balanced_accuracy": 0.6794690991497313,
+          "recall_sem_efeito": 0.9713412990746564,
+          "precision_sem_efeito": 0.9927463042879442,
+          "recall_sob_efeito": 0.3875968992248062,
+          "precision_sob_efeito": 0.13550135501355012,
+          "roc_auc": 0.6761405224183595,
+          "f1_macro_treino": 0.8727193504878514
+        },
+        {
+          "model": "random_forest",
+          "chosen_params": [
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 3,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 3
+            }
+          ],
+          "f1_macro": 0.5905704349948142,
+          "balanced_accuracy": 0.6303263669659217,
+          "recall_sem_efeito": 0.9815829664899829,
+          "precision_sem_efeito": 0.9915600326708413,
+          "recall_sob_efeito": 0.27906976744186046,
+          "precision_sob_efeito": 0.14937759336099585,
+          "roc_auc": 0.9458534339810808,
+          "f1_macro_treino": 0.981076650541142
+        }
+      ],
+      "holdout": [
+        {
+          "model": "baseline",
+          "best_params": {},
+          "test_metrics": {
+            "f1_macro": 0.0,
+            "balanced_accuracy": 0.0,
+            "recall_sem_efeito": 0.0,
+            "precision_sem_efeito": 0.0,
+            "recall_sob_efeito": 0.0,
+            "precision_sob_efeito": 0.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                0,
+                0
+              ],
+              [
+                65,
+                0
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_17_Alcool.csv",
+              "n": 65,
+              "sob_efeito": 65,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            }
+          ]
+        },
+        {
+          "model": "logistic_regression",
+          "best_params": {
+            "clf__C": 10.0
+          },
+          "test_metrics": {
+            "f1_macro": 0.49612403100775193,
+            "balanced_accuracy": 0.9846153846153847,
+            "recall_sem_efeito": 0.0,
+            "precision_sem_efeito": 0.0,
+            "recall_sob_efeito": 0.9846153846153847,
+            "precision_sob_efeito": 1.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                64
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_17_Alcool.csv",
+              "n": 65,
+              "sob_efeito": 65,
+              "acertos_sob_efeito": 64,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            }
+          ]
+        },
+        {
+          "model": "decision_tree",
+          "best_params": {
+            "clf__max_depth": 5,
+            "clf__min_samples_leaf": 1
+          },
+          "test_metrics": {
+            "f1_macro": 0.39814814814814814,
+            "balanced_accuracy": 0.6615384615384615,
+            "recall_sem_efeito": 0.0,
+            "precision_sem_efeito": 0.0,
+            "recall_sob_efeito": 0.6615384615384615,
+            "precision_sob_efeito": 1.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                0,
+                0
+              ],
+              [
+                22,
+                43
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_17_Alcool.csv",
+              "n": 65,
+              "sob_efeito": 65,
+              "acertos_sob_efeito": 43,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            }
+          ]
+        },
+        {
+          "model": "random_forest",
+          "best_params": {
+            "clf__max_depth": null,
+            "clf__min_samples_leaf": 3
+          },
+          "test_metrics": {
+            "f1_macro": 0.4247787610619469,
+            "balanced_accuracy": 0.7384615384615385,
+            "recall_sem_efeito": 0.0,
+            "precision_sem_efeito": 0.0,
+            "recall_sob_efeito": 0.7384615384615385,
+            "precision_sob_efeito": 1.0,
+            "roc_auc": null
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                0,
+                0
+              ],
+              [
+                17,
+                48
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_17_Alcool.csv",
+              "n": 65,
+              "sob_efeito": 65,
+              "acertos_sob_efeito": 48,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "corte_temporal_30",
+      "titulo": "Últimos 30% de cada arquivo",
+      "descricao": "Em cada arquivo original, os primeiros 70% das tentativas treinam e os últimos 30% testam. As cópias do fim dos CSVs de álcool ficam de fora.",
+      "sensor_set": "mq3+mq135+dht11",
+      "treino": {
+        "n": 7921,
+        "sob_efeito": 134,
+        "sem_efeito": 7787,
+        "arquivos": [
+          "leituras_11_alcool.csv",
+          "leituras_11_alcool2.csv",
+          "leituras_14_Alcool3.csv",
+          "leituras_17_Alcool.csv",
+          "leituras_1_ambiente.csv",
+          "leituras_25_perfume.csv",
+          "leituras_28_ambiente.csv",
+          "leituras_2_ambiente.csv",
+          "leituras_3_ambiente.csv",
+          "leituras_4_ambiente.csv",
+          "leituras_7_ambiente.csv",
+          "leituras_9_ambiente.csv"
+        ]
+      },
+      "teste": {
+        "n": 3404,
+        "sob_efeito": 60,
+        "sem_efeito": 3344,
+        "arquivos": [
+          "leituras_11_alcool.csv",
+          "leituras_11_alcool2.csv",
+          "leituras_14_Alcool3.csv",
+          "leituras_17_Alcool.csv",
+          "leituras_1_ambiente.csv",
+          "leituras_25_perfume.csv",
+          "leituras_28_ambiente.csv",
+          "leituras_2_ambiente.csv",
+          "leituras_3_ambiente.csv",
+          "leituras_4_ambiente.csv",
+          "leituras_7_ambiente.csv",
+          "leituras_9_ambiente.csv"
+        ]
+      },
+      "melhor_cv": {
+        "model": "random_forest",
+        "f1_macro": 0.7390671627330155,
+        "balanced_accuracy": 0.9187097132802662,
+        "recall_sob_efeito": 0.8656716417910447,
+        "precision_sob_efeito": 0.34523809523809523,
+        "recall_sem_efeito": 0.9717477847694876,
+        "precision_sem_efeito": 0.9976268951878708,
+        "roc_auc": 0.9817127282554735,
+        "f1_macro_treino": 0.9525700950041331
+      },
+      "cv": [
+        {
+          "model": "baseline",
+          "chosen_params": [
+            {},
+            {},
+            {},
+            {},
+            {}
+          ],
+          "f1_macro": 0.4957346574993634,
+          "balanced_accuracy": 0.5,
+          "recall_sem_efeito": 1.0,
+          "precision_sem_efeito": 0.9830829440727181,
+          "recall_sob_efeito": 0.0,
+          "precision_sob_efeito": 0.0,
+          "roc_auc": 0.5,
+          "f1_macro_treino": 0.4944235004856158
+        },
+        {
+          "model": "logistic_regression",
+          "chosen_params": [
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 0.1
+            },
+            {
+              "clf__C": 1.0
+            }
+          ],
+          "f1_macro": 0.7187004191550874,
+          "balanced_accuracy": 0.9267574737076145,
+          "recall_sem_efeito": 0.9654552459226917,
+          "precision_sem_efeito": 0.9980087614496217,
+          "recall_sob_efeito": 0.8880597014925373,
+          "precision_sob_efeito": 0.30670103092783507,
+          "roc_auc": 0.9794596428413985,
+          "f1_macro_treino": 0.9802825897707172
+        },
+        {
+          "model": "decision_tree",
+          "chosen_params": [
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 5,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 2,
+              "clf__min_samples_leaf": 1
+            }
+          ],
+          "f1_macro": 0.6972781775618655,
+          "balanced_accuracy": 0.9200724897408424,
+          "recall_sem_efeito": 0.9595479645563117,
+          "precision_sem_efeito": 0.9978632478632479,
+          "recall_sob_efeito": 0.8805970149253731,
+          "precision_sob_efeito": 0.27251732101616627,
+          "roc_auc": 0.8718669079157952,
+          "f1_macro_treino": 0.918588821474326
+        },
+        {
+          "model": "random_forest",
+          "chosen_params": [
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": null,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 3,
+              "clf__min_samples_leaf": 1
+            },
+            {
+              "clf__max_depth": 3,
+              "clf__min_samples_leaf": 1
+            }
+          ],
+          "f1_macro": 0.7390671627330155,
+          "balanced_accuracy": 0.9187097132802662,
+          "recall_sem_efeito": 0.9717477847694876,
+          "precision_sem_efeito": 0.9976268951878708,
+          "recall_sob_efeito": 0.8656716417910447,
+          "precision_sob_efeito": 0.34523809523809523,
+          "roc_auc": 0.9817127282554735,
+          "f1_macro_treino": 0.9525700950041331
+        }
+      ],
+      "holdout": [
+        {
+          "model": "baseline",
+          "best_params": {},
+          "test_metrics": {
+            "f1_macro": 0.4955542382928275,
+            "balanced_accuracy": 0.5,
+            "recall_sem_efeito": 1.0,
+            "precision_sem_efeito": 0.982373678025852,
+            "recall_sob_efeito": 0.0,
+            "precision_sob_efeito": 0.0,
+            "roc_auc": 0.5
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                3344,
+                0
+              ],
+              [
+                60,
+                0
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_11_alcool.csv",
+              "n": 7,
+              "sob_efeito": 7,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_11_alcool2.csv",
+              "n": 20,
+              "sob_efeito": 20,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_14_Alcool3.csv",
+              "n": 13,
+              "sob_efeito": 13,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_17_Alcool.csv",
+              "n": 20,
+              "sob_efeito": 20,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_1_ambiente.csv",
+              "n": 46,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 46,
+              "acertos_sem_efeito": 46
+            },
+            {
+              "session_file": "leituras_25_perfume.csv",
+              "n": 30,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 30,
+              "acertos_sem_efeito": 30
+            },
+            {
+              "session_file": "leituras_28_ambiente.csv",
+              "n": 2318,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 2318,
+              "acertos_sem_efeito": 2318
+            },
+            {
+              "session_file": "leituras_2_ambiente.csv",
+              "n": 18,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 18,
+              "acertos_sem_efeito": 18
+            },
+            {
+              "session_file": "leituras_3_ambiente.csv",
+              "n": 33,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 33,
+              "acertos_sem_efeito": 33
+            },
+            {
+              "session_file": "leituras_4_ambiente.csv",
+              "n": 10,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 10,
+              "acertos_sem_efeito": 10
+            },
+            {
+              "session_file": "leituras_7_ambiente.csv",
+              "n": 489,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 489,
+              "acertos_sem_efeito": 489
+            },
+            {
+              "session_file": "leituras_9_ambiente.csv",
+              "n": 400,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 400,
+              "acertos_sem_efeito": 400
+            }
+          ]
+        },
+        {
+          "model": "logistic_regression",
+          "best_params": {
+            "clf__C": 10.0
+          },
+          "test_metrics": {
+            "f1_macro": 0.9957235697388538,
+            "balanced_accuracy": 0.9916666666666667,
+            "recall_sem_efeito": 1.0,
+            "precision_sem_efeito": 0.9997010463378176,
+            "recall_sob_efeito": 0.9833333333333333,
+            "precision_sob_efeito": 1.0,
+            "roc_auc": 1.0
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                3344,
+                0
+              ],
+              [
+                1,
+                59
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_11_alcool.csv",
+              "n": 7,
+              "sob_efeito": 7,
+              "acertos_sob_efeito": 7,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_11_alcool2.csv",
+              "n": 20,
+              "sob_efeito": 20,
+              "acertos_sob_efeito": 20,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_14_Alcool3.csv",
+              "n": 13,
+              "sob_efeito": 13,
+              "acertos_sob_efeito": 13,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_17_Alcool.csv",
+              "n": 20,
+              "sob_efeito": 20,
+              "acertos_sob_efeito": 19,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_1_ambiente.csv",
+              "n": 46,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 46,
+              "acertos_sem_efeito": 46
+            },
+            {
+              "session_file": "leituras_25_perfume.csv",
+              "n": 30,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 30,
+              "acertos_sem_efeito": 30
+            },
+            {
+              "session_file": "leituras_28_ambiente.csv",
+              "n": 2318,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 2318,
+              "acertos_sem_efeito": 2318
+            },
+            {
+              "session_file": "leituras_2_ambiente.csv",
+              "n": 18,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 18,
+              "acertos_sem_efeito": 18
+            },
+            {
+              "session_file": "leituras_3_ambiente.csv",
+              "n": 33,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 33,
+              "acertos_sem_efeito": 33
+            },
+            {
+              "session_file": "leituras_4_ambiente.csv",
+              "n": 10,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 10,
+              "acertos_sem_efeito": 10
+            },
+            {
+              "session_file": "leituras_7_ambiente.csv",
+              "n": 489,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 489,
+              "acertos_sem_efeito": 489
+            },
+            {
+              "session_file": "leituras_9_ambiente.csv",
+              "n": 400,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 400,
+              "acertos_sem_efeito": 400
+            }
+          ]
+        },
+        {
+          "model": "decision_tree",
+          "best_params": {
+            "clf__max_depth": 5,
+            "clf__min_samples_leaf": 1
+          },
+          "test_metrics": {
+            "f1_macro": 0.9732360479927036,
+            "balanced_accuracy": 0.95,
+            "recall_sem_efeito": 1.0,
+            "precision_sem_efeito": 0.9982089552238806,
+            "recall_sob_efeito": 0.9,
+            "precision_sob_efeito": 1.0,
+            "roc_auc": 0.95
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                3344,
+                0
+              ],
+              [
+                6,
+                54
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_11_alcool.csv",
+              "n": 7,
+              "sob_efeito": 7,
+              "acertos_sob_efeito": 4,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_11_alcool2.csv",
+              "n": 20,
+              "sob_efeito": 20,
+              "acertos_sob_efeito": 17,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_14_Alcool3.csv",
+              "n": 13,
+              "sob_efeito": 13,
+              "acertos_sob_efeito": 13,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_17_Alcool.csv",
+              "n": 20,
+              "sob_efeito": 20,
+              "acertos_sob_efeito": 20,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_1_ambiente.csv",
+              "n": 46,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 46,
+              "acertos_sem_efeito": 46
+            },
+            {
+              "session_file": "leituras_25_perfume.csv",
+              "n": 30,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 30,
+              "acertos_sem_efeito": 30
+            },
+            {
+              "session_file": "leituras_28_ambiente.csv",
+              "n": 2318,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 2318,
+              "acertos_sem_efeito": 2318
+            },
+            {
+              "session_file": "leituras_2_ambiente.csv",
+              "n": 18,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 18,
+              "acertos_sem_efeito": 18
+            },
+            {
+              "session_file": "leituras_3_ambiente.csv",
+              "n": 33,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 33,
+              "acertos_sem_efeito": 33
+            },
+            {
+              "session_file": "leituras_4_ambiente.csv",
+              "n": 10,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 10,
+              "acertos_sem_efeito": 10
+            },
+            {
+              "session_file": "leituras_7_ambiente.csv",
+              "n": 489,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 489,
+              "acertos_sem_efeito": 489
+            },
+            {
+              "session_file": "leituras_9_ambiente.csv",
+              "n": 400,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 400,
+              "acertos_sem_efeito": 400
+            }
+          ]
+        },
+        {
+          "model": "random_forest",
+          "best_params": {
+            "clf__max_depth": null,
+            "clf__min_samples_leaf": 3
+          },
+          "test_metrics": {
+            "f1_macro": 0.9685037704798853,
+            "balanced_accuracy": 0.9416666666666667,
+            "recall_sem_efeito": 1.0,
+            "precision_sem_efeito": 0.9979110713219934,
+            "recall_sob_efeito": 0.8833333333333333,
+            "precision_sob_efeito": 1.0,
+            "roc_auc": 1.0
+          },
+          "confusion_matrix": {
+            "labels": [
+              "sem_efeito",
+              "sob_efeito"
+            ],
+            "matrix": [
+              [
+                3344,
+                0
+              ],
+              [
+                7,
+                53
+              ]
+            ]
+          },
+          "por_arquivo": [
+            {
+              "session_file": "leituras_11_alcool.csv",
+              "n": 7,
+              "sob_efeito": 7,
+              "acertos_sob_efeito": 3,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_11_alcool2.csv",
+              "n": 20,
+              "sob_efeito": 20,
+              "acertos_sob_efeito": 17,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_14_Alcool3.csv",
+              "n": 13,
+              "sob_efeito": 13,
+              "acertos_sob_efeito": 13,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_17_Alcool.csv",
+              "n": 20,
+              "sob_efeito": 20,
+              "acertos_sob_efeito": 20,
+              "sem_efeito": 0,
+              "acertos_sem_efeito": 0
+            },
+            {
+              "session_file": "leituras_1_ambiente.csv",
+              "n": 46,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 46,
+              "acertos_sem_efeito": 46
+            },
+            {
+              "session_file": "leituras_25_perfume.csv",
+              "n": 30,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 30,
+              "acertos_sem_efeito": 30
+            },
+            {
+              "session_file": "leituras_28_ambiente.csv",
+              "n": 2318,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 2318,
+              "acertos_sem_efeito": 2318
+            },
+            {
+              "session_file": "leituras_2_ambiente.csv",
+              "n": 18,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 18,
+              "acertos_sem_efeito": 18
+            },
+            {
+              "session_file": "leituras_3_ambiente.csv",
+              "n": 33,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 33,
+              "acertos_sem_efeito": 33
+            },
+            {
+              "session_file": "leituras_4_ambiente.csv",
+              "n": 10,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 10,
+              "acertos_sem_efeito": 10
+            },
+            {
+              "session_file": "leituras_7_ambiente.csv",
+              "n": 489,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 489,
+              "acertos_sem_efeito": 489
+            },
+            {
+              "session_file": "leituras_9_ambiente.csv",
+              "n": 400,
+              "sob_efeito": 0,
+              "acertos_sob_efeito": 0,
+              "sem_efeito": 400,
+              "acertos_sem_efeito": 400
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
