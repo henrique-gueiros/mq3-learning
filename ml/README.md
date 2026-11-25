@@ -146,7 +146,7 @@ python -m pytest        # roda os testes
 | --- | --- | --- |
 | `validate` | Confere sessões e tentativas e lista todos os problemas de uma vez | nada |
 | `prepare` | Recorta cada sopro, calcula as features e separa treino/teste por participante | `data/processed/*.csv`, `config/split.json` |
-| `train` | Compara 4 modelos em 4 conjuntos de sensores e treina o melhor (`sob_efeito` ou `sem_efeito`) | `reports/experiment.csv`, `reports/final.json`, `models/sob_efeito.joblib` |
+| `train` | Compara 3 modelos em 4 conjuntos de sensores e treina o melhor (`sob_efeito` ou `sem_efeito`) | `reports/experiment.csv`, `reports/final.json`, `models/sob_efeito.joblib` |
 | `predict` | Classifica um sopro de uma sessão nova | previsões na tela ou em `--output` |
 | `pipeline` | Ingestão do Postgres (com `--dsn`), preparação e disponibilização | `data/processed/disponivel.json` e os CSVs do `prepare` |
 
@@ -176,7 +176,7 @@ python -m src.cli pipeline --dsn "$PG_DSN"   # sem --dsn, só prepara os CSVs qu
 
 ### Como o treino avalia
 
-- **Modelos:** `baseline` (sempre a classe mais comum), regressão logística, árvore de decisão e Random Forest.
+- **Modelos:** `baseline` (sempre a classe mais comum), árvore de decisão e Random Forest.
 - **Sensores:** o treino e o teste usam sempre os três juntos, `mq3+mq135+dht11` (MQ-3, MQ-135 e DHT11).
 - **Validação cruzada aninhada por grupo:** o laço externo avalia com participantes que o modelo não viu; o laço interno escolhe os hiperparâmetros (Grid Search) só com os demais.
 - **Teste final:** usado uma única vez, para o modelo escolhido.

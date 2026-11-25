@@ -19,7 +19,7 @@ Fonte: coluna CC de `docs/Entregáveis 6ºP - Projeto 2026.2.xlsx`.
 1. **Infraestrutura e dataset inicial:** coleta própria (CSVs + `attempts.csv`), publicação por MQTT e gravação em banco.
 2. **Pipeline no Airflow** (ingestão, preparação, disponibilização) e **notebook de EDA** em `ml/notebooks/`, justificando limpeza, normalização e ausentes. Lógica reutilizável em `ml/src/`.
 3. **Baseline** justificado, com métricas de validação, no **MLflow**.
-4. **Três modelos ou mais** comparados no MLflow, com matriz de confusão, ROC/AUC e análise crítica. Hoje: regressão logística, árvore e Random Forest além do baseline; KNN é candidato.
+4. **Três modelos ou mais** comparados no MLflow, com matriz de confusão, ROC/AUC e análise crítica. Hoje: árvore e Random Forest além do baseline; KNN é candidato.
 5. **Otimização de hiperparâmetros** (Grid Search pronto; Random Search ou Optuna são alternativas), documentada e no MLflow.
 6. **Validação cruzada k-fold** com estabilidade entre folds, overfitting/underfitting (treino × validação) e generalização. O k-fold é `GroupKFold` por participante.
 7. **Integração:** o pipeline consome dados novos da ESP32 (ou do simulador), processa e infere.
@@ -34,7 +34,7 @@ confusão. Prioridade: **recall de `sob_efeito`**.
 
 Pronto e testado:
 - Firmware lendo os três sensores e gravando CSV por sessão.
-- Pipeline de ML em `ml/src/` (validação, recorte, features, separação por participante, 4 modelos × 4 conjuntos de sensores, Grid Search aninhado por grupo, modelo final e previsão), testado com curvas montadas à mão.
+- Pipeline de ML em `ml/src/` (validação, recorte, features, separação por participante, 3 modelos × 4 conjuntos de sensores, Grid Search aninhado por grupo, modelo final e previsão), testado com curvas montadas à mão.
 - Coleta em `applications/`: ponte serial, ingestor, simulador, importador, lote dos 12 CSVs válidos, Compose com Mosquitto, Postgres e API.
 - Tela React no Compose (http://localhost:8080): ao vivo, detector ambiente × sopro e as quatro seções de análise, com os números conferidos contra o Grafana local (removido em 24/11). O acabamento visual da etapa 5 está feito. O Lighthouse de acessibilidade deu 100 em 17/11. Plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
 - Contrato MQTT único (o da coleta, 24/11): o servidor do modelo (`services/mq3mqtt/ao_vivo.py`) assina `eventos`, lê a rodada no banco da coleta, grava em `resultados` e publica `mq3/<placa>/resultado` (`sem_modelo` até haver modelo). O simulador publica início e fim de sopro. A stack paralela de `services/` foi removida. A aba Ao vivo mostra a classe do modelo e o alerta; o serviço `alerta` envia pelo Telegram (bônus).

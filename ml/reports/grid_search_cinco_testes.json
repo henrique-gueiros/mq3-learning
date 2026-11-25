@@ -1,6 +1,6 @@
 {
   "sensor_set": "mq3+mq135+dht11",
-  "protocolo": "Cinco recortes, sempre com MQ-3, MQ-135 e DHT11. A grade interna testa C em 0,1, 1 e 10 na logística, profundidade 2, 3, 5 ou livre e folha 1 ou 3 na árvore, profundidade 3 ou livre e folha 1 ou 3 na floresta. O laço externo separa arquivos, exceto no teste do perfume, que separa fatias de tempo. As 1.195 tentativas copiadas no fim dos quatro CSVs de álcool ficam de fora dos cinco testes.",
+  "protocolo": "Cinco recortes, sempre com MQ-3, MQ-135 e DHT11. A grade interna testa profundidade 2, 3, 5 ou livre e folha 1 ou 3 na árvore e profundidade 3 ou livre e folha 1 ou 3 na floresta. O laço externo separa arquivos, exceto no teste do perfume, que separa fatias de tempo. As 1.195 tentativas copiadas no fim dos quatro CSVs de álcool ficam de fora dos cinco testes.",
   "originais": {
     "n": 11325,
     "sob_efeito": 194,
@@ -64,15 +64,15 @@
         ]
       },
       "melhor_cv": {
-        "model": "logistic_regression",
-        "f1_macro": 0.7980117697588994,
-        "balanced_accuracy": 0.9278615282665464,
-        "recall_sob_efeito": 0.9123711340206185,
-        "precision_sob_efeito": 0.4783783783783784,
-        "recall_sem_efeito": 0.9433519225124744,
-        "precision_sem_efeito": 0.9947384710615909,
-        "roc_auc": 0.9864166860829281,
-        "f1_macro_treino": 0.9914310386495643
+        "model": "random_forest",
+        "f1_macro": 0.7576894495229888,
+        "balanced_accuracy": 0.9086000925928728,
+        "recall_sob_efeito": 0.8917525773195877,
+        "precision_sob_efeito": 0.405152224824356,
+        "recall_sem_efeito": 0.9254476078661579,
+        "precision_sem_efeito": 0.9933837429111532,
+        "roc_auc": 0.9718045624684171,
+        "f1_macro_treino": 0.9880607061319177
       },
       "cv": [
         {
@@ -92,34 +92,6 @@
           "precision_sob_efeito": 0.0,
           "roc_auc": 0.5,
           "f1_macro_treino": 0.4845157694791773
-        },
-        {
-          "model": "logistic_regression",
-          "chosen_params": [
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            }
-          ],
-          "f1_macro": 0.7980117697588994,
-          "balanced_accuracy": 0.9278615282665464,
-          "recall_sem_efeito": 0.9433519225124744,
-          "precision_sem_efeito": 0.9947384710615909,
-          "recall_sob_efeito": 0.9123711340206185,
-          "precision_sob_efeito": 0.4783783783783784,
-          "roc_auc": 0.9864166860829281,
-          "f1_macro_treino": 0.9914310386495643
         },
         {
           "model": "decision_tree",
@@ -192,47 +164,6 @@
         {
           "model": "baseline",
           "best_params": {},
-          "test_metrics": {
-            "f1_macro": 0.5,
-            "balanced_accuracy": 1.0,
-            "recall_sem_efeito": 1.0,
-            "precision_sem_efeito": 1.0,
-            "recall_sob_efeito": 0.0,
-            "precision_sob_efeito": 0.0,
-            "roc_auc": null
-          },
-          "confusion_matrix": {
-            "labels": [
-              "sem_efeito",
-              "sob_efeito"
-            ],
-            "matrix": [
-              [
-                7724,
-                0
-              ],
-              [
-                0,
-                0
-              ]
-            ]
-          },
-          "por_arquivo": [
-            {
-              "session_file": "leituras_28_ambiente.csv",
-              "n": 7724,
-              "sob_efeito": 0,
-              "acertos_sob_efeito": 0,
-              "sem_efeito": 7724,
-              "acertos_sem_efeito": 7724
-            }
-          ]
-        },
-        {
-          "model": "logistic_regression",
-          "best_params": {
-            "clf__C": 0.1
-          },
           "test_metrics": {
             "f1_macro": 0.5,
             "balanced_accuracy": 1.0,
@@ -374,14 +305,14 @@
       },
       "teste": null,
       "melhor_cv": {
-        "model": "logistic_regression",
-        "f1_macro": 0.9665955485980482,
-        "balanced_accuracy": 0.9768041237113403,
-        "recall_sob_efeito": 0.9536082474226805,
+        "model": "random_forest",
+        "f1_macro": 0.9521502347417841,
+        "balanced_accuracy": 0.9664948453608248,
+        "recall_sob_efeito": 0.9329896907216495,
         "precision_sob_efeito": 1.0,
         "recall_sem_efeito": 1.0,
-        "precision_sem_efeito": 0.9174311926605505,
-        "roc_auc": 0.9996907216494845,
+        "precision_sem_efeito": 0.8849557522123894,
+        "roc_auc": 0.9999999999999999,
         "f1_macro_treino": 1.0
       },
       "cv": [
@@ -401,31 +332,6 @@
           "precision_sob_efeito": 0.6598639455782312,
           "roc_auc": 0.5,
           "f1_macro_treino": 0.397534048592956
-        },
-        {
-          "model": "logistic_regression",
-          "chosen_params": [
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 1.0
-            },
-            {
-              "clf__C": 0.1
-            }
-          ],
-          "f1_macro": 0.9665955485980482,
-          "balanced_accuracy": 0.9768041237113403,
-          "recall_sem_efeito": 1.0,
-          "precision_sem_efeito": 0.9174311926605505,
-          "recall_sob_efeito": 0.9536082474226805,
-          "precision_sob_efeito": 1.0,
-          "roc_auc": 0.9996907216494845,
-          "f1_macro_treino": 1.0
         },
         {
           "model": "decision_tree",
@@ -520,15 +426,15 @@
         ]
       },
       "melhor_cv": {
-        "model": "logistic_regression",
-        "f1_macro": 0.7533428657435279,
-        "balanced_accuracy": 0.9466665195615638,
-        "recall_sob_efeito": 0.9181286549707602,
-        "precision_sob_efeito": 0.3625866050808314,
-        "recall_sem_efeito": 0.9752043841523672,
-        "precision_sem_efeito": 0.9987119330205171,
-        "roc_auc": 0.9894966956516257,
-        "f1_macro_treino": 0.9807133173769509
+        "model": "decision_tree",
+        "f1_macro": 0.7302744303612447,
+        "balanced_accuracy": 0.9330390705899598,
+        "recall_sob_efeito": 0.8947368421052632,
+        "precision_sob_efeito": 0.3241525423728814,
+        "recall_sem_efeito": 0.9713412990746564,
+        "precision_sem_efeito": 0.9983379501385041,
+        "roc_auc": 0.8941757412127029,
+        "f1_macro_treino": 0.8766213828043409
       },
       "cv": [
         {
@@ -548,34 +454,6 @@
           "precision_sob_efeito": 0.0,
           "roc_auc": 0.5,
           "f1_macro_treino": 0.49501445428417296
-        },
-        {
-          "model": "logistic_regression",
-          "chosen_params": [
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            }
-          ],
-          "f1_macro": 0.7533428657435279,
-          "balanced_accuracy": 0.9466665195615638,
-          "recall_sem_efeito": 0.9752043841523672,
-          "precision_sem_efeito": 0.9987119330205171,
-          "recall_sob_efeito": 0.9181286549707602,
-          "precision_sob_efeito": 0.3625866050808314,
-          "roc_auc": 0.9894966956516257,
-          "f1_macro_treino": 0.9807133173769509
         },
         {
           "model": "decision_tree",
@@ -679,47 +557,6 @@
               "n": 23,
               "sob_efeito": 23,
               "acertos_sob_efeito": 0,
-              "sem_efeito": 0,
-              "acertos_sem_efeito": 0
-            }
-          ]
-        },
-        {
-          "model": "logistic_regression",
-          "best_params": {
-            "clf__C": 0.1
-          },
-          "test_metrics": {
-            "f1_macro": 0.46511627906976744,
-            "balanced_accuracy": 0.8695652173913043,
-            "recall_sem_efeito": 0.0,
-            "precision_sem_efeito": 0.0,
-            "recall_sob_efeito": 0.8695652173913043,
-            "precision_sob_efeito": 1.0,
-            "roc_auc": null
-          },
-          "confusion_matrix": {
-            "labels": [
-              "sem_efeito",
-              "sob_efeito"
-            ],
-            "matrix": [
-              [
-                0,
-                0
-              ],
-              [
-                3,
-                20
-              ]
-            ]
-          },
-          "por_arquivo": [
-            {
-              "session_file": "leituras_11_alcool.csv",
-              "n": 23,
-              "sob_efeito": 23,
-              "acertos_sob_efeito": 20,
               "sem_efeito": 0,
               "acertos_sem_efeito": 0
             }
@@ -843,15 +680,15 @@
         ]
       },
       "melhor_cv": {
-        "model": "logistic_regression",
-        "f1_macro": 0.6969556012359577,
-        "balanced_accuracy": 0.9351482938563228,
-        "recall_sob_efeito": 0.8992248062015504,
-        "precision_sob_efeito": 0.2648401826484018,
-        "recall_sem_efeito": 0.9710717815110952,
-        "precision_sem_efeito": 0.9987987433006837,
-        "roc_auc": 0.992394311856196,
-        "f1_macro_treino": 0.9743107414593724
+        "model": "decision_tree",
+        "f1_macro": 0.5913651882983756,
+        "balanced_accuracy": 0.6794690991497313,
+        "recall_sob_efeito": 0.3875968992248062,
+        "precision_sob_efeito": 0.13550135501355012,
+        "recall_sem_efeito": 0.9713412990746564,
+        "precision_sem_efeito": 0.9927463042879442,
+        "roc_auc": 0.6761405224183595,
+        "f1_macro_treino": 0.8727193504878514
       },
       "cv": [
         {
@@ -871,34 +708,6 @@
           "precision_sob_efeito": 0.0,
           "roc_auc": 0.5,
           "f1_macro_treino": 0.4962237200147836
-        },
-        {
-          "model": "logistic_regression",
-          "chosen_params": [
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            }
-          ],
-          "f1_macro": 0.6969556012359577,
-          "balanced_accuracy": 0.9351482938563228,
-          "recall_sem_efeito": 0.9710717815110952,
-          "precision_sem_efeito": 0.9987987433006837,
-          "recall_sob_efeito": 0.8992248062015504,
-          "precision_sob_efeito": 0.2648401826484018,
-          "roc_auc": 0.992394311856196,
-          "f1_macro_treino": 0.9743107414593724
         },
         {
           "model": "decision_tree",
@@ -1002,47 +811,6 @@
               "n": 65,
               "sob_efeito": 65,
               "acertos_sob_efeito": 0,
-              "sem_efeito": 0,
-              "acertos_sem_efeito": 0
-            }
-          ]
-        },
-        {
-          "model": "logistic_regression",
-          "best_params": {
-            "clf__C": 10.0
-          },
-          "test_metrics": {
-            "f1_macro": 0.49612403100775193,
-            "balanced_accuracy": 0.9846153846153847,
-            "recall_sem_efeito": 0.0,
-            "precision_sem_efeito": 0.0,
-            "recall_sob_efeito": 0.9846153846153847,
-            "precision_sob_efeito": 1.0,
-            "roc_auc": null
-          },
-          "confusion_matrix": {
-            "labels": [
-              "sem_efeito",
-              "sob_efeito"
-            ],
-            "matrix": [
-              [
-                0,
-                0
-              ],
-              [
-                1,
-                64
-              ]
-            ]
-          },
-          "por_arquivo": [
-            {
-              "session_file": "leituras_17_Alcool.csv",
-              "n": 65,
-              "sob_efeito": 65,
-              "acertos_sob_efeito": 64,
               "sem_efeito": 0,
               "acertos_sem_efeito": 0
             }
@@ -1208,34 +976,6 @@
           "f1_macro_treino": 0.4944235004856158
         },
         {
-          "model": "logistic_regression",
-          "chosen_params": [
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 0.1
-            },
-            {
-              "clf__C": 1.0
-            }
-          ],
-          "f1_macro": 0.7187004191550874,
-          "balanced_accuracy": 0.9267574737076145,
-          "recall_sem_efeito": 0.9654552459226917,
-          "precision_sem_efeito": 0.9980087614496217,
-          "recall_sob_efeito": 0.8880597014925373,
-          "precision_sob_efeito": 0.30670103092783507,
-          "roc_auc": 0.9794596428413985,
-          "f1_macro_treino": 0.9802825897707172
-        },
-        {
           "model": "decision_tree",
           "chosen_params": [
             {
@@ -1361,135 +1101,6 @@
               "n": 20,
               "sob_efeito": 20,
               "acertos_sob_efeito": 0,
-              "sem_efeito": 0,
-              "acertos_sem_efeito": 0
-            },
-            {
-              "session_file": "leituras_1_ambiente.csv",
-              "n": 46,
-              "sob_efeito": 0,
-              "acertos_sob_efeito": 0,
-              "sem_efeito": 46,
-              "acertos_sem_efeito": 46
-            },
-            {
-              "session_file": "leituras_25_perfume.csv",
-              "n": 30,
-              "sob_efeito": 0,
-              "acertos_sob_efeito": 0,
-              "sem_efeito": 30,
-              "acertos_sem_efeito": 30
-            },
-            {
-              "session_file": "leituras_28_ambiente.csv",
-              "n": 2318,
-              "sob_efeito": 0,
-              "acertos_sob_efeito": 0,
-              "sem_efeito": 2318,
-              "acertos_sem_efeito": 2318
-            },
-            {
-              "session_file": "leituras_2_ambiente.csv",
-              "n": 18,
-              "sob_efeito": 0,
-              "acertos_sob_efeito": 0,
-              "sem_efeito": 18,
-              "acertos_sem_efeito": 18
-            },
-            {
-              "session_file": "leituras_3_ambiente.csv",
-              "n": 33,
-              "sob_efeito": 0,
-              "acertos_sob_efeito": 0,
-              "sem_efeito": 33,
-              "acertos_sem_efeito": 33
-            },
-            {
-              "session_file": "leituras_4_ambiente.csv",
-              "n": 10,
-              "sob_efeito": 0,
-              "acertos_sob_efeito": 0,
-              "sem_efeito": 10,
-              "acertos_sem_efeito": 10
-            },
-            {
-              "session_file": "leituras_7_ambiente.csv",
-              "n": 489,
-              "sob_efeito": 0,
-              "acertos_sob_efeito": 0,
-              "sem_efeito": 489,
-              "acertos_sem_efeito": 489
-            },
-            {
-              "session_file": "leituras_9_ambiente.csv",
-              "n": 400,
-              "sob_efeito": 0,
-              "acertos_sob_efeito": 0,
-              "sem_efeito": 400,
-              "acertos_sem_efeito": 400
-            }
-          ]
-        },
-        {
-          "model": "logistic_regression",
-          "best_params": {
-            "clf__C": 10.0
-          },
-          "test_metrics": {
-            "f1_macro": 0.9957235697388538,
-            "balanced_accuracy": 0.9916666666666667,
-            "recall_sem_efeito": 1.0,
-            "precision_sem_efeito": 0.9997010463378176,
-            "recall_sob_efeito": 0.9833333333333333,
-            "precision_sob_efeito": 1.0,
-            "roc_auc": 1.0
-          },
-          "confusion_matrix": {
-            "labels": [
-              "sem_efeito",
-              "sob_efeito"
-            ],
-            "matrix": [
-              [
-                3344,
-                0
-              ],
-              [
-                1,
-                59
-              ]
-            ]
-          },
-          "por_arquivo": [
-            {
-              "session_file": "leituras_11_alcool.csv",
-              "n": 7,
-              "sob_efeito": 7,
-              "acertos_sob_efeito": 7,
-              "sem_efeito": 0,
-              "acertos_sem_efeito": 0
-            },
-            {
-              "session_file": "leituras_11_alcool2.csv",
-              "n": 20,
-              "sob_efeito": 20,
-              "acertos_sob_efeito": 20,
-              "sem_efeito": 0,
-              "acertos_sem_efeito": 0
-            },
-            {
-              "session_file": "leituras_14_Alcool3.csv",
-              "n": 13,
-              "sob_efeito": 13,
-              "acertos_sob_efeito": 13,
-              "sem_efeito": 0,
-              "acertos_sem_efeito": 0
-            },
-            {
-              "session_file": "leituras_17_Alcool.csv",
-              "n": 20,
-              "sob_efeito": 20,
-              "acertos_sob_efeito": 19,
               "sem_efeito": 0,
               "acertos_sem_efeito": 0
             },

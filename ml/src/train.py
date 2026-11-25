@@ -26,7 +26,6 @@ from sklearn.base import clone
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     balanced_accuracy_score,
     confusion_matrix,
@@ -37,7 +36,6 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import GridSearchCV, GroupKFold
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 from src.features import SENSOR_SETS, feature_columns
@@ -63,16 +61,6 @@ def model_specs(seed: int = 42, n_estimators: int = 100) -> dict[str, ModelSpec]
     imputer = ("imputer", SimpleImputer(strategy="median", keep_empty_features=True))
     return {
         "baseline": ModelSpec(Pipeline([imputer, ("clf", DummyClassifier(strategy="most_frequent"))]), {}),
-        "logistic_regression": ModelSpec(
-            Pipeline(
-                [
-                    imputer,
-                    ("scaler", StandardScaler()),
-                    ("clf", LogisticRegression(max_iter=2000, class_weight="balanced")),
-                ]
-            ),
-            {"clf__C": [0.1, 1.0, 10.0]},
-        ),
         "decision_tree": ModelSpec(
             Pipeline([imputer, ("clf", DecisionTreeClassifier(class_weight="balanced", random_state=seed))]),
             {"clf__max_depth": [2, 3, 5, None], "clf__min_samples_leaf": [1, 3]},
