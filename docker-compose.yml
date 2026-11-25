@@ -73,7 +73,7 @@ services:
     build:
       context: ./applications/frontend
     ports:
-      - "127.0.0.1:8080:80"
+      - "${FRONTEND_PORT:-8080}:80"
     depends_on:
       api:
         condition: service_healthy
@@ -152,8 +152,11 @@ services:
       PYTHONPATH: /opt/ml
       PG_DSN: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       MLFLOW_TRACKING_URI: http://mlflow:5000
+      # O processo escuta 8080 dentro do container. O navegador usa AIRFLOW_BASE_URL.
+      AIRFLOW__WEBSERVER__BASE_URL: ${AIRFLOW_BASE_URL:-http://localhost:8088}
+      AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX: "true"
     ports:
-      - "127.0.0.1:8088:8080"
+      - "${AIRFLOW_PORT:-8088}:8080"
     volumes:
       - ./ml:/opt/ml
       - airflow-home:/opt/airflow

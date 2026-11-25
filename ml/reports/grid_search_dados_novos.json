@@ -1,0 +1,992 @@
+{
+  "protocolo": "Grid search com GroupKFold no treino, sem as tentativas do bloco novo. A validação cruzada aninhada mede só o treino. O teste aplica o modelo reajustado em todas as tentativas novas de sob efeito.",
+  "leituras_novas": 4280,
+  "tentativas_novas": 1195,
+  "tentativas_novas_sem_feature": 38,
+  "n_train_attempts": 11325,
+  "treino_por_classe": {
+    "sem_efeito": 11131,
+    "sob_efeito": 194
+  },
+  "teste_por_classe": {
+    "sob_efeito": 1195
+  },
+  "n_groups_treino": 12,
+  "melhor_cv": {
+    "sensor_set": "mq3+mq135+dht11",
+    "model": "random_forest",
+    "f1_macro": 0.7581965836324761,
+    "balanced_accuracy": 0.913398959162069,
+    "recall_sob_efeito": 0.8505154639175257,
+    "precision_sob_efeito": 0.38461538461538464,
+    "chosen_params": [
+      {
+        "clf__max_depth": null,
+        "clf__min_samples_leaf": 1
+      },
+      {
+        "clf__max_depth": 3,
+        "clf__min_samples_leaf": 1
+      },
+      {
+        "clf__max_depth": null,
+        "clf__min_samples_leaf": 1
+      },
+      {
+        "clf__max_depth": null,
+        "clf__min_samples_leaf": 1
+      },
+      {
+        "clf__max_depth": 3,
+        "clf__min_samples_leaf": 1
+      }
+    ]
+  },
+  "cv_csv": "ml/reports/grid_search_dados_novos_cv.csv",
+  "teste": [
+    {
+      "sensor_set": "mq3",
+      "model": "baseline",
+      "best_params": {},
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 0,
+      "test_metrics": {
+        "f1_macro": 0.0,
+        "balanced_accuracy": 0.0,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.0,
+        "precision_sob_efeito": 0.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            1195,
+            0
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3",
+      "model": "logistic_regression",
+      "best_params": {
+        "clf__C": 0.1
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1171,
+      "test_metrics": {
+        "f1_macro": 0.49492814877430263,
+        "balanced_accuracy": 0.9799163179916318,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.9799163179916318,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            24,
+            1171
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 303,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 208,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 304,
+          "recall_sob_efeito": 0.926829268292683
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3",
+      "model": "decision_tree",
+      "best_params": {
+        "clf__max_depth": 2,
+        "clf__min_samples_leaf": 1
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1195,
+      "test_metrics": {
+        "f1_macro": 0.5,
+        "balanced_accuracy": 1.0,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 1.0,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1195
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 303,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 208,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 328,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3",
+      "model": "random_forest",
+      "best_params": {
+        "clf__max_depth": null,
+        "clf__min_samples_leaf": 3
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1134,
+      "test_metrics": {
+        "f1_macro": 0.48690425075139543,
+        "balanced_accuracy": 0.9489539748953975,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.9489539748953975,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            61,
+            1134
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 290,
+          "recall_sob_efeito": 0.9570957095709571
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 178,
+          "recall_sob_efeito": 0.8557692307692307
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 310,
+          "recall_sob_efeito": 0.9451219512195121
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+mq135",
+      "model": "baseline",
+      "best_params": {},
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 0,
+      "test_metrics": {
+        "f1_macro": 0.0,
+        "balanced_accuracy": 0.0,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.0,
+        "precision_sob_efeito": 0.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            1195,
+            0
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+mq135",
+      "model": "logistic_regression",
+      "best_params": {
+        "clf__C": 0.1
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1178,
+      "test_metrics": {
+        "f1_macro": 0.4964180362410451,
+        "balanced_accuracy": 0.9857740585774059,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.9857740585774059,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            17,
+            1178
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 303,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 191,
+          "recall_sob_efeito": 0.9182692307692307
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 328,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+mq135",
+      "model": "decision_tree",
+      "best_params": {
+        "clf__max_depth": 2,
+        "clf__min_samples_leaf": 1
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1195,
+      "test_metrics": {
+        "f1_macro": 0.5,
+        "balanced_accuracy": 1.0,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 1.0,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1195
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 303,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 208,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 328,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+mq135",
+      "model": "random_forest",
+      "best_params": {
+        "clf__max_depth": 3,
+        "clf__min_samples_leaf": 1
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1195,
+      "test_metrics": {
+        "f1_macro": 0.5,
+        "balanced_accuracy": 1.0,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 1.0,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1195
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 303,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 208,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 328,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+dht11",
+      "model": "baseline",
+      "best_params": {},
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 0,
+      "test_metrics": {
+        "f1_macro": 0.0,
+        "balanced_accuracy": 0.0,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.0,
+        "precision_sob_efeito": 0.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            1195,
+            0
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+dht11",
+      "model": "logistic_regression",
+      "best_params": {
+        "clf__C": 0.1
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1190,
+      "test_metrics": {
+        "f1_macro": 0.4989517819706499,
+        "balanced_accuracy": 0.99581589958159,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.99581589958159,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            5,
+            1190
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 303,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 203,
+          "recall_sob_efeito": 0.9759615384615384
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 328,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+dht11",
+      "model": "decision_tree",
+      "best_params": {
+        "clf__max_depth": null,
+        "clf__min_samples_leaf": 1
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1147,
+      "test_metrics": {
+        "f1_macro": 0.4897523484201537,
+        "balanced_accuracy": 0.9598326359832636,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.9598326359832636,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            48,
+            1147
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 264,
+          "recall_sob_efeito": 0.8712871287128713
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 199,
+          "recall_sob_efeito": 0.9567307692307693
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 328,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+dht11",
+      "model": "random_forest",
+      "best_params": {
+        "clf__max_depth": null,
+        "clf__min_samples_leaf": 3
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1149,
+      "test_metrics": {
+        "f1_macro": 0.4901877133105802,
+        "balanced_accuracy": 0.9615062761506277,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.9615062761506277,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            46,
+            1149
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 264,
+          "recall_sob_efeito": 0.8712871287128713
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 201,
+          "recall_sob_efeito": 0.9663461538461539
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 328,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+mq135+dht11",
+      "model": "baseline",
+      "best_params": {},
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 0,
+      "test_metrics": {
+        "f1_macro": 0.0,
+        "balanced_accuracy": 0.0,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.0,
+        "precision_sob_efeito": 0.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            1195,
+            0
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 0,
+          "recall_sob_efeito": 0.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+mq135+dht11",
+      "model": "logistic_regression",
+      "best_params": {
+        "clf__C": 10.0
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1185,
+      "test_metrics": {
+        "f1_macro": 0.49789915966386555,
+        "balanced_accuracy": 0.9916317991631799,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 0.9916317991631799,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            10,
+            1185
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 303,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 198,
+          "recall_sob_efeito": 0.9519230769230769
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 328,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+mq135+dht11",
+      "model": "decision_tree",
+      "best_params": {
+        "clf__max_depth": 2,
+        "clf__min_samples_leaf": 1
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1195,
+      "test_metrics": {
+        "f1_macro": 0.5,
+        "balanced_accuracy": 1.0,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 1.0,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1195
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 303,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 208,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 328,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    },
+    {
+      "sensor_set": "mq3+mq135+dht11",
+      "model": "random_forest",
+      "best_params": {
+        "clf__max_depth": 3,
+        "clf__min_samples_leaf": 1
+      },
+      "n_test_attempts": 1195,
+      "acertos_sob_efeito": 1195,
+      "test_metrics": {
+        "f1_macro": 0.5,
+        "balanced_accuracy": 1.0,
+        "recall_sem_efeito": 0.0,
+        "precision_sem_efeito": 0.0,
+        "recall_sob_efeito": 1.0,
+        "precision_sob_efeito": 1.0
+      },
+      "confusion_matrix": {
+        "labels": [
+          "sem_efeito",
+          "sob_efeito"
+        ],
+        "matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            1195
+          ]
+        ]
+      },
+      "por_arquivo": [
+        {
+          "session_file": "leituras_11_alcool.csv",
+          "n": 303,
+          "acertos": 303,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_11_alcool2.csv",
+          "n": 208,
+          "acertos": 208,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_14_Alcool3.csv",
+          "n": 328,
+          "acertos": 328,
+          "recall_sob_efeito": 1.0
+        },
+        {
+          "session_file": "leituras_17_Alcool.csv",
+          "n": 356,
+          "acertos": 356,
+          "recall_sob_efeito": 1.0
+        }
+      ]
+    }
+  ]
+}

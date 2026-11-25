@@ -369,7 +369,7 @@ def treinar_modelos(
     intacto para ``avaliar_teste``.
     """
     from src import figuras, rastreio
-    from src.features import feature_columns
+    from src.features import SENSOR_SET_EXECUCAO, feature_columns
     from src.splitting import load_split
     from src.train import choose_best, model_specs, run_experiment
 
@@ -378,7 +378,14 @@ def treinar_modelos(
         raise FileNotFoundError(f"{paths.split_manifest} não existe; rode a preparação antes")
     train = read_dataset_csv(paths.train)
     specs = model_specs(seed, n_estimators=n_estimators)
-    results, folds = run_experiment(train, group_by=split.group_by, seed=seed, models=specs, return_folds=True)
+    results, folds = run_experiment(
+        train,
+        group_by=split.group_by,
+        sensor_sets=[SENSOR_SET_EXECUCAO],
+        seed=seed,
+        models=specs,
+        return_folds=True,
+    )
     report = paths.reports_dir / "experiment.csv"
     write_csv(results, report)
     write_csv(folds, paths.reports_dir / "folds.csv")
