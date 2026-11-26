@@ -10,7 +10,7 @@ exemplo concreto.
 
 - **Mapa do sistema** (peças, fluxo, contratos MQTT, banco, portas): `ARCHITECTURE.md`.
 - **Estado, entregáveis, datas e próximas tarefas:** `docs/roadmap.md`.
-- **Plano em andamento** (pendências finais dos requisitos): `docs/superpowers/plans/2026-11-25-pendencias-finais.md`. Revisão item a item: `docs/revisao-requisitos.md`.
+- **Plano em andamento** (pendências finais dos requisitos): comece por `docs/superpowers/plans/2026-11-26-passagem.md`; histórico em `docs/superpowers/plans/2026-11-25-pendencias-finais.md`. Revisão item a item: `docs/revisao-requisitos.md`.
 - **Regras de cada área:** o `AGENTS.md` dentro de `applications/`, `applications/frontend/` e `ml/`.
 - **Requisitos das disciplinas:** `docs/`. O `decisoes_projeto_ml.pdf` vale, exceto nas classes (ainda fala em 3); valem as duas abaixo.
 
