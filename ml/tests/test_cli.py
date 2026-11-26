@@ -30,7 +30,7 @@ def test_full_pipeline_and_prediction(tmp_path, capsys):
     assert set(test["participant_id"]) == set(manifest["test_groups"])
     assert (paths.reports_dir / "experiment.csv").exists()
     final = json.loads((paths.reports_dir / "final.json").read_text(encoding="utf-8"))
-    assert final["sensor_set"] == "subidas"
+    assert final["sensor_set"] == "mq3+mq135+dht11"
     assert "test_metrics" in final
 
     write_csv(make_session("drink", seed=500), tmp_path / "leituras_99.csv")

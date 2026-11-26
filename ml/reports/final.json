@@ -1,12 +1,18 @@
 {
-  "sensor_set": "mq3+dht11",
-  "model": "decision_tree",
+  "sensor_set": "mq3+mq135+dht11",
+  "model": "random_forest",
   "features": [
     "mq3_before",
     "mq3_peak",
     "mq3_rise",
     "mq3_peak_time_s",
     "mq3_recovery_s",
+    "mq135_before",
+    "mq135_peak",
+    "mq135_rise",
+    "mq135_peak_time_s",
+    "mq135_recovery_s",
+    "mq135_mq3_rise_ratio",
     "humidity_before",
     "humidity_peak",
     "humidity_rise",
@@ -19,19 +25,21 @@
     "sob_efeito"
   ],
   "best_params": {
-    "clf__max_depth": 2,
+    "clf__class_weight": null,
+    "clf__max_depth": null,
     "clf__min_samples_leaf": 1
   },
-  "n_train_attempts": 9381,
-  "n_test_attempts": 1944,
+  "limiar": 0.51,
+  "n_train_attempts": 10220,
+  "n_test_attempts": 2300,
   "test_metrics": {
-    "f1_macro": 0.5634806695439445,
-    "balanced_accuracy": 0.8938265034592869,
-    "recall_sem_efeito": 0.7876530069185738,
+    "f1_macro": 0.7711186779461434,
+    "balanced_accuracy": 0.88850452368281,
+    "recall_sem_efeito": 0.77700904736562,
     "precision_sem_efeito": 1.0,
     "recall_sob_efeito": 1.0,
-    "precision_sob_efeito": 0.1400862068965517,
-    "roc_auc": 0.8938265034592868
+    "precision_sob_efeito": 0.5011904761904762,
+    "roc_auc": 0.984517589712019
   },
   "confusion_matrix": {
     "labels": [
@@ -40,15 +48,16 @@
     ],
     "matrix": [
       [
-        1480,
-        399
+        1460,
+        419
       ],
       [
         0,
-        65
+        421
       ]
     ]
   },
   "selected_by": "f1_macro",
-  "cv_score": 0.8801368279110798
+  "criterio_final": "floresta sem peso, com limiar de P(sob_efeito) escolhido no treino por validação cruzada de arquivo (acerto de sem_efeito >= 0,95)",
+  "cv_score": 0.9693001513247395
 }

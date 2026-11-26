@@ -261,8 +261,7 @@ def test_treino_escolhe_modelo_e_o_teste_mede_uma_vez(tmp_path):
     escolha = treinar_modelos(paths, n_estimators=5)
     resultado = avaliar_teste(paths, escolha, seed=42)
 
-    assert escolha["sensor_set"] == "subidas"
-    assert escolha["modelo"] == "regra_subida"
+    assert escolha["sensor_set"] == "mq3+mq135+dht11"
     assert escolha["n_treino"] == len(train)
     assert resultado["n_teste"] == len(test)
     assert "recall_sob_efeito" in resultado["metricas_teste"]
@@ -347,17 +346,9 @@ def test_curva_de_aprendizado_usa_os_hiperparametros_mais_escolhidos():
     from src.pipeline import _com_parametros_escolhidos
     from src.train import model_specs
 
-    pipeline = model_specs()["decision_tree"].pipeline
-    escolhidos = json.dumps(
-        [
-            {"clf__max_depth": 5, "clf__min_samples_leaf": 1},
-            {"clf__max_depth": 2, "clf__min_samples_leaf": 1},
-            {"clf__max_depth": 5, "clf__min_samples_leaf": 1},
-        ]
-    )
+    pipeline = model_specs()["knn"].pipeline
+    escolhidos = json.dumps([{"clf__n_neighbors": 15}, {"clf__n_neighbors": 5}, {"clf__n_neighbors": 15}])
 
-    assert _com_parametros_escolhidos(pipeline, escolhidos).get_params()["clf__max_depth"] == 5
-    assert (
-        _com_parametros_escolhidos(pipeline, "[{}, {}]").get_params()["clf__max_depth"]
-        == pipeline.get_params()["clf__max_depth"]
-    )
+    assert _com_parametros_escolhidos(pipeline, escolhidos).get_params()["clf__n_neighbors"] == 15
+    padrao = pipeline.get_params()["clf__n_neighbors"]
+    assert _com_parametros_escolhidos(pipeline, "[{}, {}]").get_params()["clf__n_neighbors"] == padrao

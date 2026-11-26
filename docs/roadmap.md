@@ -19,7 +19,7 @@ Fonte: coluna CC de `docs/Entregáveis 6ºP - Projeto 2026.2.xlsx`.
 1. **Infraestrutura e dataset inicial:** coleta própria (CSVs + `attempts.csv`), publicação por MQTT e gravação em banco.
 2. **Pipeline no Airflow** (ingestão, preparação, disponibilização) e **notebook de EDA** em `ml/notebooks/`, justificando limpeza, normalização e ausentes. Lógica reutilizável em `ml/src/`.
 3. **Baseline** justificado, com métricas de validação, no **MLflow**.
-4. **Três modelos ou mais** comparados no MLflow, com matriz de confusão, ROC/AUC e análise crítica. Hoje: árvore e Random Forest além do baseline; KNN é candidato.
+4. **Três modelos ou mais** comparados no MLflow, com matriz de confusão, ROC/AUC e análise crítica. Hoje: KNN, árvore e floresta além do baseline.
 5. **Otimização de hiperparâmetros** (Grid Search pronto; Random Search ou Optuna são alternativas), documentada e no MLflow.
 6. **Validação cruzada k-fold** com estabilidade entre folds, overfitting/underfitting (treino × validação) e generalização. O k-fold é `GroupKFold` por participante.
 7. **Integração:** o pipeline consome dados novos da ESP32 (ou do simulador), processa e infere.
@@ -34,7 +34,7 @@ confusão. Prioridade: **recall de `sob_efeito`**.
 
 Pronto e testado:
 - Firmware lendo os três sensores e gravando CSV por sessão.
-- Pipeline de ML em `ml/src/` (validação, recorte, features, separação por participante, 3 modelos × 4 conjuntos de sensores, Grid Search aninhado por grupo, modelo final e previsão), testado com curvas montadas à mão.
+- Pipeline de ML em `ml/src/` (validação, recorte, features, separação por participante, 4 modelos × 4 conjuntos de sensores, Grid Search aninhado por grupo, modelo final e previsão), testado com curvas montadas à mão.
 - Coleta em `applications/`: ponte serial, ingestor, simulador, importador, lote dos 12 CSVs válidos, Compose com Mosquitto, Postgres e API.
 - Tela React no Compose (http://localhost:8080): ao vivo, detector ambiente × sopro e as quatro seções de análise, com os números conferidos contra o Grafana local (removido em 24/11). O acabamento visual da etapa 5 está feito. O Lighthouse de acessibilidade deu 100 em 17/11. Plano em `docs/superpowers/plans/2026-11-17-frontend-react.md`.
 - Contrato MQTT único (o da coleta, 24/11): o servidor do modelo (`services/mq3mqtt/ao_vivo.py`) assina `eventos`, lê a rodada no banco da coleta, grava em `resultados` e publica `mq3/<placa>/resultado` (`sem_modelo` até haver modelo). O simulador publica início e fim de sopro. A stack paralela de `services/` foi removida. A aba Ao vivo mostra a classe do modelo e o alerta; o serviço `alerta` envia pelo Telegram (bônus).
@@ -43,7 +43,7 @@ Pronto e testado:
 Ainda não existe:
 - [ ] Coleta rotulada suficiente (`attempts.csv` com sopros marcados), com as duas classes.
 - [ ] Revisão das features com dados reais. A análise exploratória existe em `ml/notebooks/01_eda.ipynb` (figuras em `ml/reports/figuras_eda/`), com as seções do diário e o veredito de cada uma; falta a equipe interpretar (células "[EQUIPE: interpretar]") e decidir as sessões anteriores a 10/11, o aquecimento do MQ-3 e os trios de bebida.
-- [ ] Modelo treinado e avaliado com dados reais (métricas dos testes automatizados **não** dizem nada sobre o sensor).
+- [x] Modelo treinado com os dados da equipe e servido (26/11): floresta sem peso, limiar 0,51. No teste dos 4 arquivos, recall de bebida 1,00 e precisão 0,50; perfume 6/100. A comparação deixando um arquivo de fora está em `ml/reports/variacoes_sem_logistica.md` e não é o número desse arquivo.
 - [ ] Testar na placa o firmware FreeRTOS ao vivo (Wi-Fi, MQTT, IPv6). A placa não grava CSV nem marca sopro.
 - [x] MLflow e um Compose único com todos os serviços (24/11): `docker compose up -d --build` sobe broker, banco, ingestor, API, tela, modelo, alerta, Airflow e MLflow; rede com IPv6.
 - [x] Registro no MLflow (`ml/src/rastreio.py`), métricas por fold, F1 treino × validação, ROC/AUC e figuras (`ml/src/figuras.py`).

@@ -20,6 +20,8 @@ A melhor combinação na validação é a floresta: F1 macro 0,758, recall de so
 
 ## Teste nas 1.195 tentativas novas
 
+> **Nota (25/11/2026):** as 1.195 tentativas deste teste são cópias de leituras de sopros que estão no próprio treino. Por isso o recall perto de 1,00 aqui mostra que o modelo reconhece o que já viu, e não que generaliza. Para generalização, veja `grid_search_cinco_testes.md` (arquivo de bebida inédito) e o teste por arquivo em `final.json`.
+
 Cada modelo foi reajustado no treino inteiro, com a grade escolhida por arquivo. O teste só tem sob efeito, então o número que vale é o recall.
 
 | Modelo | Parâmetros | Acertos | Recall sob efeito |

@@ -146,7 +146,7 @@ python -m pytest        # roda os testes
 | --- | --- | --- |
 | `validate` | Confere sessões e tentativas e lista todos os problemas de uma vez | nada |
 | `prepare` | Recorta cada sopro, tira a janela que pega o sopro anterior e equilibra as duas classes com o que cabe em cada lado | `data/processed/*.csv`, `config/split.json` |
-| `train` | Compara a regra das subidas com o baseline e grava a regra (`sob_efeito` ou `sem_efeito`) | `reports/experiment.csv`, `reports/final.json`, `models/sob_efeito.joblib` |
+| `train` | Compara baseline, KNN, árvore e floresta e grava a floresta sem peso, com o limiar do treino | `reports/experiment.csv`, `reports/final.json`, `models/sob_efeito.joblib` |
 | `predict` | Classifica um sopro de uma sessão nova | previsões na tela ou em `--output` |
 | `pipeline` | Ingestão do Postgres (com `--dsn`), preparação e disponibilização | `data/processed/disponivel.json` e os CSVs do `prepare` |
 
@@ -154,7 +154,7 @@ Opções úteis:
 
 - `--group-by session_file`: separa por arquivo de sessão quando há poucos participantes (são precisos pelo menos 3 grupos no treino). Com um único `participant_id`, o `prepare` já faz isso;
 - `--por-classe 40`: teto opcional de tentativas de cada classe. Sem o argumento, cada lado fica com o mínimo das duas classes naquele lado;
-- `--select-by recall_sob_efeito`: escolhe o modelo final pela métrica de validação cruzada desejada;
+- `--select-by recall_sob_efeito`: ordena a comparação. O arquivo servido continua sendo a floresta sem peso;
 - `python -m src.cli predict --session leituras_7.csv --blow-start-s 60 --model models/sob_efeito.joblib`.
 
 Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste continua no teste. Para refazer o sorteio do zero, apague `config/split.json`. A bateria equilibra as duas classes em cada lado e reparte a classe maior entre os arquivos, para um CSV grande não ocupar o `sem_efeito` inteiro. `features_all.csv` guarda as tentativas sem janela sobreposta, antes desse equilíbrio.
@@ -177,10 +177,11 @@ python -m src.cli pipeline --dsn "$PG_DSN"   # sem --dsn, só prepara os CSVs qu
 
 ### Como o treino avalia
 
-- **Modelo da execução:** `regra_subida`. `sob_efeito` só quando a umidade e o MQ-3 sobem. Os limiares saem das tentativas de treino (F1 macro; empate fica com a subida maior). O `baseline` (sempre a classe mais comum) entra na comparação. Árvore e Random Forest continuam em `model_specs` para rodar fora dessa execução.
-- **Sensores:** o treino e o teste usam as três subidas contra o começo do arquivo, `subidas` (`humidity_rise_comeco`, `mq135_rise_comeco`, `mq3_rise_comeco`). O começo é a mediana dos primeiros 20 s. O MQ-135 não é condição da regra. O patamar de antes do sopro fica no CSV e não entra na decisão.
-- **Validação cruzada aninhada por grupo:** o laço externo avalia com participantes que o modelo não viu; o laço interno escolhe os hiperparâmetros (Grid Search) só com os demais.
-- **Teste final:** usado uma única vez, para o modelo escolhido.
+- **Modelos:** `baseline` (sempre a classe mais comum), KNN, árvore de decisão e floresta aleatória. A regressão logística saiu porque a disciplina não a cobriu.
+- **Sensores:** o treino e o teste usam sempre os três juntos, `mq3+mq135+dht11` (MQ-3, MQ-135 e DHT11).
+- **Validação cruzada aninhada por grupo:** o laço externo avalia com participantes que o modelo não viu; o laço interno escolhe os hiperparâmetros (Grid Search) só com os demais. Nas árvores, o grid ainda testa o peso da bebida.
+- **Modelo servido:** floresta com `class_weight` nenhum. O corte não é 0,5: é o limiar de `P(sob_efeito)` escolhido no próprio treino, por arquivo, com acerto de `sem_efeito` de pelo menos 0,95 (`src/limiar.py`). O `cv_score` de `final.json` é o F1 da floresta na comparação, em que o grid ainda pode escolher peso. As `test_metrics` são do arquivo servido, com o limiar.
+- **Teste final:** usado uma única vez, nesse modelo.
 - **Métricas:** F1 macro, acurácia balanceada, precisão e recall de `sob_efeito` e de `sem_efeito`. O **recall de `sob_efeito`** importa mais: deixar passar quem bebeu é o erro mais grave. `roc_auc` usa a probabilidade de `sob_efeito` (`predict_proba`); o baseline não tem probabilidade útil.
 - **Estabilidade:** cada métrica tem uma coluna `*_std`, o desvio padrão entre os folds externos em `reports/experiment.csv`. Desvio alto em relação à média significa que o resultado depende de quais participantes caíram no fold. As métricas de cada fold ficam em `reports/folds.csv`.
 - **Over/underfitting:** `f1_macro_treino` é o F1 no próprio treino de cada fold, a ser comparado com `f1_macro` (validação). Treino muito acima da validação indica overfitting; os dois baixos, underfitting. A figura `treino_vs_validacao.png` mostra isso e `curva_aprendizado.png` mostra o F1 conforme o treino cresce, para o modelo escolhido.
@@ -193,6 +194,25 @@ O recorte ainda gera uma tentativa por amostra (ou por trio, quando a umidade é
 Treino e teste separam pelo arquivo inteiro (`split.json`). `run_experiment` chama `checar_sessoes_nos_grupos` e recusa o treino se alguma sessão aparece em mais de um grupo.
 
 O que conta é o número de **grupos** (`n_groups`) e de sessões (`n_sessions` em `experiment.csv`). Com poucos grupos, o desvio entre folds é grande. Cada lado da bateria usa o que os arquivos têm, com as duas classes na mesma quantidade.
+
+### Resultado do modelo servido (26/11/2026)
+
+Treino pelo DAG `dataset_para_treino` com `group_by=session_file`, scikit-learn 1.6.1. Floresta de 100 árvores, profundidade livre, folha mínima 1, sem peso. Limiar gravado: **0,51**.
+
+Teste único nos quatro arquivos que o treino não viu (`clean_6`, `drink_4`, `perfume_1`, `clean_1`):
+
+| Métrica | Valor |
+| --- | ---: |
+| F1 macro | 0,771 |
+| Recall de `sob_efeito` | 1,000 (421/421) |
+| Precisão de `sob_efeito` | 0,501 |
+| Perfume | 6/100 `sem_efeito` (probabilidade mediana 0,97) |
+| `clean_6` | 1.302/1.627 `sem_efeito` |
+| `clean_1` | 152/152 `sem_efeito` |
+
+A média 0,975 da floresta sem peso com limiar em `reports/variacoes_sem_logistica.md` é outra medida: cada arquivo é testado por um modelo treinado nos outros onze. Quando o perfume fica de fora, o treino ainda vê `clean_6` e os outros drinks. O arquivo servido não vê nenhum desses quatro. O limiar escolhido nesse treino ficou em 0,51, e o perfume do teste continua acima dele.
+
+Na repetição ao vivo de `esp32-esp8266/leituras.csv` sem sopro marcado (26/11, placa `so-placa`), as janelas de 15 s a 33 s saíram `sem_efeito`. Da janela de 36,8 s em diante, inclusive o trecho com `alcool=1` a partir de 152 s, a classe foi `sob_efeito` (probabilidade 0,98–1,00 no álcool no ar). O alerta disparou na terceira janela seguida.
 
 ### MLflow
 

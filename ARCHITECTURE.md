@@ -21,7 +21,7 @@ simulador (CSV real) ─────┤ MQTT  mq3/<placa>/{rodada,leituras,event
                    tela React (applications/frontend): ao vivo por /mqtt, análise por /api
                           aba Modelo ──POST /modelo/classificar──▶ classificador HTTP (:8010)
                                                                     lê ml/models/sob_efeito.joblib
-                     Mosquitto ──sopro_fim──▶ servidor do modelo (mesmo container :8010)
+                     Mosquitto ──sopro_fim / leituras──▶ servidor do modelo (mesmo container :8010)
                           ▲                   lê a rodada no PostgreSQL, grava em resultados
                           └──── mq3/<placa>/resultado ◀┘
 
@@ -101,8 +101,11 @@ pela ponte USB. Ponte, simulador e serviços Python publicam em QoS 1.
 O ingestor grava sem duplicar (chave rodada + amostra). O navegador assina os mesmos
 tópicos por WebSocket.
 
-O servidor do modelo (`services/mq3mqtt/ao_vivo.py`) assina `eventos`. A cada
-`sopro_fim`, espera 35 s (a janela de 30 s depois do sopro usada no treino, mais
+O servidor do modelo (`services/mq3mqtt/ao_vivo.py`) assina `eventos` e `leituras`.
+Rodada sem sopro marcado (a placa sozinha): **modelo contínuo**. Uma janela de 3 amostras
+a cada 3 s (15 s antes e 30 s depois, como no treino); `resultado` traz `origem: continuo`,
+`sob_efeito_seguidos` e `alerta`, que só vale `true` na 3ª janela `sob_efeito` seguida.
+Rodada com sopro marcado: a cada `sopro_fim`, espera 35 s (a janela de 30 s depois do sopro usada no treino, mais
 folga), lê a rodada no Postgres, recorta e classifica com o mesmo código de
 `ml/src/inference.py`, grava em `resultados` e publica `resultado`. Sem
 `ml/models/sob_efeito.joblib` o `status` é `sem_modelo` e a classe fica vazia.

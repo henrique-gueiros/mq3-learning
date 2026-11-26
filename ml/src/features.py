@@ -70,9 +70,9 @@ SENSOR_SETS = {
 
 SENSOR_GROUPS["subidas"] = FEATURES_DE_SUBIDA
 
-# O treino e o teste usam as três subidas. Os demais conjuntos ficam só para
-# comparar features fora da execução.
-SENSOR_SET_EXECUCAO = "subidas"
+# O treino e o teste sempre usam os três sensores. As subidas (``subidas``) e
+# os demais conjuntos ficam só para comparar features fora da execução.
+SENSOR_SET_EXECUCAO = "mq3+mq135+dht11"
 
 def feature_columns(sensor_set: str) -> list[str]:
     """Colunas de features usadas por um conjunto de sensores de ``SENSOR_SETS``."""

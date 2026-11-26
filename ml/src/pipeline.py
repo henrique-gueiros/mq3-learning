@@ -399,19 +399,13 @@ def treinar_modelos(
     from src import figuras, rastreio
     from src.features import SENSOR_SET_EXECUCAO, feature_columns
     from src.splitting import load_split
-    from src.train import choose_best, modelo_de_subida, model_specs, run_experiment
+    from src.train import fixar_producao, model_specs, modelo_de_producao, run_experiment, spec_final
 
     split = load_split(paths.split_manifest)
     if split is None:
         raise FileNotFoundError(f"{paths.split_manifest} não existe; rode a preparação antes")
     train = read_dataset_csv(paths.train)
-    # A árvore livre parava no patamar da umidade e não lia o MQ-3. A execução
-    # compara a regra das subidas com o baseline; árvore e floresta continuam
-    # em model_specs para comparação fora daqui.
-    specs = {
-        "baseline": model_specs(seed, n_estimators=n_estimators)["baseline"],
-        "regra_subida": modelo_de_subida(),
-    }
+    specs = model_specs(seed, n_estimators=n_estimators)
     results, folds = run_experiment(
         train,
         group_by=split.group_by,
@@ -423,18 +417,27 @@ def treinar_modelos(
     report = paths.reports_dir / "experiment.csv"
     write_csv(results, report)
     write_csv(folds, paths.reports_dir / "folds.csv")
-    best = choose_best(results, select_by)
+    final = modelo_de_producao(results, select_by)
+    # A curva é a floresta que será servida: os folds ainda podem ter escolhido
+    # um peso, e esse peso não entra no arquivo gravado.
+    curva = _com_parametros_escolhidos(
+        spec_final(str(final["model"]), seed, n_estimators).pipeline, final["chosen_params"]
+    )
+    curva.set_params(clf__class_weight=None)
 
     graficos = [
         figuras.barras_por_modelo(results, paths.figuras_dir / "f1_por_modelo.png"),
         figuras.treino_vs_validacao(folds, paths.figuras_dir / "treino_vs_validacao.png"),
         figuras.curva_aprendizado(
-            _com_parametros_escolhidos(specs[str(best["model"])].pipeline, best["chosen_params"]),
-            train[feature_columns(str(best["sensor_set"]))],
+            curva,
+            train[feature_columns(str(final["sensor_set"]))],
             train["target"],
             train[split.group_by],
             paths.figuras_dir / "curva_aprendizado.png",
-            titulo=f"Curva de aprendizado: {best['model']} com {best['sensor_set']}\n(hiperparâmetros mais escolhidos nos folds)",
+            titulo=(
+                f"Curva de aprendizado: floresta sem peso com {final['sensor_set']}\n"
+                "(profundidade e folha mais escolhidas nos folds; peso fixo em nenhum)"
+            ),
         ),
     ]
     rastreio.registrar_experimento(results, folds=folds, figuras=graficos)
@@ -448,28 +451,32 @@ def treinar_modelos(
                 "recall_sob_efeito": float(row["recall_sob_efeito"]),
             }
         )
-    return {
-        "group_by": split.group_by,
-        "select_by": select_by,
-        "modelo": str(best["model"]),
-        "sensor_set": str(best["sensor_set"]),
-        "cv_score": float(best[select_by]),
-        "n_treino": int(best["n_attempts"]),
-        "relatorio": _relativo(paths, report),
-        "comparacao": comparacao,
-    }
+    return fixar_producao(
+        {
+            "group_by": split.group_by,
+            "select_by": select_by,
+            "modelo": str(final["model"]),
+            "sensor_set": str(final["sensor_set"]),
+            "cv_score": float(final[select_by]),
+            "n_treino": int(final["n_attempts"]),
+            "relatorio": _relativo(paths, report),
+            "comparacao": comparacao,
+        }
+    )
 
 
 def avaliar_teste(paths: ProjectPaths, escolha: dict, seed: int = 42) -> dict:
-    """Treina o modelo escolhido e avalia uma vez no teste.
+    """Treina a floresta sem peso, com o limiar do treino, e avalia uma vez no teste.
 
-    Grava ``models/sob_efeito.joblib`` e ``reports/final.json``.
+    Grava ``models/sob_efeito.joblib`` e ``reports/final.json``. A comparação
+    por F1 fica em ``experiment.csv``; o arquivo servido não segue esse F1.
     """
     from src import figuras, rastreio
     from src.features import feature_columns
     from src.splitting import load_split
-    from src.train import save_model, scores_sob_efeito, train_final_model
+    from src.train import fixar_producao, save_model, scores_sob_efeito, train_final_model
 
+    escolha = fixar_producao(escolha)
     split = load_split(paths.split_manifest)
     if split is None:
         raise FileNotFoundError(f"{paths.split_manifest} não existe; rode a preparação antes")
@@ -484,6 +491,7 @@ def avaliar_teste(paths: ProjectPaths, escolha: dict, seed: int = 42) -> dict:
         seed=seed,
     )
     metadata["selected_by"] = escolha["select_by"]
+    metadata["criterio_final"] = escolha["criterio_final"]
     metadata["cv_score"] = float(escolha["cv_score"])
     model_path = paths.models_dir / "sob_efeito.joblib"
     save_model(model, metadata, model_path)

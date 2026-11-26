@@ -2,7 +2,7 @@
 
 Um processo, no container `model` do `docker-compose.yml` da raiz, com duas portas de entrada:
 
-- **Ao vivo** (`mq3mqtt/ao_vivo.py`): assina `mq3/+/eventos`. A cada `sopro_fim`, espera 35 s (a janela de 30 s depois do sopro usada no treino, mais folga para as últimas leituras), lê a rodada no Postgres da coleta, recorta e classifica com o mesmo código de `ml/src/inference.py`, grava em `resultados` e publica em `mq3/<placa>/resultado`.
+- **Ao vivo** (`mq3mqtt/ao_vivo.py`): assina `mq3/+/eventos` e `mq3/+/leituras`. Rodada sem sopro marcado (a placa sozinha): o modelo classifica janelas deslizantes de 3 amostras a cada 3 s, e o `alerta` só vale `true` com 3 janelas `sob_efeito` seguidas. Rodada com sopro marcado: a cada `sopro_fim`, espera 35 s (a janela de 30 s depois do sopro usada no treino, mais folga para as últimas leituras), lê a rodada no Postgres da coleta, recorta e classifica com o mesmo código de `ml/src/inference.py`, grava em `resultados` e publica em `mq3/<placa>/resultado`.
 - **Aba Modelo** (`mq3mqtt/classificar_http.py`): `POST /modelo/classificar` na porta 8010. O corpo é um recorte de sopro; a resposta é o mesmo JSON do `resultado`. Não grava no banco.
 
 O contrato das mensagens é o da coleta (`applications/coleta/mensagens.py`), descrito em `ARCHITECTURE.md`.

@@ -50,6 +50,11 @@ export interface Resultado {
   prob_sem_efeito: number | null
   prob_sob_efeito: number | null
   detalhe: string
+  /** `continuo`: janela deslizante do modelo (placa sem sopro marcado); `marcado`: sopro da ponte. */
+  origem?: 'continuo' | 'marcado'
+  /** O servidor decide quando avisar: no contínuo, só na janela que fecha N `sob_efeito` seguidas. */
+  alerta?: boolean
+  sob_efeito_seguidos?: number
 }
 
 export type Mensagem =
@@ -124,6 +129,9 @@ function lerResultado(o: Objeto): Resultado | null {
     prob_sem_efeito: numero(o.prob_sem_efeito),
     prob_sob_efeito: numero(o.prob_sob_efeito),
     detalhe: texto(o.detalhe) ?? '',
+    ...(o.origem === 'continuo' || o.origem === 'marcado' ? { origem: o.origem } : {}),
+    ...(typeof o.alerta === 'boolean' ? { alerta: o.alerta } : {}),
+    ...(numero(o.sob_efeito_seguidos) !== null ? { sob_efeito_seguidos: numero(o.sob_efeito_seguidos)! } : {}),
   }
 }
 

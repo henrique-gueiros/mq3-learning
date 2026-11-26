@@ -15,8 +15,8 @@ export function ResultadoAoVivo({ resultados }: { resultados: Resultado[] }) {
       <div className="aovivo-modelo" aria-live="polite">
         <p className="legenda">Modelo de ML</p>
         <p className="corpo-sm">
-          A classe do modelo aparece cerca de 35 s depois do fim de cada sopro, quando a janela usada no treino
-          termina.
+          A classe do modelo aparece cerca de 35 s depois do fim de cada sopro marcado, ou, com a placa sozinha,
+          a cada 3 s, numa janela deslizante (o primeiro resultado sai uns 47 s depois da primeira leitura).
         </p>
       </div>
     )
@@ -25,8 +25,15 @@ export function ResultadoAoVivo({ resultados }: { resultados: Resultado[] }) {
   const texto = textoDaClassificacao(ultimo)
   return (
     <div className="aovivo-modelo" data-classe={texto.classe} role="status" aria-live="polite">
-      <p className="legenda">Modelo de ML · sopro que terminou em {rotuloTempo(ultimo.t_ms / 1000)}</p>
-      {texto.classe === 'sob_efeito' && <p className="aovivo-modelo-alerta">Alerta de detecção.</p>}
+      <p className="legenda">
+        Modelo de ML ·{' '}
+        {ultimo.origem === 'continuo'
+          ? `janela de ${rotuloTempo(ultimo.t_ms / 1000)}`
+          : `sopro que terminou em ${rotuloTempo(ultimo.t_ms / 1000)}`}
+      </p>
+      {texto.classe === 'sob_efeito' && (ultimo.origem !== 'continuo' || (ultimo.sob_efeito_seguidos ?? 0) >= 3) && (
+        <p className="aovivo-modelo-alerta">Alerta de detecção.</p>
+      )}
       <h3 className="display-md">{texto.titulo}</h3>
       <p className="corpo-sm">{texto.detalhe}</p>
       {ultimo.status === 'classificado' && (

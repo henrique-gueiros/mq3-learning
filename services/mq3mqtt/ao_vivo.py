@@ -3,8 +3,15 @@
 Usa o mesmo contrato MQTT da coleta (``applications/coleta/mensagens.py``) e o
 mesmo banco que o ingestor grava (``applications/db/01-schema.sql``):
 
-1. assina ``mq3/+/eventos``;
-2. num ``sopro_fim``, espera a janela "depois do sopro" do treino
+1. assina ``mq3/+/eventos`` e ``mq3/+/leituras``;
+2. num ``sopro_fim`` marcado (ponte, simulador) ou, quando a rodada não tem
+   marcação (a placa sozinha), em **janelas deslizantes**: o próprio modelo
+   classifica uma janela de 3 amostras a cada 3 s, como as do treino (ar parado
+   e sopros de bebida também são janelas de 1 a 3 amostras). Nenhum limiar
+   decide quando classificar; o alerta só sai depois de várias janelas
+   ``sob_efeito`` seguidas. A classe em si usa o ``limiar`` do JSON do modelo,
+   quando essa chave existe (``P(sob_efeito) >= limiar``).
+3. em cada caso, espera a janela "depois do sopro" do treino
    (``AFTER_SECONDS`` de ``ml/src/features.py``) para o ingestor gravar as
    leituras que o modelo usa;
 3. lê a rodada no Postgres, recorta o sopro como no treino e classifica;
@@ -34,14 +41,32 @@ ESPERA_EXTRA_S = 15.0
 MAX_ESPERAS_EXTRAS = 4
 JANELA_DEPOIS_MS = 30_000  # AFTER_SECONDS de ml/src/features.py
 
+# Modelo contínuo (rodada sem sopro marcado).
+CONTINUO_BEFORE_MS = 15_000  # BEFORE_SECONDS: a 1ª janela precisa do "antes"
+CONTINUO_SOPRO_MS = 2_000  # 3 amostras de ~1 s, como os sopros de bebida do treino
+CONTINUO_AFTER_MS = JANELA_DEPOIS_MS
+CONTINUO_PASSO_MS = 3_000  # uma janela nova a cada 3 s
+CONTINUO_ESPERA_S = 2.0  # folga para o ingestor gravar a última leitura
+CONTINUO_MAX_POR_LEITURA = 5  # leituras atrasadas não geram uma rajada de janelas
+ALERTA_JANELAS_SEGUIDAS = 3  # alerta só com 3 janelas sob_efeito seguidas (~9 s)
+MAX_RODADAS_CONTINUAS = 50
+
 
 @dataclass(frozen=True)
 class FimDeSopro:
-    """Um ``sopro_fim`` publicado por uma placa."""
+    """Fim de um sopro marcado (``sopro_fim``) ou de uma janela do modelo contínuo.
+
+    ``inicio_ms`` vem da janela contínua; ``None`` quando o início está no banco.
+    """
 
     placa: str
     rodada_id: str
     t_ms: int
+    inicio_ms: Optional[int] = None
+
+    @property
+    def continuo(self) -> bool:
+        return self.inicio_ms is not None
 
 
 def fim_de_sopro(topico: str, corpo: bytes) -> Optional[FimDeSopro]:
@@ -76,7 +101,7 @@ def classificar_sopro(con, fim: FimDeSopro, model_path: Path, aviso: str = "") -
     """
     rodada = con.execute("SELECT arquivo_sessao FROM rodadas WHERE id = %s", (fim.rodada_id,)).fetchone()
     sessao = sessao_da_rodada(rodada[0] if rodada else None, fim.rodada_id)
-    inicio = con.execute(
+    inicio = (fim.inicio_ms,) if fim.inicio_ms is not None else con.execute(
         """
         SELECT t_ms FROM eventos
         WHERE rodada_id = %s AND tipo = 'sopro_inicio' AND t_ms <= %s
@@ -149,9 +174,18 @@ class ServidorAoVivo:
         self._ultima_leitura_ms = ultima_leitura_ms
         self._trava = threading.Lock()  # uma conexão de banco, um timer de cada vez
         self._vistos: set[tuple[str, int]] = set()
+        self._marcadas: set[str] = set()  # rodadas com sopro marcado: sem modelo contínuo
+        self._proxima_janela: dict[str, int] = {}  # rodada -> início da próxima janela
+        self._seguidos: dict[str, int] = {}  # rodada -> janelas sob_efeito seguidas
 
     def ao_receber(self, topico: str, corpo: bytes) -> None:
-        """Recebe uma mensagem do broker; agenda a classificação de um ``sopro_fim`` novo."""
+        """Recebe uma mensagem do broker e agenda o que precisa ser classificado."""
+        partes = topico.split("/")
+        if len(partes) == 3 and partes[0] == "mq3" and partes[2] == "leituras":
+            for janela in self._janelas_prontas(partes[1], corpo):
+                self._agendar(CONTINUO_ESPERA_S, self._executar, janela, 0)
+            return
+        self._anotar_marcacao(topico, corpo)
         fim = fim_de_sopro(topico, corpo)
         if fim is None:
             return
@@ -162,6 +196,59 @@ class ServidorAoVivo:
             self._vistos.add(chave)
         self._agendar(ESPERA_APOS_SOPRO_S, self._executar, fim, 0)
 
+    def _anotar_marcacao(self, topico: str, corpo: bytes) -> None:
+        """Rodada com ``sopro_inicio``/``sopro_fim``: vale a marcação, o contínuo para."""
+        if not topico.endswith("/eventos"):
+            return
+        try:
+            dados = json.loads(corpo.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return
+        if isinstance(dados, dict) and dados.get("tipo") in ("sopro_inicio", "sopro_fim") and dados.get("rodada_id"):
+            with self._trava:
+                self._marcadas.add(str(dados["rodada_id"]))
+                self._proxima_janela.pop(str(dados["rodada_id"]), None)
+
+    def _janelas_prontas(self, placa: str, corpo: bytes) -> list[FimDeSopro]:
+        """Janelas da rodada que já têm os 30 s de "depois" (modelo contínuo)."""
+        try:
+            dados = json.loads(corpo.decode("utf-8"))
+            rodada_id = str(dados["rodada_id"])
+            t_ms = int(dados["t_ms"])
+        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+            return []
+        with self._trava:
+            if rodada_id in self._marcadas:
+                return []
+            inicio = self._proxima_janela.get(rodada_id)
+            if inicio is None:
+                if len(self._proxima_janela) >= MAX_RODADAS_CONTINUAS:
+                    self._proxima_janela.pop(next(iter(self._proxima_janela)))
+                self._proxima_janela[rodada_id] = t_ms + CONTINUO_BEFORE_MS
+                return []
+            prontas = []
+            while t_ms >= inicio + CONTINUO_SOPRO_MS + CONTINUO_AFTER_MS:
+                prontas.append(FimDeSopro(placa, rodada_id, inicio + CONTINUO_SOPRO_MS, inicio_ms=inicio))
+                inicio += CONTINUO_PASSO_MS
+            self._proxima_janela[rodada_id] = inicio
+        # leituras que chegaram atrasadas: classifica só as janelas mais recentes
+        return prontas[-CONTINUO_MAX_POR_LEITURA:]
+
+    def _com_alerta(self, fim: FimDeSopro, resultado: dict[str, Any]) -> dict[str, Any]:
+        """Acrescenta ``origem``, ``sob_efeito_seguidos`` e ``alerta`` ao resultado."""
+        sob = resultado.get("prediction") == "sob_efeito"
+        if not fim.continuo:
+            return {**resultado, "origem": "marcado", "sob_efeito_seguidos": int(sob), "alerta": sob}
+        with self._trava:
+            seguidos = self._seguidos.get(fim.rodada_id, 0) + 1 if sob else 0
+            self._seguidos[fim.rodada_id] = seguidos
+        return {
+            **resultado,
+            "origem": "continuo",
+            "sob_efeito_seguidos": seguidos,
+            "alerta": seguidos == ALERTA_JANELAS_SEGUIDAS,  # avisa uma vez por sequência
+        }
+
     def _executar(self, fim: FimDeSopro, esperas: int) -> None:
         try:
             with self._trava:
@@ -169,6 +256,7 @@ class ServidorAoVivo:
             if resultado is None:
                 self._agendar(ESPERA_EXTRA_S, self._executar, fim, esperas + 1)
                 return
+            resultado = self._com_alerta(fim, resultado)
             self._publicar(f"mq3/{fim.placa}/resultado", json.dumps(resultado, ensure_ascii=False))
             log.info("resultado %s %s: %s %s", fim.placa, fim.rodada_id, resultado["status"], resultado["prediction"])
         except Exception:
@@ -225,8 +313,8 @@ def main() -> None:
         if broker_recusou(codigo):
             log.error("broker recusou a conexão: %s", codigo)
             return
-        cli.subscribe("mq3/+/eventos", qos=1)
-        log.info("assinando mq3/+/eventos")
+        cli.subscribe([("mq3/+/eventos", 1), ("mq3/+/leituras", 1)])
+        log.info("assinando mq3/+/eventos e mq3/+/leituras")
 
     cliente.on_connect = ao_conectar
     cliente.on_message = lambda _cli, _userdata, mensagem: servidor.ao_receber(mensagem.topic, mensagem.payload)

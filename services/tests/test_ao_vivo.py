@@ -193,3 +193,83 @@ def test_connect_with_retry_insiste_ate_o_banco_subir(monkeypatch):
     monkeypatch.setattr(psycopg, "connect", conectar)
     assert config.connect_with_retry("postgresql://x", attempts=0, pause_s=0) == "conexao"
     assert len(tentativas) == 50
+
+
+# ---- modelo contínuo: a placa publica só leituras; o modelo classifica janelas deslizantes ----
+
+
+def _leitura(t_ms, rodada=RODADA):
+    return _msg(rodada_id=rodada, amostra=t_ms // 1000, t_ms=t_ms, mq3_raw=800, humidity_pct=55.0)
+
+
+def _publicar_leituras(servidor, segundos, rodada=RODADA, placa="p1"):
+    for s in range(segundos):
+        servidor.ao_receber(f"mq3/{placa}/leituras", _leitura(s * 1000, rodada))
+
+
+def _servidor_continuo(predicoes):
+    """Servidor cujo modelo devolve as classes de ``predicoes`` em ordem."""
+    janelas = []
+
+    def classificar(con, fim, path, aviso):
+        janelas.append(fim)
+        p = predicoes[min(len(janelas), len(predicoes)) - 1]
+        return {"rodada_id": fim.rodada_id, "t_ms": fim.t_ms, "status": "classificado", "prediction": p}
+
+    servidor, agenda, publicados = _servidor(classificar, lambda con, rodada_id: 10**9)
+    return servidor, agenda, publicados, janelas
+
+
+def test_continuo_classifica_janelas_de_tres_amostras_quando_ha_o_depois():
+    from mq3mqtt.ao_vivo import CONTINUO_AFTER_MS, CONTINUO_BEFORE_MS, CONTINUO_PASSO_MS, CONTINUO_SOPRO_MS
+
+    servidor, agenda, publicados, janelas = _servidor_continuo(["sem_efeito"])
+    _publicar_leituras(servidor, 60)
+    agenda.rodar()
+    # primeira janela começa 15 s depois da primeira leitura; só sai com 30 s de "depois"
+    assert janelas[0].inicio_ms == CONTINUO_BEFORE_MS
+    assert janelas[0].t_ms - janelas[0].inicio_ms == CONTINUO_SOPRO_MS
+    assert all(b.inicio_ms - a.inicio_ms == CONTINUO_PASSO_MS for a, b in zip(janelas, janelas[1:]))
+    assert all(j.t_ms + CONTINUO_AFTER_MS <= 59000 for j in janelas)
+    assert all(p[1]["origem"] == "continuo" for p in publicados)
+
+
+def test_continuo_so_alerta_depois_de_janelas_seguidas():
+    from mq3mqtt.ao_vivo import ALERTA_JANELAS_SEGUIDAS
+
+    predicoes = ["sob_efeito", "sem_efeito"] + ["sob_efeito"] * (ALERTA_JANELAS_SEGUIDAS + 2)
+    servidor, agenda, publicados, _ = _servidor_continuo(predicoes)
+    _publicar_leituras(servidor, 90)
+    agenda.rodar()
+    alertas = [p[1] for p in publicados if p[1]["alerta"]]
+    assert len(alertas) == 1  # avisa uma vez quando chega a N seguidas, não a cada janela
+    assert alertas[0]["sob_efeito_seguidos"] == ALERTA_JANELAS_SEGUIDAS
+
+
+def test_rodada_marcada_na_ponte_nao_usa_o_continuo():
+    servidor, agenda, publicados, janelas = _servidor_continuo(["sem_efeito"])
+    servidor.ao_receber("mq3/p1/eventos", _msg(rodada_id=RODADA, tipo="sopro_inicio", t_ms=1000))
+    _publicar_leituras(servidor, 60)
+    agenda.rodar()
+    assert janelas == []
+
+
+def test_sopro_marcado_alerta_direto():
+    servidor, agenda, publicados = _servidor(
+        lambda con, fim, path, aviso: {"status": "classificado", "prediction": "sob_efeito"},
+        lambda con, rodada_id: 10**9,
+    )
+    servidor.ao_receber("mq3/p1/eventos", FIM)
+    agenda.rodar()
+    assert publicados[0][1]["origem"] == "marcado"
+    assert publicados[0][1]["alerta"] is True
+
+
+@pytest.mark.integracao
+def test_classifica_janela_com_inicio_conhecido_sem_evento_no_banco(pg):
+    _rodada_com_sopro(pg, com_inicio=False)
+    fim = FimDeSopro(placa="placa01", rodada_id=RODADA, t_ms=42000, inicio_ms=40000)
+
+    resultado = classificar_sopro(pg, fim, Path("modelo_que_nao_existe.joblib"))
+
+    assert resultado["status"] == "sem_modelo"  # usou o início dado, não "sem_inicio"

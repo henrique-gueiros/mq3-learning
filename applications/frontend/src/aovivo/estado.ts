@@ -147,6 +147,8 @@ function comResultado(e: EstadoAoVivo, r: Resultado): EstadoAoVivo {
   if (lista.some((x) => x.t_ms === r.t_ms)) return e
   const resultadosPorRodada = { ...e.resultadosPorRodada, [r.rodada_id]: [...lista, r] }
   if (e.rodada?.rodada_id !== r.rodada_id) return { ...e, resultadosPorRodada }
+  // modelo contínuo: uma janela a cada 3 s; só avisa quando o servidor marca o alerta
+  if (r.origem === 'continuo' && !r.alerta) return { ...e, resultadosPorRodada }
   const aviso =
     r.prediction === 'sob_efeito'
       ? avisar(e, 'Alerta: o modelo classificou o sopro como sob efeito', 'alerta')
