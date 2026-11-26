@@ -46,6 +46,16 @@ achou quatro problemas de código e de dados, mais as entregas da equipe. As ent
 
 No ponta a ponta contínuo com `esp32-esp8266/leituras.csv`, o trecho de álcool no ar **sem sopro** (descrito no `decisoes_projeto_ml.pdf`) saiu `sob_efeito`.
 
+**Validação deixando um arquivo de fora** (25/11, `ml/reports/por_arquivo.md`, `python -m src.por_arquivo`):
+
+| Modelo | F1 macro | Recall `sob_efeito` | Perfume de fora |
+| --- | ---: | ---: | ---: |
+| logística | 0,919 | 0,961 | 100/100 |
+| árvore | 0,941 | 0,998 | 17/100 |
+| floresta | 0,938 | 0,952 | 17/100 |
+
+Só a logística generaliza para o perfume sem ter visto perfume no treino. O modelo em produção hoje é a floresta, escolhida pelo F1 da validação. **Decisão da equipe:** trocar o modelo final pela logística (`python -m src.cli train --select-by ...` ou fixar o modelo).
+
 **Próximo passo sugerido para a equipe:** o modelo hoje confunde vapor de álcool no ar com hálito. Para corrigir:
 - colocar perfume e álcool no ar também no treino (mais coleta de `perfume`/`alcohol70_*`, ou um split que deixe um arquivo de perfume no treino);
 - avaliar com validação deixando um arquivo de fora por vez.
