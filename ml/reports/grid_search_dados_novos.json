@@ -103,65 +103,6 @@
     },
     {
       "sensor_set": "mq3",
-      "model": "logistic_regression",
-      "best_params": {
-        "clf__C": 0.1
-      },
-      "n_test_attempts": 1195,
-      "acertos_sob_efeito": 1171,
-      "test_metrics": {
-        "f1_macro": 0.49492814877430263,
-        "balanced_accuracy": 0.9799163179916318,
-        "recall_sem_efeito": 0.0,
-        "precision_sem_efeito": 0.0,
-        "recall_sob_efeito": 0.9799163179916318,
-        "precision_sob_efeito": 1.0
-      },
-      "confusion_matrix": {
-        "labels": [
-          "sem_efeito",
-          "sob_efeito"
-        ],
-        "matrix": [
-          [
-            0,
-            0
-          ],
-          [
-            24,
-            1171
-          ]
-        ]
-      },
-      "por_arquivo": [
-        {
-          "session_file": "leituras_11_alcool.csv",
-          "n": 303,
-          "acertos": 303,
-          "recall_sob_efeito": 1.0
-        },
-        {
-          "session_file": "leituras_11_alcool2.csv",
-          "n": 208,
-          "acertos": 208,
-          "recall_sob_efeito": 1.0
-        },
-        {
-          "session_file": "leituras_14_Alcool3.csv",
-          "n": 328,
-          "acertos": 304,
-          "recall_sob_efeito": 0.926829268292683
-        },
-        {
-          "session_file": "leituras_17_Alcool.csv",
-          "n": 356,
-          "acertos": 356,
-          "recall_sob_efeito": 1.0
-        }
-      ]
-    },
-    {
-      "sensor_set": "mq3",
       "model": "decision_tree",
       "best_params": {
         "clf__max_depth": 2,
@@ -334,65 +275,6 @@
           "n": 356,
           "acertos": 0,
           "recall_sob_efeito": 0.0
-        }
-      ]
-    },
-    {
-      "sensor_set": "mq3+mq135",
-      "model": "logistic_regression",
-      "best_params": {
-        "clf__C": 0.1
-      },
-      "n_test_attempts": 1195,
-      "acertos_sob_efeito": 1178,
-      "test_metrics": {
-        "f1_macro": 0.4964180362410451,
-        "balanced_accuracy": 0.9857740585774059,
-        "recall_sem_efeito": 0.0,
-        "precision_sem_efeito": 0.0,
-        "recall_sob_efeito": 0.9857740585774059,
-        "precision_sob_efeito": 1.0
-      },
-      "confusion_matrix": {
-        "labels": [
-          "sem_efeito",
-          "sob_efeito"
-        ],
-        "matrix": [
-          [
-            0,
-            0
-          ],
-          [
-            17,
-            1178
-          ]
-        ]
-      },
-      "por_arquivo": [
-        {
-          "session_file": "leituras_11_alcool.csv",
-          "n": 303,
-          "acertos": 303,
-          "recall_sob_efeito": 1.0
-        },
-        {
-          "session_file": "leituras_11_alcool2.csv",
-          "n": 208,
-          "acertos": 191,
-          "recall_sob_efeito": 0.9182692307692307
-        },
-        {
-          "session_file": "leituras_14_Alcool3.csv",
-          "n": 328,
-          "acertos": 328,
-          "recall_sob_efeito": 1.0
-        },
-        {
-          "session_file": "leituras_17_Alcool.csv",
-          "n": 356,
-          "acertos": 356,
-          "recall_sob_efeito": 1.0
         }
       ]
     },
@@ -575,65 +457,6 @@
     },
     {
       "sensor_set": "mq3+dht11",
-      "model": "logistic_regression",
-      "best_params": {
-        "clf__C": 0.1
-      },
-      "n_test_attempts": 1195,
-      "acertos_sob_efeito": 1190,
-      "test_metrics": {
-        "f1_macro": 0.4989517819706499,
-        "balanced_accuracy": 0.99581589958159,
-        "recall_sem_efeito": 0.0,
-        "precision_sem_efeito": 0.0,
-        "recall_sob_efeito": 0.99581589958159,
-        "precision_sob_efeito": 1.0
-      },
-      "confusion_matrix": {
-        "labels": [
-          "sem_efeito",
-          "sob_efeito"
-        ],
-        "matrix": [
-          [
-            0,
-            0
-          ],
-          [
-            5,
-            1190
-          ]
-        ]
-      },
-      "por_arquivo": [
-        {
-          "session_file": "leituras_11_alcool.csv",
-          "n": 303,
-          "acertos": 303,
-          "recall_sob_efeito": 1.0
-        },
-        {
-          "session_file": "leituras_11_alcool2.csv",
-          "n": 208,
-          "acertos": 203,
-          "recall_sob_efeito": 0.9759615384615384
-        },
-        {
-          "session_file": "leituras_14_Alcool3.csv",
-          "n": 328,
-          "acertos": 328,
-          "recall_sob_efeito": 1.0
-        },
-        {
-          "session_file": "leituras_17_Alcool.csv",
-          "n": 356,
-          "acertos": 356,
-          "recall_sob_efeito": 1.0
-        }
-      ]
-    },
-    {
-      "sensor_set": "mq3+dht11",
       "model": "decision_tree",
       "best_params": {
         "clf__max_depth": null,
@@ -806,65 +629,6 @@
           "n": 356,
           "acertos": 0,
           "recall_sob_efeito": 0.0
-        }
-      ]
-    },
-    {
-      "sensor_set": "mq3+mq135+dht11",
-      "model": "logistic_regression",
-      "best_params": {
-        "clf__C": 10.0
-      },
-      "n_test_attempts": 1195,
-      "acertos_sob_efeito": 1185,
-      "test_metrics": {
-        "f1_macro": 0.49789915966386555,
-        "balanced_accuracy": 0.9916317991631799,
-        "recall_sem_efeito": 0.0,
-        "precision_sem_efeito": 0.0,
-        "recall_sob_efeito": 0.9916317991631799,
-        "precision_sob_efeito": 1.0
-      },
-      "confusion_matrix": {
-        "labels": [
-          "sem_efeito",
-          "sob_efeito"
-        ],
-        "matrix": [
-          [
-            0,
-            0
-          ],
-          [
-            10,
-            1185
-          ]
-        ]
-      },
-      "por_arquivo": [
-        {
-          "session_file": "leituras_11_alcool.csv",
-          "n": 303,
-          "acertos": 303,
-          "recall_sob_efeito": 1.0
-        },
-        {
-          "session_file": "leituras_11_alcool2.csv",
-          "n": 208,
-          "acertos": 198,
-          "recall_sob_efeito": 0.9519230769230769
-        },
-        {
-          "session_file": "leituras_14_Alcool3.csv",
-          "n": 328,
-          "acertos": 328,
-          "recall_sob_efeito": 1.0
-        },
-        {
-          "session_file": "leituras_17_Alcool.csv",
-          "n": 356,
-          "acertos": 356,
-          "recall_sob_efeito": 1.0
         }
       ]
     },

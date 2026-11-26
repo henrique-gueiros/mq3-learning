@@ -19,7 +19,7 @@ Fonte: coluna CC de `docs/Entregáveis 6ºP - Projeto 2026.2.xlsx`.
 1. **Infraestrutura e dataset inicial:** coleta própria (CSVs + `attempts.csv`), publicação por MQTT e gravação em banco.
 2. **Pipeline no Airflow** (ingestão, preparação, disponibilização) e **notebook de EDA** em `ml/notebooks/`, justificando limpeza, normalização e ausentes. Lógica reutilizável em `ml/src/`.
 3. **Baseline** justificado, com métricas de validação, no **MLflow**.
-4. **Três modelos ou mais** comparados no MLflow, com matriz de confusão, ROC/AUC e análise crítica. Hoje: regressão logística, árvore e Random Forest além do baseline; KNN é candidato.
+4. **Três modelos ou mais** comparados no MLflow, com matriz de confusão, ROC/AUC e análise crítica. Hoje: KNN, árvore e floresta além do baseline.
 5. **Otimização de hiperparâmetros** (Grid Search pronto; Random Search ou Optuna são alternativas), documentada e no MLflow.
 6. **Validação cruzada k-fold** com estabilidade entre folds, overfitting/underfitting (treino × validação) e generalização. O k-fold é `GroupKFold` por participante.
 7. **Integração:** o pipeline consome dados novos da ESP32 (ou do simulador), processa e infere.
