@@ -31,9 +31,10 @@ class GroupSplit:
     test_groups: list[str] = field(default_factory=list)
     test_size: float = 0.25
     seed: int = 42
+    n_por_classe: int | None = None
 
     def to_dict(self) -> dict:
-        return {
+        dados = {
             "note": (
                 "Grupos de teste são reservados para a avaliação final: "
                 "não use para treinar nem para escolher hiperparâmetros."
@@ -44,6 +45,9 @@ class GroupSplit:
             "train_groups": sorted(self.train_groups),
             "test_groups": sorted(self.test_groups),
         }
+        if self.n_por_classe is not None:
+            dados["n_por_classe"] = self.n_por_classe
+        return dados
 
     @classmethod
     def from_dict(cls, data: dict) -> GroupSplit:
@@ -53,6 +57,7 @@ class GroupSplit:
             test_groups=list(data["test_groups"]),
             test_size=float(data["test_size"]),
             seed=int(data["seed"]),
+            n_por_classe=None if data.get("n_por_classe") is None else int(data["n_por_classe"]),
         )
         overlap = set(split.train_groups) & set(split.test_groups)
         if overlap:
@@ -109,6 +114,7 @@ def update_split(
             list(existing.test_groups),
             existing.test_size,
             existing.seed,
+            existing.n_por_classe,
         )
     else:
         split = GroupSplit(group_by=group_by, test_size=test_size, seed=seed)

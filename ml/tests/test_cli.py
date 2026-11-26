@@ -22,7 +22,7 @@ def test_full_pipeline_and_prediction(tmp_path, capsys):
     _write_raw(paths)
 
     assert main(["--root", str(tmp_path), "validate"]) == 0
-    assert main(["--root", str(tmp_path), "all"]) == 0
+    assert main(["--root", str(tmp_path), "all", "--por-classe", "6"]) == 0
 
     manifest = json.loads(paths.split_manifest.read_text(encoding="utf-8"))
     assert not set(manifest["train_groups"]) & set(manifest["test_groups"])
@@ -30,7 +30,7 @@ def test_full_pipeline_and_prediction(tmp_path, capsys):
     assert set(test["participant_id"]) == set(manifest["test_groups"])
     assert (paths.reports_dir / "experiment.csv").exists()
     final = json.loads((paths.reports_dir / "final.json").read_text(encoding="utf-8"))
-    assert final["sensor_set"] == "mq3+mq135+dht11"
+    assert final["sensor_set"] == "subidas"
     assert "test_metrics" in final
 
     write_csv(make_session("drink", seed=500), tmp_path / "leituras_99.csv")
@@ -53,9 +53,9 @@ def test_prepare_keeps_split_stable(tmp_path):
     paths = ProjectPaths(tmp_path)
     _write_raw(paths)
 
-    assert main(["--root", str(tmp_path), "prepare"]) == 0
+    assert main(["--root", str(tmp_path), "prepare", "--por-classe", "6"]) == 0
     first = paths.split_manifest.read_text(encoding="utf-8")
-    assert main(["--root", str(tmp_path), "prepare", "--seed", "7"]) == 0
+    assert main(["--root", str(tmp_path), "prepare", "--seed", "7", "--por-classe", "6"]) == 0
     assert paths.split_manifest.read_text(encoding="utf-8") == first
 
 
@@ -68,7 +68,7 @@ def test_train_usa_o_mesmo_fluxo_do_pipeline(tmp_path):
     paths = ProjectPaths(tmp_path)
     _write_raw(paths)
 
-    assert main(["--root", str(tmp_path), "all"]) == 0
+    assert main(["--root", str(tmp_path), "all", "--por-classe", "6"]) == 0
     assert (paths.figuras_dir / "matriz_confusao.png").exists()
     assert "f1_macro_std" in pd.read_csv(paths.reports_dir / "experiment.csv").columns
 

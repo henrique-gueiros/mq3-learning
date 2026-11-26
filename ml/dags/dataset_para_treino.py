@@ -68,7 +68,9 @@ def preparar(**context) -> dict:
     grupo = conf.get("group_by") or os.environ.get("MQ3_GROUP_BY", "participant_id")
     teste = float(conf.get("test_size") or os.environ.get("MQ3_TEST_SIZE", "0.25"))
     semente = int(conf.get("seed") or os.environ.get("MQ3_SEED", "42"))
-    return preparar_dataset(_caminhos(), grupo, teste, semente).como_dict()
+    bruto = conf.get("n_por_classe") or os.environ.get("MQ3_POR_CLASSE")
+    por_classe = int(bruto) if bruto else None
+    return preparar_dataset(_caminhos(), grupo, teste, semente, por_classe).como_dict()
 
 
 def disponibilizar(**context) -> dict:

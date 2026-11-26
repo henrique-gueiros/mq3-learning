@@ -36,6 +36,9 @@ import pandas as pd
 BEFORE_SECONDS = 15.0
 DEFAULT_BLOW_SECONDS = 5.0
 AFTER_SECONDS = 30.0
+# Mediana dos primeiros segundos do arquivo: o ar da sala, antes de o sensor
+# ficar alto por causa dos sopros seguintes.
+COMECO_SECONDS = 20.0
 
 SENSORS = {
     "mq3": "mq3_raw",
@@ -52,16 +55,24 @@ SENSOR_GROUPS = {
     + ["mq3_humidity_peak_lag_s"],
 }
 
+# Subida contra o começo do arquivo, não contra os 15 s imediatamente antes.
+# Nesse intervalo o sensor já pode estar alto, e a subida local zera mesmo
+# quando a pessoa bebeu. O MQ-135 entra na matriz e não é condição.
+FEATURES_DE_SUBIDA = ["humidity_rise_comeco", "mq135_rise_comeco", "mq3_rise_comeco"]
+
 SENSOR_SETS = {
     "mq3": ["mq3"],
     "mq3+mq135": ["mq3", "mq135"],
     "mq3+dht11": ["mq3", "dht11"],
     "mq3+mq135+dht11": ["mq3", "mq135", "dht11"],
+    "subidas": ["subidas"],
 }
 
-# O treino e o teste sempre usam os três sensores. Os demais conjuntos ficam
-# só para comparar features fora da execução.
-SENSOR_SET_EXECUCAO = "mq3+mq135+dht11"
+SENSOR_GROUPS["subidas"] = FEATURES_DE_SUBIDA
+
+# O treino e o teste usam as três subidas. Os demais conjuntos ficam só para
+# comparar features fora da execução.
+SENSOR_SET_EXECUCAO = "subidas"
 
 def feature_columns(sensor_set: str) -> list[str]:
     """Colunas de features usadas por um conjunto de sensores de ``SENSOR_SETS``."""
@@ -72,6 +83,123 @@ def feature_columns(sensor_set: str) -> list[str]:
 
 def all_feature_columns() -> list[str]:
     return feature_columns("mq3+mq135+dht11")
+
+
+def subidas_contra_o_comeco(readings: pd.DataFrame, attempts: pd.DataFrame) -> pd.DataFrame:
+    """Subida de cada sensor contra a mediana do começo da sessão.
+
+    O começo são os primeiros ``COMECO_SECONDS`` do arquivo. A subida é o
+    máximo entre o início do sopro e ``AFTER_SECONDS`` depois do fim, menos
+    essa mediana. Assim um sopro no meio de um arquivo longo ainda conta a
+    partir do ar da sala, e não do trecho já contaminado.
+
+    Returns:
+        Uma linha por tentativa, com ``attempt_id`` e as três subidas.
+    """
+    colunas = ["attempt_id", *FEATURES_DE_SUBIDA]
+    if attempts.empty:
+        return pd.DataFrame(columns=colunas)
+    faltam = {"attempt_id", "session_file", "blow_start_s"} - set(attempts.columns)
+    if faltam:
+        raise ValueError(f"tentativas sem coluna para a subida do começo: {sorted(faltam)}")
+
+    sensores = {
+        "humidity_rise_comeco": "humidity_pct",
+        "mq135_rise_comeco": "mq135_raw",
+        "mq3_rise_comeco": "mq3_raw",
+    }
+    leituras = readings.copy()
+    if "session_file" not in leituras.columns:
+        if attempts["session_file"].nunique() != 1:
+            raise ValueError("leituras sem session_file e tentativas de mais de uma sessão")
+        leituras["session_file"] = attempts["session_file"].iloc[0]
+    leituras["t_ms"] = pd.to_numeric(leituras["t_ms"], errors="coerce")
+    for coluna in sensores.values():
+        if coluna not in leituras.columns:
+            leituras[coluna] = np.nan
+        else:
+            leituras[coluna] = pd.to_numeric(leituras[coluna], errors="coerce")
+
+    bases: dict[str, dict[str, float]] = {}
+    for sessao, grupo in leituras.groupby("session_file", sort=False):
+        t0 = grupo["t_ms"].min()
+        comeco = grupo[grupo["t_ms"] <= t0 + COMECO_SECONDS * 1000]
+        bases[str(sessao)] = {coluna: float(comeco[coluna].median()) for coluna in sensores.values()}
+
+    inicio_s = pd.to_numeric(attempts["blow_start_s"], errors="coerce")
+    if "blow_end_s" in attempts.columns:
+        fim_s = pd.to_numeric(attempts["blow_end_s"], errors="coerce")
+    else:
+        fim_s = pd.Series(np.nan, index=attempts.index)
+    fim_s = fim_s.fillna(inicio_s + DEFAULT_BLOW_SECONDS)
+
+    linhas = []
+    for indice, tentativa in attempts.reset_index(drop=True).iterrows():
+        sessao = str(tentativa["session_file"])
+        base = bases.get(sessao)
+        grupo = leituras[leituras["session_file"].astype(str) == sessao]
+        ini = float(inicio_s.iloc[indice]) * 1000
+        fim = float(fim_s.iloc[indice]) * 1000 + AFTER_SECONDS * 1000
+        janela = grupo[(grupo["t_ms"] >= ini) & (grupo["t_ms"] <= fim)]
+        linha = {"attempt_id": tentativa["attempt_id"]}
+        for nome, coluna in sensores.items():
+            if base is None or pd.isna(base[coluna]) or janela.empty or janela[coluna].isna().all():
+                linha[nome] = np.nan
+            else:
+                linha[nome] = float(janela[coluna].max() - base[coluna])
+        linhas.append(linha)
+    return pd.DataFrame(linhas, columns=colunas)
+
+
+def selecionar_sem_sobreposicao(attempts: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    """Fica com uma tentativa por janela de features, dentro de cada sessão.
+
+    A janela vai de ``BEFORE_SECONDS`` antes do sopro até ``AFTER_SECONDS``
+    depois. A próxima tentativa da mesma sessão só entra quando o "antes"
+    dela começa no fim da janela anterior. A ordem é a do ``blow_start_s``.
+
+    Returns:
+        ``(tentativas, avisos)``. O aviso diz quantas ficaram de fora porque
+        a janela pegaria o sopro anterior.
+    """
+    if attempts.empty:
+        return attempts.reset_index(drop=True), []
+    obrigatorias = {"attempt_id", "session_file", "blow_start_s"}
+    if not obrigatorias <= set(attempts.columns):
+        faltam = sorted(obrigatorias - set(attempts.columns))
+        raise ValueError(f"tentativas sem coluna para separar as janelas: {faltam}")
+
+    quadro = attempts.copy()
+    inicio_s = pd.to_numeric(quadro["blow_start_s"], errors="coerce")
+    if "blow_end_s" in quadro.columns:
+        fim_s = pd.to_numeric(quadro["blow_end_s"], errors="coerce")
+    else:
+        fim_s = pd.Series(np.nan, index=quadro.index)
+    fim_s = fim_s.fillna(inicio_s + DEFAULT_BLOW_SECONDS)
+    quadro["janela_inicio_ms"] = inicio_s * 1000
+    quadro["janela_fim_ms"] = fim_s * 1000
+
+    mantidos: list = []
+    avisos: list[str] = []
+    for sessao, grupo in quadro.groupby("session_file", sort=False):
+        grupo = grupo.sort_values(["janela_inicio_ms", "attempt_id"], kind="mergesort")
+        limite = -np.inf
+        fora = 0
+        for linha in grupo.itertuples():
+            if pd.isna(linha.janela_inicio_ms) or pd.isna(linha.janela_fim_ms):
+                fora += 1
+                continue
+            if linha.janela_inicio_ms - BEFORE_SECONDS * 1000 >= limite:
+                mantidos.append(linha.Index)
+                limite = float(linha.janela_fim_ms) + AFTER_SECONDS * 1000
+            else:
+                fora += 1
+        if fora:
+            avisos.append(
+                f"{sessao}: {fora} tentativas de fora; a janela de features pegaria o sopro anterior"
+            )
+    escolhidas = quadro.loc[mantidos].drop(columns=["janela_inicio_ms", "janela_fim_ms"])
+    return escolhidas.reset_index(drop=True), avisos
 
 
 def assign_phases(readings: pd.DataFrame, attempts: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:

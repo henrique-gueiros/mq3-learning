@@ -52,6 +52,17 @@ class ModelSpec:
     grid: dict
 
 
+def modelo_de_subida() -> ModelSpec:
+    """Regra que exige subida de umidade e de MQ-3, com limiares do treino.
+
+    Não tem grade: o ``fit`` mede os limiares nas tentativas daquele fold.
+    """
+    from src.regra_subida import RegraDeSubida
+
+    imputer = ("imputer", SimpleImputer(strategy="median", keep_empty_features=True))
+    return ModelSpec(Pipeline([imputer, ("clf", RegraDeSubida())]), {})
+
+
 def model_specs(seed: int = 42, n_estimators: int = 100) -> dict[str, ModelSpec]:
     """Modelos comparados. ``baseline`` sempre prevê a classe mais comum.
 
@@ -154,10 +165,9 @@ def roc_auc(y_true: pd.Series, scores: pd.Series | np.ndarray | None) -> float:
 def checar_sessoes_nos_grupos(train: pd.DataFrame, group_by: str) -> None:
     """Falha se uma sessão aparece em mais de um grupo.
 
-    Nos arquivos sem álcool cada amostra vira uma tentativa, e as janelas de
-    features (``BEFORE_SECONDS`` antes e ``AFTER_SECONDS`` depois) de amostras
-    vizinhas compartilham leituras. Se a mesma sessão caísse em dois grupos, o
-    ``GroupKFold`` poderia pôr uma amostra no treino e a vizinha na validação.
+    O prepare já tira a tentativa cuja janela de features pega o sopro
+    anterior. Se a mesma sessão caísse em dois grupos, o ``GroupKFold`` ainda
+    poderia pôr uma amostra no treino e a vizinha na validação.
     """
     if "session_file" not in train.columns or group_by == "session_file":
         return
@@ -301,7 +311,7 @@ def train_final_model(
     """
     y = train["target"].astype(str)
     columns = feature_columns(sensor_set)
-    spec = model_specs(seed)[model_name]
+    spec = modelo_de_subida() if model_name == "regra_subida" else model_specs(seed)[model_name]
     model, params = fit_with_search(spec, train[columns], y, train[group_by].astype(str), 5, scoring)
 
     metadata = {
@@ -312,6 +322,10 @@ def train_final_model(
         "best_params": params,
         "n_train_attempts": len(y),
     }
+    regra = model.named_steps.get("clf") if hasattr(model, "named_steps") else None
+    if regra is not None and hasattr(regra, "limiar_umidade_"):
+        metadata["limiar_umidade"] = float(regra.limiar_umidade_)
+        metadata["limiar_mq3"] = float(regra.limiar_mq3_)
     y_test = test["target"].astype(str)
     if len(y_test):
         predictions = pd.Series(model.predict(test[columns]), dtype=str)

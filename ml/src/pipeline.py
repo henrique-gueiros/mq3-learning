@@ -27,11 +27,18 @@ import pandas as pd
 
 from src.data_io import load_raw_data, read_dataset_csv, write_csv
 from src.data_validation import CONDITIONS, DataValidationError, validate_readings
-from src.features import assign_phases, build_dataset, compute_features
+from src.features import (
+    assign_phases,
+    build_dataset,
+    compute_features,
+    selecionar_sem_sobreposicao,
+    subidas_contra_o_comeco,
+)
 from src.amostras_sem_efeito import deixar_so_duas_classes, reorganizar_amostras_sem_efeito
 from src.paths import ProjectPaths
 from src.sopros_bebida import reorganizar_sopros_de_bebida
-from src.splitting import apply_split, load_split, save_split, update_split
+from src.bateria import montar_bateria, tirar_arquivos_fora
+from src.splitting import load_split, save_split
 
 _COLUNAS_FIRMWARE = [
     "amostra",
@@ -258,8 +265,9 @@ def preparar_dataset(
     group_by: str = "participant_id",
     test_size: float = 0.25,
     seed: int = 42,
+    n_por_classe: int | None = None,
 ) -> ResumoPreparacao:
-    """Calcula as features de cada sopro e separa treino e teste por grupo.
+    """Calcula as features de cada sopro e monta a bateria de treino e teste.
 
     É o mesmo passo de ``python -m src.cli prepare``. Antes das features,
     reescreve os sopros dos arquivos de bebida (nome ou origem com "alcool"):
@@ -267,21 +275,32 @@ def preparar_dataset(
     Nos outros arquivos, umidade de 60% ou mais vira sopro de três amostras;
     abaixo disso, cada amostra vira uma linha. Perfume, ar limpo e enxaguante
     entram como ``sem_efeito``. A coluna ``condition`` fica só com as duas classes.
+
+    Em seguida fica uma tentativa por janela: a próxima da mesma sessão só
+    entra quando o "antes" dela não pega o sopro anterior. Sem ``n_por_classe``,
+    cada lado usa o que cabe, com as duas classes na mesma quantidade. Com a
+    cota, a fração ``test_size`` vai para o teste. O arquivo não é partido.
+    ``features_all.csv`` guarda as tentativas sem janela sobreposta, antes
+    desse equilíbrio.
     """
     avisos_bebida = reorganizar_sopros_de_bebida(paths)
     avisos_sem_efeito = reorganizar_amostras_sem_efeito(paths)
     avisos_classes = deixar_so_duas_classes(paths.raw_attempts)
     readings, attempts, warnings = load_raw_data(paths.raw_sessions_dir, paths.raw_attempts)
+    attempts, avisos_fora = tirar_arquivos_fora(attempts)
+    attempts, avisos_janela = selecionar_sem_sobreposicao(attempts)
     phased, phase_warnings = assign_phases(readings, attempts)
     features, feature_warnings = compute_features(phased)
+    features = features.merge(subidas_contra_o_comeco(readings, attempts), on="attempt_id", how="left")
     dataset = build_dataset(features, attempts)
     if dataset.empty:
         raise ValueError("nenhuma tentativa com features válidas")
     write_csv(dataset, paths.features_all)
 
-    split, split_warnings = update_split(dataset, load_split(paths.split_manifest), group_by, test_size, seed)
+    split, train, test, avisos_bateria = montar_bateria(
+        dataset, load_split(paths.split_manifest), group_by, test_size, seed, n_por_classe
+    )
     save_split(split, paths.split_manifest)
-    train, test = apply_split(dataset, split)
     write_csv(train, paths.train)
     write_csv(test, paths.test)
     return ResumoPreparacao(
@@ -294,7 +313,15 @@ def preparar_dataset(
         n_teste=len(test),
         teste_por_classe=_contagem(test),
         avisos=tuple(
-            avisos_bebida + avisos_sem_efeito + avisos_classes + warnings + phase_warnings + feature_warnings + split_warnings
+            avisos_bebida
+            + avisos_sem_efeito
+            + avisos_classes
+            + warnings
+            + avisos_fora
+            + avisos_janela
+            + phase_warnings
+            + feature_warnings
+            + avisos_bateria
         ),
     )
 
@@ -343,6 +370,7 @@ def executar_pipeline(
     seed: int = 42,
     incluir_simulador: bool = False,
     dsn: str | None = None,
+    n_por_classe: int | None = None,
 ) -> dict:
     """Roda ingestão, preparação e disponibilização, nesta ordem.
 
@@ -353,7 +381,7 @@ def executar_pipeline(
     if dsn:
         lote.extend(ler_rodadas(dsn, incluir_simulador))
     ingestao = ingerir(lote, paths, incluir_simulador=incluir_simulador)
-    preparacao = preparar_dataset(paths, group_by, test_size, seed)
+    preparacao = preparar_dataset(paths, group_by, test_size, seed, n_por_classe)
     return gravar_disponivel(paths, ingestao, preparacao)
 
 
@@ -371,13 +399,19 @@ def treinar_modelos(
     from src import figuras, rastreio
     from src.features import SENSOR_SET_EXECUCAO, feature_columns
     from src.splitting import load_split
-    from src.train import choose_best, model_specs, run_experiment
+    from src.train import choose_best, modelo_de_subida, model_specs, run_experiment
 
     split = load_split(paths.split_manifest)
     if split is None:
         raise FileNotFoundError(f"{paths.split_manifest} não existe; rode a preparação antes")
     train = read_dataset_csv(paths.train)
-    specs = model_specs(seed, n_estimators=n_estimators)
+    # A árvore livre parava no patamar da umidade e não lia o MQ-3. A execução
+    # compara a regra das subidas com o baseline; árvore e floresta continuam
+    # em model_specs para comparação fora daqui.
+    specs = {
+        "baseline": model_specs(seed, n_estimators=n_estimators)["baseline"],
+        "regra_subida": modelo_de_subida(),
+    }
     results, folds = run_experiment(
         train,
         group_by=split.group_by,

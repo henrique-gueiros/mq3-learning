@@ -12,6 +12,8 @@ from src.features import (
     build_dataset,
     compute_features,
     feature_columns,
+    selecionar_sem_sobreposicao,
+    subidas_contra_o_comeco,
 )
 from tests.conftest import make_dataset, make_session
 
@@ -71,6 +73,53 @@ def test_blow_start_outside_the_session_is_skipped():
     assert "blow_start_s" in warnings[0]
 
 
+def test_subida_contra_o_comeco_nao_usa_o_ar_ja_contaminado():
+    # Os primeiros 20 s são o ar da sala (MQ-3 100, umidade 40).
+    # Perto do sopro o MQ-3 já está em 250; no sopro chega a 400.
+    t_s = [1, 10, 19, 40, 50, 51, 52, 60]
+    readings = pd.DataFrame(
+        {
+            "session_file": ["s1.csv"] * len(t_s),
+            "t_ms": [t * 1000 for t in t_s],
+            "mq3_raw": [100, 100, 100, 250, 400, 380, 300, 250],
+            "mq135_raw": [50, 50, 50, 80, 200, 180, 100, 80],
+            "humidity_pct": [40, 40, 40, 55, 70, 68, 60, 50],
+        }
+    )
+    attempts = pd.DataFrame(
+        {
+            "attempt_id": ["a1"],
+            "session_file": ["s1.csv"],
+            "blow_start_s": [50.0],
+            "blow_end_s": [52.0],
+        }
+    )
+
+    subidas = subidas_contra_o_comeco(readings, attempts).iloc[0]
+
+    assert subidas["mq3_rise_comeco"] == 300
+    assert subidas["humidity_rise_comeco"] == 30
+    assert subidas["mq135_rise_comeco"] == 150
+
+
+def test_janelas_sobrepostas_ficam_de_fora():
+    # Janela: 15 s antes e 30 s depois. A próxima só entra quando o "antes"
+    # dela não pega o "depois" da anterior (fim 12 + 30 + 15 = 57 s).
+    attempts = pd.DataFrame(
+        {
+            "attempt_id": ["a1", "a2", "a3", "b1"],
+            "session_file": ["s1.csv", "s1.csv", "s1.csv", "s2.csv"],
+            "blow_start_s": [10.0, 40.0, 57.0, 10.0],
+            "blow_end_s": [12.0, 42.0, 59.0, 12.0],
+        }
+    )
+
+    escolhidas, avisos = selecionar_sem_sobreposicao(attempts)
+
+    assert list(escolhidas["attempt_id"]) == ["a1", "a3", "b1"]
+    assert any("s1.csv" in aviso for aviso in avisos)
+
+
 def test_attempts_too_close_in_the_same_session_warn():
     session = validate_readings(make_session("clean"))
     session.insert(0, "session_file", "s1.csv")
@@ -92,7 +141,7 @@ def test_missing_dht11_readings_do_not_break_features():
 
 def test_every_sensor_set_uses_mq3_and_the_full_set_uses_everything():
     for sensor_set in SENSOR_SETS:
-        assert "mq3_rise" in feature_columns(sensor_set)
+        assert any(coluna.startswith("mq3_rise") for coluna in feature_columns(sensor_set))
     assert feature_columns("mq3+mq135+dht11") == all_feature_columns()
     assert "humidity_rise" not in feature_columns("mq3+mq135")
     with pytest.raises(ValueError):

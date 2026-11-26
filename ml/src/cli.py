@@ -41,11 +41,15 @@ def run_validate(paths: ProjectPaths) -> None:
     print("Tentativas por classe:   " + _counts(attempts["target"]))
 
 
-def run_prepare(paths: ProjectPaths, group_by: str, test_size: float, seed: int) -> None:
-    """Calcula as features de cada sopro e separa treino e teste por grupo."""
-    resumo = preparar_dataset(paths, group_by, test_size, seed)
+def run_prepare(paths: ProjectPaths, group_by: str, test_size: float, seed: int, n_por_classe: int | None) -> None:
+    """Calcula as features de cada sopro e monta a bateria de treino e teste."""
+    resumo = preparar_dataset(paths, group_by, test_size, seed, n_por_classe)
     _print_warnings(list(resumo.avisos))
     print(f"Features: {resumo.n_features} tentativas -> {_rel(paths, paths.features_all)}")
+    if n_por_classe is None:
+        print("Bateria: o que cabe em cada lado, as duas classes na mesma quantidade")
+    else:
+        print(f"Bateria: {n_por_classe} tentativas de cada classe")
     print(f"Separação por {resumo.group_by} -> {_rel(paths, paths.split_manifest)}")
     for name, n_grupos, n_tentativas, contagem, path in (
         ("Treino", resumo.n_grupos_treino, resumo.n_treino, resumo.treino_por_classe, paths.train),
@@ -62,6 +66,7 @@ def run_pipeline(
     group_by: str,
     test_size: float,
     seed: int,
+    n_por_classe: int | None,
     dsn: str | None,
     incluir_simulador: bool,
 ) -> None:
@@ -74,6 +79,7 @@ def run_pipeline(
         seed=seed,
         incluir_simulador=incluir_simulador,
         dsn=dsn,
+        n_por_classe=n_por_classe,
     )
     _print_warnings(manifesto["avisos"])
     print(
@@ -187,7 +193,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "validate":
             run_validate(paths)
         elif args.command == "prepare":
-            run_prepare(paths, args.group_by, args.test_size, args.seed)
+            run_prepare(paths, args.group_by, args.test_size, args.seed, args.por_classe)
         elif args.command == "train":
             run_train(paths, args.select_by, args.seed)
         elif args.command == "predict":
@@ -195,11 +201,17 @@ def main(argv: list[str] | None = None) -> int:
             run_predict(paths, args.session, args.blow_start_s, args.blow_end_s, model, args.output)
         elif args.command == "all":
             print("== Preparação ==")
-            run_prepare(paths, args.group_by, args.test_size, args.seed)
+            run_prepare(paths, args.group_by, args.test_size, args.seed, args.por_classe)
             run_train(paths, args.select_by, args.seed)
         elif args.command == "pipeline":
             run_pipeline(
-                paths, args.group_by, args.test_size, args.seed, args.dsn or None, args.incluir_simulador
+                paths,
+                args.group_by,
+                args.test_size,
+                args.seed,
+                args.por_classe,
+                args.dsn or None,
+                args.incluir_simulador,
             )
     except (ValueError, FileNotFoundError) as exc:
         print(f"Erro: {exc}", file=sys.stderr)
@@ -212,8 +224,14 @@ def _add_prepare_args(parser: argparse.ArgumentParser) -> None:
         "--group-by", choices=GROUP_COLUMNS, default="participant_id",
         help="separar treino/teste por participante (padrão) ou por arquivo de sessão",
     )
-    parser.add_argument("--test-size", type=float, default=0.25, help="fração de grupos no teste (padrão: 0.25)")
+    parser.add_argument("--test-size", type=float, default=0.25, help="fração da bateria que vai para o teste (padrão: 0.25)")
     parser.add_argument("--seed", type=int, default=42, help="semente (padrão: 42)")
+    parser.add_argument(
+        "--por-classe",
+        type=int,
+        default=None,
+        help="teto de tentativas de cada classe; sem o argumento, cada lado usa o que cabe",
+    )
 
 
 def _add_train_args(parser: argparse.ArgumentParser, with_seed: bool = True) -> None:

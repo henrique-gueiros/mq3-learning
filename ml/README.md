@@ -145,18 +145,19 @@ python -m pytest        # roda os testes
 | Comando | O que faz | Gera |
 | --- | --- | --- |
 | `validate` | Confere sessões e tentativas e lista todos os problemas de uma vez | nada |
-| `prepare` | Recorta cada sopro, calcula as features e separa treino/teste por participante | `data/processed/*.csv`, `config/split.json` |
-| `train` | Compara 3 modelos em 4 conjuntos de sensores e treina o melhor (`sob_efeito` ou `sem_efeito`) | `reports/experiment.csv`, `reports/final.json`, `models/sob_efeito.joblib` |
+| `prepare` | Recorta cada sopro, tira a janela que pega o sopro anterior e equilibra as duas classes com o que cabe em cada lado | `data/processed/*.csv`, `config/split.json` |
+| `train` | Compara a regra das subidas com o baseline e grava a regra (`sob_efeito` ou `sem_efeito`) | `reports/experiment.csv`, `reports/final.json`, `models/sob_efeito.joblib` |
 | `predict` | Classifica um sopro de uma sessão nova | previsões na tela ou em `--output` |
 | `pipeline` | Ingestão do Postgres (com `--dsn`), preparação e disponibilização | `data/processed/disponivel.json` e os CSVs do `prepare` |
 
 Opções úteis:
 
-- `--group-by session_file`: separa por arquivo de sessão quando há poucos participantes (são precisos pelo menos 3 grupos no treino);
+- `--group-by session_file`: separa por arquivo de sessão quando há poucos participantes (são precisos pelo menos 3 grupos no treino). Com um único `participant_id`, o `prepare` já faz isso;
+- `--por-classe 40`: teto opcional de tentativas de cada classe. Sem o argumento, cada lado fica com o mínimo das duas classes naquele lado;
 - `--select-by recall_sob_efeito`: escolhe o modelo final pela métrica de validação cruzada desejada;
 - `python -m src.cli predict --session leituras_7.csv --blow-start-s 60 --model models/sob_efeito.joblib`.
 
-Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste continua no teste. Para refazer o sorteio do zero, apague `config/split.json`.
+Quando chegarem dados novos, basta rodar `all` de novo: quem já estava no teste continua no teste. Para refazer o sorteio do zero, apague `config/split.json`. A bateria equilibra as duas classes em cada lado e reparte a classe maior entre os arquivos, para um CSV grande não ocupar o `sem_efeito` inteiro. `features_all.csv` guarda as tentativas sem janela sobreposta, antes desse equilíbrio.
 
 ### Pipeline no Airflow
 
@@ -176,8 +177,8 @@ python -m src.cli pipeline --dsn "$PG_DSN"   # sem --dsn, só prepara os CSVs qu
 
 ### Como o treino avalia
 
-- **Modelos:** `baseline` (sempre a classe mais comum), árvore de decisão e Random Forest.
-- **Sensores:** o treino e o teste usam sempre os três juntos, `mq3+mq135+dht11` (MQ-3, MQ-135 e DHT11).
+- **Modelo da execução:** `regra_subida`. `sob_efeito` só quando a umidade e o MQ-3 sobem. Os limiares saem das tentativas de treino (F1 macro; empate fica com a subida maior). O `baseline` (sempre a classe mais comum) entra na comparação. Árvore e Random Forest continuam em `model_specs` para rodar fora dessa execução.
+- **Sensores:** o treino e o teste usam as três subidas contra o começo do arquivo, `subidas` (`humidity_rise_comeco`, `mq135_rise_comeco`, `mq3_rise_comeco`). O começo é a mediana dos primeiros 20 s. O MQ-135 não é condição da regra. O patamar de antes do sopro fica no CSV e não entra na decisão.
 - **Validação cruzada aninhada por grupo:** o laço externo avalia com participantes que o modelo não viu; o laço interno escolhe os hiperparâmetros (Grid Search) só com os demais.
 - **Teste final:** usado uma única vez, para o modelo escolhido.
 - **Métricas:** F1 macro, acurácia balanceada, precisão e recall de `sob_efeito` e de `sem_efeito`. O **recall de `sob_efeito`** importa mais: deixar passar quem bebeu é o erro mais grave. `roc_auc` usa a probabilidade de `sob_efeito` (`predict_proba`); o baseline não tem probabilidade útil.
@@ -187,11 +188,11 @@ python -m src.cli pipeline --dsn "$PG_DSN"   # sem --dsn, só prepara os CSVs qu
 
 ### Janelas sobrepostas e vazamento entre treino e validação
 
-`n_train_attempts` em `reports/final.json` (11289) é grande porque, nos arquivos sem álcool, `src/amostras_sem_efeito.py` transforma **cada leitura** em uma "tentativa" (ou 3 leituras seguidas, quando a umidade é ≥ 60%). Essas tentativas não se sobrepõem como sopros, mas as features olham 15 s antes e 30 s depois de cada uma (`BEFORE_SECONDS`/`AFTER_SECONDS` em `src/features.py`), e as leituras próximas da mesma sessão aparecem nas janelas de várias tentativas. Linhas vizinhas são, portanto, quase cópias umas das outras: o número de linhas não é o número de exemplos independentes.
+O recorte ainda gera uma tentativa por amostra (ou por trio, quando a umidade é ≥ 60% ou o arquivo é de álcool). As features olham 15 s antes e 30 s depois (`BEFORE_SECONDS`/`AFTER_SECONDS` em `src/features.py`). O `prepare` fica só com a tentativa cuja janela não pega o sopro anterior, então a linha que o modelo vê não é cópia da vizinha.
 
-Isso só vaza entre treino e validação se linhas da mesma sessão ficarem em grupos diferentes. Não ficam: o `GroupKFold` (externo e interno) agrupa por `participant_id` (ou `session_file`), e `split.json` separa treino e teste pelo mesmo grupo. Como as tentativas são geradas por sessão, uma sessão cai em um grupo só. Para garantir isso, `run_experiment` chama `checar_sessoes_nos_grupos` e recusa o treino se alguma sessão aparece em mais de um grupo (por exemplo, se um `participant_id` for editado à mão em parte das linhas de uma sessão).
+Treino e teste separam pelo arquivo inteiro (`split.json`). `run_experiment` chama `checar_sessoes_nos_grupos` e recusa o treino se alguma sessão aparece em mais de um grupo.
 
-Consequência prática: o que conta é o número de **grupos** (`n_groups`, hoje 13) e de sessões (`n_sessions` em `experiment.csv`), não o de linhas. Com tão poucos grupos, os desvios entre folds são grandes, e as métricas de teste (1562 linhas, poucos participantes) também. O F1 macro baixo de `sob_efeito` com recall alto e precisão baixa vem do desbalanceamento (poucos sopros de bebida frente a milhares de amostras `sem_efeito`).
+O que conta é o número de **grupos** (`n_groups`) e de sessões (`n_sessions` em `experiment.csv`). Com poucos grupos, o desvio entre folds é grande. Cada lado da bateria usa o que os arquivos têm, com as duas classes na mesma quantidade.
 
 ### MLflow
 

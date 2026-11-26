@@ -101,3 +101,35 @@ def test_reorganizar_troca_o_arquivo_sem_alcool_e_preserva_o_de_bebida(tmp_path)
     assert "leituras_11_alcool.csv" in texto
     assert "antigo" not in texto
     assert texto.count("leituras_ambiente_s") == 3
+
+
+def test_sessoes_com_sensor_ruim_nao_viram_tentativa(tmp_path):
+    from src.amostras_sem_efeito import reorganizar_amostras_sem_efeito
+    from src.paths import ProjectPaths
+
+    paths = ProjectPaths(tmp_path)
+    paths.raw_sessions_dir.mkdir(parents=True)
+    (paths.raw_sessions_dir / "leituras_11_alcool.csv").write_text("t_ms,ppm\n1000,1\n", encoding="utf-8")
+    quadro = pd.DataFrame({"t_ms": [1000, 2000], "humidity_pct": [40, 41]})
+    fora = (
+        "leituras_bebida1.csv",
+        "leituras_bebida2.csv",
+        "leituras_bebida3.csv",
+        "leituras_20_sensor_Instavel.csv",
+        "leituras_novos_acima_08.csv",
+        "leituras_conversa1.csv",
+    )
+    for nome in fora:
+        quadro.to_csv(paths.raw_sessions_dir / nome, index=False)
+    paths.raw_attempts.write_text(
+        "attempt_id,session_file,participant_id,condition,blow_start_s,blow_end_s,reference_mg_l,notes\n"
+        "antigo,leituras_bebida1.csv,equipe,clean,1,2,,sai\n",
+        encoding="utf-8",
+    )
+
+    reorganizar_amostras_sem_efeito(paths)
+    texto = paths.raw_attempts.read_text(encoding="utf-8")
+
+    assert "antigo" not in texto
+    for nome in fora:
+        assert nome not in texto

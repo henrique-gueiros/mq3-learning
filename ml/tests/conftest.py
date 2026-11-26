@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from src.data_validation import validate_attempts, validate_readings
-from src.features import assign_phases, build_dataset, compute_features
+from src.features import assign_phases, build_dataset, compute_features, subidas_contra_o_comeco
 
 BLOW_START_S = 20
 SESSION_SECONDS = 60
@@ -86,4 +86,5 @@ def make_feature_dataset(n_participants: int = 6, repetitions: int = 2) -> pd.Da
     readings, attempts = make_dataset(n_participants, repetitions)
     phased, _ = assign_phases(readings, attempts)
     features, _ = compute_features(phased)
+    features = features.merge(subidas_contra_o_comeco(readings, attempts), on="attempt_id", how="left")
     return build_dataset(features, attempts)

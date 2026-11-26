@@ -8,7 +8,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from src.features import assign_phases, compute_features
+from src.features import assign_phases, compute_features, subidas_contra_o_comeco
 
 
 def load_model(path: Path):
@@ -37,6 +37,8 @@ def predict_attempts(
     phased, warnings = assign_phases(readings, attempts)
     features, feature_warnings = compute_features(phased)
     warnings += feature_warnings
+    if not features.empty:
+        features = features.merge(subidas_contra_o_comeco(readings, attempts), on="attempt_id", how="left")
     if features.empty:
         return pd.DataFrame(columns=["attempt_id", "prediction"]), warnings
 

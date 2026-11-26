@@ -202,15 +202,19 @@ def test_executar_pipeline_disponibiliza_o_dataset_que_ja_esta_em_raw(tmp_path):
     paths = ProjectPaths(tmp_path)
     _escrever_brutos(paths)
 
-    manifesto = executar_pipeline(paths)
+    manifesto = executar_pipeline(paths, n_por_classe=6)
 
     assert manifesto["pronto_para_treino"] is True
     assert paths.features_all.exists()
     assert paths.train.exists()
     assert paths.test.exists()
     gravado = json.loads(paths.disponivel.read_text(encoding="utf-8"))
-    assert gravado["n_treino"] + gravado["n_teste"] == gravado["n_features"]
     assert gravado["n_features"] == 18
+    treino = pd.read_csv(paths.train)
+    teste = pd.read_csv(paths.test)
+    assert (treino["target"] == "sob_efeito").sum() == (treino["target"] == "sem_efeito").sum() == 4
+    assert (teste["target"] == "sob_efeito").sum() == (teste["target"] == "sem_efeito").sum() == 2
+    assert not set(treino["participant_id"]) & set(teste["participant_id"])
     assert Path(tmp_path, gravado["treino"]).exists()
 
 
@@ -218,7 +222,7 @@ def test_executar_pipeline_inclui_rodada_nova_do_banco(tmp_path):
     paths = ProjectPaths(tmp_path)
     _escrever_brutos(paths)
 
-    manifesto = executar_pipeline(paths, rodadas=[_rodada()])
+    manifesto = executar_pipeline(paths, rodadas=[_rodada()], n_por_classe=6)
 
     features = pd.read_csv(paths.features_all)
     assert "2026-11-18_p9_clean_1_s1" in set(features["attempt_id"])
@@ -236,7 +240,7 @@ def test_cli_pipeline_grava_o_manifesto(tmp_path):
     paths = ProjectPaths(tmp_path)
     _escrever_brutos(paths)
 
-    assert main(["--root", str(tmp_path), "pipeline", "--dsn", ""]) == 0
+    assert main(["--root", str(tmp_path), "pipeline", "--dsn", "", "--por-classe", "6"]) == 0
     assert json.loads(paths.disponivel.read_text(encoding="utf-8"))["pronto_para_treino"] is True
 
 
@@ -257,7 +261,8 @@ def test_treino_escolhe_modelo_e_o_teste_mede_uma_vez(tmp_path):
     escolha = treinar_modelos(paths, n_estimators=5)
     resultado = avaliar_teste(paths, escolha, seed=42)
 
-    assert escolha["sensor_set"] == "mq3+mq135+dht11"
+    assert escolha["sensor_set"] == "subidas"
+    assert escolha["modelo"] == "regra_subida"
     assert escolha["n_treino"] == len(train)
     assert resultado["n_teste"] == len(test)
     assert "recall_sob_efeito" in resultado["metricas_teste"]

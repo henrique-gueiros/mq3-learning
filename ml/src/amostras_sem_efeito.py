@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.bateria import arquivo_fica_de_fora
 from src.paths import ProjectPaths
 from src.data_io import arquivos_de_sessao
 from src.sopros_bebida import arquivos_bebida
@@ -80,8 +81,8 @@ def reorganizar_amostras_sem_efeito(paths: ProjectPaths, lote: Path | None = Non
     reescritas: set[str] = set()
 
     for path in sessoes:
-        if "instavel" in path.name.lower():
-            avisos.append(f"{path.name}: sensor instável no nome do arquivo; ficou de fora")
+        if arquivo_fica_de_fora(path.name):
+            avisos.append(f"{path.name}: ficou de fora da bateria")
             reescritas.add(path.name)
             continue
         condicao = _condicao(path.name, casos.get(path.name))
