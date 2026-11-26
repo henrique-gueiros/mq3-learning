@@ -342,8 +342,9 @@ def test_curva_de_aprendizado_usa_os_hiperparametros_mais_escolhidos():
     from src.pipeline import _com_parametros_escolhidos
     from src.train import model_specs
 
-    pipeline = model_specs()["logistic_regression"].pipeline
-    escolhidos = json.dumps([{"clf__C": 10.0}, {"clf__C": 0.1}, {"clf__C": 10.0}])
+    pipeline = model_specs()["knn"].pipeline
+    escolhidos = json.dumps([{"clf__n_neighbors": 15}, {"clf__n_neighbors": 5}, {"clf__n_neighbors": 15}])
 
-    assert _com_parametros_escolhidos(pipeline, escolhidos).get_params()["clf__C"] == 10.0
-    assert _com_parametros_escolhidos(pipeline, "[{}, {}]").get_params()["clf__C"] == pipeline.get_params()["clf__C"]
+    assert _com_parametros_escolhidos(pipeline, escolhidos).get_params()["clf__n_neighbors"] == 15
+    padrao = pipeline.get_params()["clf__n_neighbors"]
+    assert _com_parametros_escolhidos(pipeline, "[{}, {}]").get_params()["clf__n_neighbors"] == padrao

@@ -62,7 +62,14 @@ Só a logística generaliza para o perfume sem ter visto perfume no treino. O mo
 - Só as features de variação pioram tudo.
 - Deixar um dia de fora não serve: todas as bebidas são de 12/11.
 
-**Decisão pendente:** o modelo final. Floresta sem peso, logística com corte, ou manter a floresta com peso (perfume 17/100).
+**Sem regressão logística** (25/11, decisão do usuário: a disciplina não cobriu). O pipeline compara baseline, KNN, árvore e floresta, e o peso da bebida entra no grid das árvores. Em `ml/reports/variacoes_sem_logistica.md`, a melhor configuração é a **floresta sem peso + limiar escolhido no treino**: recall de bebida 0,933, precisão 1,000, perfume 1,00, média por arquivo 0,975.
+
+**Falta, se a equipe aprovar:** levar o limiar para a produção.
+- `train_final_model` grava o limiar escolhido por validação cruzada no treino no `.json` do modelo;
+- `ml/src/inference.py` e o servidor ao vivo usam `predict_proba >= limiar`;
+- o pipeline fixa a floresta sem peso.
+
+**Decisão pendente (antiga):** o modelo final. Floresta sem peso, logística com corte, ou manter a floresta com peso (perfume 17/100).
 
 **Próximo passo sugerido para a equipe:** o modelo hoje confunde vapor de álcool no ar com hálito. Para corrigir:
 - colocar perfume e álcool no ar também no treino (mais coleta de `perfume`/`alcohol70_*`, ou um split que deixe um arquivo de perfume no treino);

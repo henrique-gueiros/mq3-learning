@@ -10,9 +10,12 @@ real de classes. Só o treino muda entre as variações:
 
 - ``FEATURES``: ``todas`` (níveis e variações) ou ``variacao`` (sem os níveis
   absolutos ``*_before`` e ``*_peak``, que mudam com o dia e o ambiente);
-- balanceamento: ``peso`` (``class_weight="balanced"``, o padrão do pipeline),
-  ``sem_peso`` ou ``corte`` (no máximo ``CORTE_POR_ARQUIVO`` tentativas
-  ``sem_efeito`` por arquivo, espaçadas no tempo, mais o peso).
+- treino:
+  - ``grid``: o grid escolhe o peso da bebida (nenhum, 2x, 4x ou balanceado), que é o padrão do pipeline;
+  - ``sem_peso``: peso fixo em nenhum;
+  - ``corte``: no máximo ``CORTE_POR_ARQUIVO`` tentativas ``sem_efeito`` por arquivo, espaçadas no tempo, depois o grid;
+  - ``sem_peso_limiar``: sem peso e com o limiar escolhido no treino;
+  - ``limiar``: o grid e, em seguida, o limiar de probabilidade escolhido no próprio treino (validação cruzada por arquivo). É o limiar de maior recall de bebida que mantém o acerto ``sem_efeito`` em pelo menos ``MINIMO_SEM_EFEITO``.
 
 Uso, de dentro de ``ml/`` e com o ``prepare`` já rodado::
 
@@ -28,12 +31,15 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
+from sklearn.model_selection import GroupKFold
 
 from src.features import SENSOR_SET_EXECUCAO, feature_columns
 from src.train import compute_metrics, fit_with_search, model_specs
 
-MODELOS_PADRAO = ("logistic_regression", "decision_tree", "random_forest")
-BALANCEAMENTOS = ("peso", "sem_peso", "corte")
+MODELOS_PADRAO = ("knn", "decision_tree", "random_forest")
+BALANCEAMENTOS = ("grid", "sem_peso", "corte", "limiar", "sem_peso_limiar")
+MINIMO_SEM_EFEITO = 0.95
 CORTE_POR_ARQUIVO = 300
 
 _TODAS = feature_columns(SENSOR_SET_EXECUCAO)
@@ -66,6 +72,25 @@ def cortar_por_arquivo(treino: pd.DataFrame, maximo: int = CORTE_POR_ARQUIVO) ->
     return pd.concat(partes).sort_index()
 
 
+def escolher_limiar(y: pd.Series, prob_sob: np.ndarray, minimo_sem_efeito: float = MINIMO_SEM_EFEITO) -> float:
+    """Limiar de ``P(sob_efeito)`` com maior recall de bebida e acerto ``sem_efeito`` >= ``minimo``.
+
+    Empate no recall: fica o maior limiar (menos alarme falso). Sem nenhum que
+    cumpra o mínimo, devolve 0,5 (o padrão do scikit-learn).
+    """
+    y = np.asarray(pd.Series(y).astype(str))
+    prob_sob = np.asarray(prob_sob, dtype=float)
+    sob, sem = prob_sob[y == "sob_efeito"], prob_sob[y == "sem_efeito"]
+    melhor, melhor_recall = 0.5, -1.0
+    for limiar in sorted(set(np.round(prob_sob, 6))):
+        if sem.size and (sem < limiar).mean() < minimo_sem_efeito:
+            continue
+        recall = (sob >= limiar).mean() if sob.size else 0.0
+        if recall > melhor_recall or (recall == melhor_recall and limiar > melhor):
+            melhor, melhor_recall = float(limiar), recall
+    return melhor
+
+
 def _grupo(dataset: pd.DataFrame, grupo: str) -> pd.Series:
     if grupo == "arquivo":
         return dataset["session_file"].astype(str)
@@ -78,7 +103,7 @@ def avaliar_por_arquivo(
     dataset: pd.DataFrame,
     modelos: list[str] | tuple[str, ...] = MODELOS_PADRAO,
     colunas: list[str] | None = None,
-    balanceamento: str = "peso",
+    balanceamento: str = "grid",
     grupo: str = "arquivo",
     seed: int = 42,
     n_estimators: int = 100,
@@ -100,8 +125,8 @@ def avaliar_por_arquivo(
     previsoes: list[pd.DataFrame] = []
     for nome in modelos:
         spec = specs[nome]
-        if balanceamento == "sem_peso":
-            spec = replace(spec, pipeline=spec.pipeline.set_params(clf__class_weight=None))
+        if balanceamento in ("sem_peso", "sem_peso_limiar") and "clf__class_weight" in spec.grid:
+            spec = replace(spec, grid={**spec.grid, "clf__class_weight": [None]})
         for de_fora in sorted(grupos.unique()):
             treino = dataset[grupos != de_fora]
             teste = dataset[grupos == de_fora]
@@ -117,7 +142,13 @@ def avaliar_por_arquivo(
                 n_inner,
                 "f1_macro",
             )
-            pred = pd.Series(modelo.predict(teste[colunas]), index=teste.index).astype(str)
+            if balanceamento in ("limiar", "sem_peso_limiar"):
+                limiar = _limiar_no_treino(modelo, treino, colunas, n_inner)
+                params = {**params, "limiar": limiar}
+                prob = _prob_sob(modelo, teste[colunas])
+                pred = pd.Series(np.where(prob >= limiar, "sob_efeito", "sem_efeito"), index=teste.index)
+            else:
+                pred = pd.Series(modelo.predict(teste[colunas]), index=teste.index).astype(str)
             previsoes.append(
                 pd.DataFrame(
                     {
@@ -149,6 +180,33 @@ def avaliar_por_arquivo(
                     }
                 )
     return pd.DataFrame(linhas), pd.concat(previsoes, ignore_index=True)
+
+
+def _prob_sob(modelo, X: pd.DataFrame) -> np.ndarray:
+    classes = [str(c) for c in modelo.classes_]
+    return modelo.predict_proba(X)[:, classes.index("sob_efeito")]
+
+
+def _limiar_no_treino(modelo, treino: pd.DataFrame, colunas: list[str], n_inner: int) -> float:
+    """Limiar escolhido com probabilidades fora da amostra do próprio treino (``GroupKFold`` por arquivo).
+
+    Fold interno cujo treino tem uma classe só (por exemplo, sem bebida) não
+    dá probabilidade: as linhas dele ficam de fora da escolha do limiar.
+    """
+    grupos = treino["session_file"].astype(str)
+    y = treino["target"].astype(str)
+    n = min(n_inner, grupos.nunique())
+    prob = pd.Series(np.nan, index=treino.index)
+    for idx_treino, idx_validacao in GroupKFold(n_splits=n).split(treino, y, grupos):
+        y_fold = y.iloc[idx_treino]
+        if y_fold.nunique() < 2:
+            continue
+        ajustado = clone(modelo).fit(treino[colunas].iloc[idx_treino], y_fold)
+        prob.iloc[idx_validacao] = _prob_sob(ajustado, treino[colunas].iloc[idx_validacao])
+    validas = prob.notna()
+    if not validas.any():
+        return 0.5
+    return escolher_limiar(y[validas], prob[validas].to_numpy())
 
 
 def resumo_por_modelo(previsoes: pd.DataFrame) -> pd.DataFrame:

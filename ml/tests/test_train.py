@@ -80,3 +80,23 @@ def test_final_model_is_evaluated_on_test_and_used_for_inference(tmp_path):
         "novo-perfume": "sem_efeito",
     }
     assert {"prob_sob_efeito", "prob_sem_efeito"} <= set(predictions.columns)
+
+
+def test_modelos_comparados_sem_regressao_logistica():
+    """A disciplina não deu regressão logística: baseline, KNN, árvore e floresta."""
+    from src.train import model_specs
+
+    specs = model_specs(n_estimators=5)
+    assert set(specs) == {"baseline", "knn", "decision_tree", "random_forest"}
+    assert "clf__n_neighbors" in specs["knn"].grid
+
+
+def test_peso_da_bebida_entra_no_grid_das_arvores():
+    """O grid escolhe, só no treino, entre nenhum peso, pesos intermediários e o balanceado."""
+    from src.train import model_specs
+
+    specs = model_specs(n_estimators=5)
+    for nome in ("decision_tree", "random_forest"):
+        pesos = specs[nome].grid["clf__class_weight"]
+        assert None in pesos and "balanced" in pesos
+        assert {"sem_efeito": 1, "sob_efeito": 2} in pesos

@@ -39,7 +39,7 @@ def test_barras_treino_validacao_e_curva_de_aprendizado(tmp_path):
 
     barras = figuras.barras_por_modelo(results, tmp_path / "f1.png")
     treino_val = figuras.treino_vs_validacao(folds, tmp_path / "treino_val.png")
-    spec = model_specs(n_estimators=5)["logistic_regression"]
+    spec = model_specs(n_estimators=5)["knn"]
     curva = figuras.curva_aprendizado(
         spec.pipeline,
         train[feature_columns("mq3")],

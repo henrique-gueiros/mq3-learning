@@ -64,7 +64,7 @@ def test_registra_modelo_final_com_metricas_e_figuras(monkeypatch, tmp_path, dad
 
     monkeypatch.setenv("MLFLOW_TRACKING_URI", f"file:{tmp_path / 'mlruns'}")
     train, test = dados
-    modelo, metadata = train_final_model(train, test, "mq3", "logistic_regression")
+    modelo, metadata = train_final_model(train, test, "mq3", "knn")
     matriz = figuras.matriz_confusao(
         metadata["confusion_matrix"]["labels"], metadata["confusion_matrix"]["matrix"], tmp_path / "matriz.png"
     )
@@ -74,7 +74,7 @@ def test_registra_modelo_final_com_metricas_e_figuras(monkeypatch, tmp_path, dad
     experimento = mlflow.get_experiment_by_name("teste")
     run = mlflow.search_runs([experimento.experiment_id]).iloc[0]
     assert run["metrics.teste_f1_macro"] == pytest.approx(metadata["test_metrics"]["f1_macro"])
-    assert run["params.model"] == "logistic_regression"
+    assert run["params.model"] == "knn"
     assert run["params.best_params"] == json.dumps(metadata["best_params"])
     arquivos = [a.path for a in mlflow.MlflowClient().list_artifacts(run["run_id"])]
     assert "matriz.png" in arquivos and "model" in arquivos

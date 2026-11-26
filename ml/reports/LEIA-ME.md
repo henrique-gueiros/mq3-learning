@@ -4,6 +4,7 @@
 | --- | --- | --- |
 | `final.json`, `experiment.csv`, `folds.csv`, `figuras/` | Saída do pipeline (DAG `dataset_para_treino`, 25/11/2026), com os três sensores e teste por arquivo (`ml/config/split.json`) | sim: o teste tem 4 arquivos que o treino não viu |
 | `por_arquivo.*` | Validação deixando um arquivo de fora, 12 arquivos, 3 modelos (`python -m src.por_arquivo`) | sim: cada arquivo é testado sem ser visto |
+| `variacoes_sem_logistica.*` | KNN, árvore e floresta; peso no grid, sem peso, corte e limiar escolhido no treino (melhor: floresta sem peso + limiar) | sim |
 | `variacoes.*` | Arquivo de fora com balanceamento (peso, sem peso, corte por arquivo) e features (todas, só variação) | sim |
 | `grid_search_cinco_testes.*` | Cinco recortes só com tentativas originais | sim |
 | `grid_search_tres_sensores.*`, `grid_search_dados_novos.*` | Validação cruzada por arquivo; teste nas cópias | a validação sim; o teste nas cópias não (ver a nota em cada arquivo) |

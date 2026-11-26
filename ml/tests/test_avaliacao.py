@@ -31,7 +31,7 @@ def _treino() -> pd.DataFrame:
 
 def test_nested_cv_guarda_metricas_de_cada_fold_e_probabilidades():
     train = _treino()
-    spec = model_specs(n_estimators=5)["logistic_regression"]
+    spec = model_specs(n_estimators=5)["knn"]
     X = train[feature_columns("mq3")]
     resultado = nested_cv_predict(spec, X, train["target"], train["participant_id"], n_outer=4)
 
@@ -83,7 +83,7 @@ def test_modelo_final_tem_auc_no_teste_quando_ha_probabilidade():
     dataset = make_feature_dataset(n_participants=8, repetitions=2)
     split, _ = update_split(dataset, existing=None)
     train, test = apply_split(dataset, split)
-    model, metadata = train_final_model(train, test, "mq3", "logistic_regression")
+    model, metadata = train_final_model(train, test, "mq3", "knn")
 
     assert 0.0 <= metadata["test_metrics"]["roc_auc"] <= 1.0
     scores = scores_sob_efeito(model, test[feature_columns("mq3")])

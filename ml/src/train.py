@@ -26,7 +26,6 @@ from sklearn.base import clone
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     balanced_accuracy_score,
     confusion_matrix,
@@ -36,6 +35,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import GridSearchCV, GroupKFold
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
@@ -43,6 +43,8 @@ from sklearn.tree import DecisionTreeClassifier
 from src.features import SENSOR_SETS, feature_columns
 
 MIN_GROUPS = 3
+# Peso da classe sob_efeito testado no grid das árvores: nenhum, 2x, 4x ou balanceado (~9x).
+PESOS_BEBIDA = [None, {"sem_efeito": 1, "sob_efeito": 2}, {"sem_efeito": 1, "sob_efeito": 4}, "balanced"]
 POSITIVE = "sob_efeito"
 
 
@@ -58,24 +60,22 @@ def model_specs(seed: int = 42, n_estimators: int = 100) -> dict[str, ModelSpec]
     """Modelos comparados. ``baseline`` sempre prevê a classe mais comum.
 
     Todos começam com ``SimpleImputer`` porque o MQ-135 e o DHT11 podem ter
-    leituras vazias. ``class_weight="balanced"`` compensa classes desbalanceadas.
+    leituras vazias. Nas árvores, o peso da bebida entra no grid
+    (``PESOS_BEBIDA``): peso cheio (``balanced``, ~9x) empurra casos do meio,
+    como o perfume, para ``sob_efeito``; sem peso, passa mais bebida. O grid
+    escolhe o meio-termo só com o treino. Regressão logística ficou de fora
+    porque a disciplina não a cobriu; o KNN entra no lugar.
     """
     imputer = ("imputer", SimpleImputer(strategy="median", keep_empty_features=True))
     return {
         "baseline": ModelSpec(Pipeline([imputer, ("clf", DummyClassifier(strategy="most_frequent"))]), {}),
-        "logistic_regression": ModelSpec(
-            Pipeline(
-                [
-                    imputer,
-                    ("scaler", StandardScaler()),
-                    ("clf", LogisticRegression(max_iter=2000, class_weight="balanced")),
-                ]
-            ),
-            {"clf__C": [0.1, 1.0, 10.0]},
+        "knn": ModelSpec(
+            Pipeline([imputer, ("scaler", StandardScaler()), ("clf", KNeighborsClassifier())]),
+            {"clf__n_neighbors": [5, 15, 31], "clf__weights": ["uniform", "distance"]},
         ),
         "decision_tree": ModelSpec(
-            Pipeline([imputer, ("clf", DecisionTreeClassifier(class_weight="balanced", random_state=seed))]),
-            {"clf__max_depth": [2, 3, 5, None], "clf__min_samples_leaf": [1, 3]},
+            Pipeline([imputer, ("clf", DecisionTreeClassifier(random_state=seed))]),
+            {"clf__max_depth": [2, 3, 5, None], "clf__min_samples_leaf": [1, 3], "clf__class_weight": PESOS_BEBIDA},
         ),
         "random_forest": ModelSpec(
             Pipeline(
@@ -83,13 +83,11 @@ def model_specs(seed: int = 42, n_estimators: int = 100) -> dict[str, ModelSpec]
                     imputer,
                     (
                         "clf",
-                        RandomForestClassifier(
-                            n_estimators=n_estimators, class_weight="balanced", random_state=seed
-                        ),
+                        RandomForestClassifier(n_estimators=n_estimators, random_state=seed),
                     ),
                 ]
             ),
-            {"clf__max_depth": [3, None], "clf__min_samples_leaf": [1, 3]},
+            {"clf__max_depth": [3, None], "clf__min_samples_leaf": [1, 3], "clf__class_weight": PESOS_BEBIDA},
         ),
     }
 
