@@ -56,6 +56,14 @@ No ponta a ponta contínuo com `esp32-esp8266/leituras.csv`, o trecho de álcool
 
 Só a logística generaliza para o perfume sem ter visto perfume no treino. O modelo em produção hoje é a floresta, escolhida pelo F1 da validação. **Decisão da equipe:** trocar o modelo final pela logística (`python -m src.cli train --select-by ...` ou fixar o modelo).
 
+**Variações de treino** (25/11, `ml/reports/variacoes.md`):
+- **Floresta sem `class_weight`** acerta o perfume (100/100) e o `clean_6` (0,90), com recall de bebida 0,89 e precisão 0,88.
+- **Logística com corte por arquivo** tem a melhor média por arquivo (0,967) e o melhor pior caso (0,83).
+- Só as features de variação pioram tudo.
+- Deixar um dia de fora não serve: todas as bebidas são de 12/11.
+
+**Decisão pendente:** o modelo final. Floresta sem peso, logística com corte, ou manter a floresta com peso (perfume 17/100).
+
 **Próximo passo sugerido para a equipe:** o modelo hoje confunde vapor de álcool no ar com hálito. Para corrigir:
 - colocar perfume e álcool no ar também no treino (mais coleta de `perfume`/`alcohol70_*`, ou um split que deixe um arquivo de perfume no treino);
 - avaliar com validação deixando um arquivo de fora por vez.
