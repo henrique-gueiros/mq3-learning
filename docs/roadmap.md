@@ -43,7 +43,7 @@ Pronto e testado:
 Ainda não existe:
 - [ ] Coleta rotulada suficiente (`attempts.csv` com sopros marcados), com as duas classes.
 - [ ] Revisão das features com dados reais. A análise exploratória existe em `ml/notebooks/01_eda.ipynb` (figuras em `ml/reports/figuras_eda/`), com as seções do diário e o veredito de cada uma; falta a equipe interpretar (células "[EQUIPE: interpretar]") e decidir as sessões anteriores a 10/11, o aquecimento do MQ-3 e os trios de bebida.
-- [ ] Modelo treinado e avaliado com dados reais (métricas dos testes automatizados **não** dizem nada sobre o sensor).
+- [x] Modelo treinado com os dados da equipe e servido (26/11): floresta sem peso, limiar 0,51. No teste dos 4 arquivos, recall de bebida 1,00 e precisão 0,50; perfume 6/100. A comparação deixando um arquivo de fora está em `ml/reports/variacoes_sem_logistica.md` e não é o número desse arquivo.
 - [ ] Testar na placa o firmware FreeRTOS ao vivo (Wi-Fi, MQTT, IPv6). A placa não grava CSV nem marca sopro.
 - [x] MLflow e um Compose único com todos os serviços (24/11): `docker compose up -d --build` sobe broker, banco, ingestor, API, tela, modelo, alerta, Airflow e MLflow; rede com IPv6.
 - [x] Registro no MLflow (`ml/src/rastreio.py`), métricas por fold, F1 treino × validação, ROC/AUC e figuras (`ml/src/figuras.py`).

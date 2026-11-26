@@ -9,7 +9,8 @@ mesmo banco que o ingestor grava (``applications/db/01-schema.sql``):
    classifica uma janela de 3 amostras a cada 3 s, como as do treino (ar parado
    e sopros de bebida também são janelas de 1 a 3 amostras). Nenhum limiar
    decide quando classificar; o alerta só sai depois de várias janelas
-   ``sob_efeito`` seguidas.
+   ``sob_efeito`` seguidas. A classe em si usa o ``limiar`` do JSON do modelo,
+   quando essa chave existe (``P(sob_efeito) >= limiar``).
 3. em cada caso, espera a janela "depois do sopro" do treino
    (``AFTER_SECONDS`` de ``ml/src/features.py``) para o ingestor gravar as
    leituras que o modelo usa;

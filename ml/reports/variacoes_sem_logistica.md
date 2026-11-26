@@ -36,4 +36,4 @@
 ## Limites
 
 - Um único arquivo de perfume, um participante, dois dias: é a melhor configuração **nestes dados**, não um desempenho garantido.
-- O limiar exige que a produção use `predict_proba` e esse corte, e não o `predict` padrão. Hoje `train_final_model` e o servidor ao vivo usam o `predict`.
+- O limiar exige `predict_proba` e esse corte. Desde 26/11 o arquivo servido grava o limiar e a inferência usa `P(sob_efeito) >= limiar`. No teste único dos quatro arquivos reservados o limiar ficou 0,51 e o perfume 6/100: esse treino não vê o perfume nem o `clean_6`. A linha 1,00 desta tabela é o teste em que cada arquivo fica de fora e o modelo é retreinado nos outros onze.

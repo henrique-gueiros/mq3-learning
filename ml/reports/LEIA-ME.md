@@ -2,7 +2,7 @@
 
 | Arquivo | O que é | Mede generalização? |
 | --- | --- | --- |
-| `final.json`, `experiment.csv`, `folds.csv`, `figuras/` | Saída do pipeline (DAG `dataset_para_treino`, 25/11/2026), com os três sensores e teste por arquivo (`ml/config/split.json`) | sim: o teste tem 4 arquivos que o treino não viu |
+| `final.json`, `experiment.csv`, `folds.csv`, `figuras/` | Saída do pipeline (DAG `dataset_para_treino`, 26/11/2026), floresta sem peso e limiar 0,51, teste por arquivo (`ml/config/split.json`) | sim: o teste tem 4 arquivos que o treino não viu |
 | `por_arquivo.*` | Validação deixando um arquivo de fora, 12 arquivos, 3 modelos (`python -m src.por_arquivo`) | sim: cada arquivo é testado sem ser visto |
 | `variacoes_sem_logistica.*` | KNN, árvore e floresta; peso no grid, sem peso, corte e limiar escolhido no treino (melhor: floresta sem peso + limiar) | sim |
 | `variacoes.*` | Arquivo de fora com balanceamento (peso, sem peso, corte por arquivo) e features (todas, só variação) | sim |

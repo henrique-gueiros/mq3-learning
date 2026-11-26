@@ -100,3 +100,46 @@ def test_peso_da_bebida_entra_no_grid_das_arvores():
         pesos = specs[nome].grid["clf__class_weight"]
         assert None in pesos and "balanced" in pesos
         assert {"sem_efeito": 1, "sob_efeito": 2} in pesos
+
+
+def test_spec_final_da_floresta_busca_so_peso_nenhum():
+    """A comparação continua com o grid de pesos; o modelo gravado não."""
+    from src.train import model_specs, spec_final
+
+    final = spec_final("random_forest", n_estimators=5)
+    assert final.grid["clf__class_weight"] == [None]
+    assert "balanced" in model_specs(n_estimators=5)["random_forest"].grid["clf__class_weight"]
+
+
+def test_producao_fica_na_floresta_mesmo_que_o_f1_escolha_outro():
+    from src.train import choose_best, fixar_producao, modelo_de_producao
+
+    results = pd.DataFrame(
+        {
+            "sensor_set": ["mq3+mq135+dht11", "mq3+mq135+dht11"],
+            "model": ["knn", "random_forest"],
+            "f1_macro": [0.99, 0.40],
+            "n_attempts": [10, 10],
+            "chosen_params": ["[]", "[]"],
+        }
+    )
+    assert choose_best(results, "f1_macro")["model"] == "knn"
+    assert modelo_de_producao(results, "f1_macro")["model"] == "random_forest"
+    assert fixar_producao({"modelo": "knn", "sensor_set": "mq3"})["modelo"] == "random_forest"
+
+
+def test_floresta_final_grava_limiar_e_peso_nenhum(tmp_path):
+    """O JSON do modelo servido traz o limiar do treino e a floresta sem class_weight."""
+    import json
+
+    train, test = _train_test()
+    model, metadata = train_final_model(train, test, "mq3+mq135+dht11", "random_forest")
+
+    assert model.named_steps["clf"].class_weight is None
+    assert metadata["best_params"]["clf__class_weight"] is None
+    assert isinstance(metadata["limiar"], float)
+    assert 0.0 < metadata["limiar"] <= 1.0
+
+    save_model(model, metadata, tmp_path / "sob_efeito.joblib")
+    gravado = json.loads((tmp_path / "sob_efeito.json").read_text(encoding="utf-8"))
+    assert gravado["limiar"] == metadata["limiar"]

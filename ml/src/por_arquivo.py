@@ -31,16 +31,21 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from sklearn.base import clone
-from sklearn.model_selection import GroupKFold
 
 from src.features import SENSOR_SET_EXECUCAO, feature_columns
+from src.limiar import (
+    MINIMO_SEM_EFEITO,
+    escolher_limiar,
+    limiar_no_treino,
+    probabilidade_sob_efeito,
+)
 from src.train import compute_metrics, fit_with_search, model_specs
 
 MODELOS_PADRAO = ("knn", "decision_tree", "random_forest")
 BALANCEAMENTOS = ("grid", "sem_peso", "corte", "limiar", "sem_peso_limiar")
-MINIMO_SEM_EFEITO = 0.95
 CORTE_POR_ARQUIVO = 300
+_limiar_no_treino = limiar_no_treino
+_prob_sob = probabilidade_sob_efeito
 
 _TODAS = feature_columns(SENSOR_SET_EXECUCAO)
 FEATURES = {
@@ -70,25 +75,6 @@ def cortar_por_arquivo(treino: pd.DataFrame, maximo: int = CORTE_POR_ARQUIVO) ->
         posicoes = np.unique(np.linspace(0, len(ordenada) - 1, maximo).round().astype(int))
         partes.append(ordenada.iloc[posicoes])
     return pd.concat(partes).sort_index()
-
-
-def escolher_limiar(y: pd.Series, prob_sob: np.ndarray, minimo_sem_efeito: float = MINIMO_SEM_EFEITO) -> float:
-    """Limiar de ``P(sob_efeito)`` com maior recall de bebida e acerto ``sem_efeito`` >= ``minimo``.
-
-    Empate no recall: fica o maior limiar (menos alarme falso). Sem nenhum que
-    cumpra o mínimo, devolve 0,5 (o padrão do scikit-learn).
-    """
-    y = np.asarray(pd.Series(y).astype(str))
-    prob_sob = np.asarray(prob_sob, dtype=float)
-    sob, sem = prob_sob[y == "sob_efeito"], prob_sob[y == "sem_efeito"]
-    melhor, melhor_recall = 0.5, -1.0
-    for limiar in sorted(set(np.round(prob_sob, 6))):
-        if sem.size and (sem < limiar).mean() < minimo_sem_efeito:
-            continue
-        recall = (sob >= limiar).mean() if sob.size else 0.0
-        if recall > melhor_recall or (recall == melhor_recall and limiar > melhor):
-            melhor, melhor_recall = float(limiar), recall
-    return melhor
 
 
 def _grupo(dataset: pd.DataFrame, grupo: str) -> pd.Series:
@@ -180,33 +166,6 @@ def avaliar_por_arquivo(
                     }
                 )
     return pd.DataFrame(linhas), pd.concat(previsoes, ignore_index=True)
-
-
-def _prob_sob(modelo, X: pd.DataFrame) -> np.ndarray:
-    classes = [str(c) for c in modelo.classes_]
-    return modelo.predict_proba(X)[:, classes.index("sob_efeito")]
-
-
-def _limiar_no_treino(modelo, treino: pd.DataFrame, colunas: list[str], n_inner: int) -> float:
-    """Limiar escolhido com probabilidades fora da amostra do próprio treino (``GroupKFold`` por arquivo).
-
-    Fold interno cujo treino tem uma classe só (por exemplo, sem bebida) não
-    dá probabilidade: as linhas dele ficam de fora da escolha do limiar.
-    """
-    grupos = treino["session_file"].astype(str)
-    y = treino["target"].astype(str)
-    n = min(n_inner, grupos.nunique())
-    prob = pd.Series(np.nan, index=treino.index)
-    for idx_treino, idx_validacao in GroupKFold(n_splits=n).split(treino, y, grupos):
-        y_fold = y.iloc[idx_treino]
-        if y_fold.nunique() < 2:
-            continue
-        ajustado = clone(modelo).fit(treino[colunas].iloc[idx_treino], y_fold)
-        prob.iloc[idx_validacao] = _prob_sob(ajustado, treino[colunas].iloc[idx_validacao])
-    validas = prob.notna()
-    if not validas.any():
-        return 0.5
-    return escolher_limiar(y[validas], prob[validas].to_numpy())
 
 
 def resumo_por_modelo(previsoes: pd.DataFrame) -> pd.DataFrame:

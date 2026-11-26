@@ -9,6 +9,7 @@ import joblib
 import pandas as pd
 
 from src.features import assign_phases, compute_features
+from src.limiar import classe_pelo_limiar, probabilidade_sob_efeito
 
 
 def load_model(path: Path):
@@ -28,6 +29,9 @@ def predict_attempts(
     ``attempts`` precisa de ``attempt_id``, ``session_file`` e ``blow_start_s``
     (``blow_end_s`` é opcional); não precisa de condição. O cálculo de features é
     o mesmo do treino, e o pré-processamento fica dentro do ``Pipeline`` salvo.
+    Se o JSON ao lado do modelo tiver ``limiar``, a classe é
+    ``sob_efeito`` quando ``P(sob_efeito) >= limiar``. Sem essa chave, vale o
+    ``predict`` do modelo (corte 0,5).
 
     Returns:
         ``(previsões, avisos)``: uma linha por tentativa com ``prediction`` e,
@@ -41,7 +45,12 @@ def predict_attempts(
         return pd.DataFrame(columns=["attempt_id", "prediction"]), warnings
 
     X = features[metadata["features"]]
-    result = pd.DataFrame({"attempt_id": features["attempt_id"], "prediction": model.predict(X)})
+    limiar = metadata.get("limiar")
+    if limiar is not None and hasattr(model, "predict_proba"):
+        prediction = classe_pelo_limiar(probabilidade_sob_efeito(model, X), float(limiar))
+    else:
+        prediction = model.predict(X)
+    result = pd.DataFrame({"attempt_id": features["attempt_id"], "prediction": prediction})
     if hasattr(model, "predict_proba"):
         probabilities = model.predict_proba(X)
         for index, label in enumerate(model.classes_):

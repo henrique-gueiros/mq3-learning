@@ -16,7 +16,7 @@ conjunto de teste só é usado uma vez, para o melhor modelo.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import joblib
@@ -41,8 +41,15 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 from src.features import SENSOR_SETS, feature_columns
+from src.limiar import classe_pelo_limiar, limiar_no_treino
 
 MIN_GROUPS = 3
+# O arquivo servido não é o maior F1 da comparação: é a floresta sem peso,
+# com o limiar escolhido no próprio treino (ver modelo_de_producao).
+CRITERIO_FINAL = (
+    "floresta sem peso, com limiar de P(sob_efeito) escolhido no treino "
+    "por validação cruzada de arquivo (acerto de sem_efeito >= 0,95)"
+)
 # Peso da classe sob_efeito testado no grid das árvores: nenhum, 2x, 4x ou balanceado (~9x).
 PESOS_BEBIDA = [None, {"sem_efeito": 1, "sob_efeito": 2}, {"sem_efeito": 1, "sob_efeito": 4}, "balanced"]
 POSITIVE = "sob_efeito"
@@ -90,6 +97,19 @@ def model_specs(seed: int = 42, n_estimators: int = 100) -> dict[str, ModelSpec]
             {"clf__max_depth": [3, None], "clf__min_samples_leaf": [1, 3], "clf__class_weight": PESOS_BEBIDA},
         ),
     }
+
+
+def spec_final(model_name: str, seed: int = 42, n_estimators: int = 100) -> ModelSpec:
+    """Spec do modelo gravado. A floresta de produção não busca ``class_weight``.
+
+    A comparação em ``run_experiment`` continua com ``model_specs`` e o grid
+    ``PESOS_BEBIDA``. Só o arquivo servido fixa o peso em nenhum: peso cheio
+    marcava perfume como ``sob_efeito``.
+    """
+    spec = model_specs(seed, n_estimators=n_estimators)[model_name]
+    if model_name == "random_forest":
+        spec = replace(spec, grid={**spec.grid, "clf__class_weight": [None]})
+    return spec
 
 
 def compute_metrics(y_true: pd.Series, y_pred: pd.Series, labels: list[str]) -> dict:
@@ -302,17 +322,23 @@ def train_final_model(
     group_by: str = "participant_id",
     scoring: str = "f1_macro",
     seed: int = 42,
+    n_estimators: int = 100,
 ) -> tuple[Pipeline, dict]:
-    """Treina o modelo escolhido em todo o treino e avalia uma vez no teste.
+    """Treina o modelo em todo o treino e avalia uma vez no teste, com o limiar.
+
+    A floresta entra sem ``class_weight``. O limiar é a validação cruzada por
+    arquivo do próprio treino. As métricas de teste usam o mesmo corte da
+    inferência (``P(sob_efeito) >= limiar``), não o ``predict`` de 0,5.
 
     Returns:
         ``(modelo, metadados)``; os metadados têm features, classes,
-        hiperparâmetros, métricas de teste e matriz de confusão.
+        hiperparâmetros, ``limiar``, métricas de teste e matriz de confusão.
     """
     y = train["target"].astype(str)
     columns = feature_columns(sensor_set)
-    spec = model_specs(seed)[model_name]
+    spec = spec_final(model_name, seed, n_estimators)
     model, params = fit_with_search(spec, train[columns], y, train[group_by].astype(str), 5, scoring)
+    limiar = float(limiar_no_treino(model, train, columns, n_inner=5))
 
     metadata = {
         "sensor_set": sensor_set,
@@ -320,15 +346,20 @@ def train_final_model(
         "features": columns,
         "classes": [str(c) for c in model.classes_],
         "best_params": params,
+        "limiar": limiar,
         "n_train_attempts": len(y),
     }
     y_test = test["target"].astype(str)
     if len(y_test):
-        predictions = pd.Series(model.predict(test[columns]), dtype=str)
+        scores = scores_sob_efeito(model, test[columns])
+        if scores is not None:
+            predictions = pd.Series(classe_pelo_limiar(scores, limiar), dtype=str)
+        else:
+            predictions = pd.Series(model.predict(test[columns]), dtype=str)
         labels = sorted(set(y) | set(y_test))
         metadata["n_test_attempts"] = len(y_test)
         metadata["test_metrics"] = compute_metrics(y_test, predictions, labels)
-        auc = roc_auc(y_test, scores_sob_efeito(model, test[columns]))
+        auc = roc_auc(y_test, scores)
         metadata["test_metrics"]["roc_auc"] = None if np.isnan(auc) else auc  # null, não NaN, no JSON
         metadata["confusion_matrix"] = {
             "labels": labels,
@@ -344,6 +375,27 @@ def choose_best(results: pd.DataFrame, select_by: str) -> pd.Series:
         raise ValueError(f"métrica {select_by} não existe; use uma de {options}")
     candidates = results[results["model"] != "baseline"]
     return candidates.loc[candidates[select_by].astype(float).idxmax()]
+
+
+def modelo_de_producao(results: pd.DataFrame, select_by: str) -> pd.Series:
+    """Linha da floresta na comparação, mesmo se outro modelo tiver a métrica maior.
+
+    O F1 da validação escolhe a floresta com peso e erra o perfume. A decisão
+    de servir a floresta sem peso veio da validação deixando um arquivo de fora
+    (``ml/reports/variacoes_sem_logistica.md``), não desta tabela.
+    """
+    if select_by not in results.columns:
+        options = [c for c in results.columns if c.startswith(("f1", "balanced", "recall", "precision"))]
+        raise ValueError(f"métrica {select_by} não existe; use uma de {options}")
+    florestas = results[results["model"] == "random_forest"]
+    if florestas.empty:
+        raise ValueError("a comparação não inclui random_forest; o modelo de produção é a floresta sem peso")
+    return florestas.loc[florestas[select_by].astype(float).idxmax()]
+
+
+def fixar_producao(escolha: dict) -> dict:
+    """O arquivo servido é a floresta sem peso, não o vencedor do F1."""
+    return {**escolha, "modelo": "random_forest", "criterio_final": CRITERIO_FINAL}
 
 
 def save_model(model: Pipeline, metadata: dict, path: Path) -> None:

@@ -64,12 +64,13 @@ Só a logística generaliza para o perfume sem ter visto perfume no treino. O mo
 
 **Sem regressão logística** (25/11, decisão do usuário: a disciplina não cobriu). O pipeline compara baseline, KNN, árvore e floresta, e o peso da bebida entra no grid das árvores. Em `ml/reports/variacoes_sem_logistica.md`, a melhor configuração é a **floresta sem peso + limiar escolhido no treino**: recall de bebida 0,933, precisão 1,000, perfume 1,00, média por arquivo 0,975.
 
-**Falta, se a equipe aprovar:** levar o limiar para a produção.
-- `train_final_model` grava o limiar escolhido por validação cruzada no treino no `.json` do modelo;
-- `ml/src/inference.py` e o servidor ao vivo usam `predict_proba >= limiar`;
-- o pipeline fixa a floresta sem peso.
+**Feito em 26/11:** a floresta sem peso com limiar está no arquivo servido (`models/sob_efeito.joblib`, ignorado pelo Git; métricas em `reports/final.json`).
+- `class_weight` nenhum, 100 árvores, profundidade livre, folha mínima 1, limiar **0,51**;
+- teste único dos 4 arquivos: F1 macro 0,771, recall de bebida 1,000 (421/421), precisão 0,501; perfume 6/100, `clean_6` 1.302/1.627, `clean_1` 152/152;
+- a média 0,975 de `variacoes_sem_logistica.md` continua válida para o teste que deixa um arquivo de fora. Esse número não é o do arquivo servido, porque o treino oficial não vê perfume, `clean_6`, `drink_4` nem `clean_1`;
+- repetição de `esp32-esp8266/leituras.csv` sem sopro: `sem_efeito` até 33 s; de 36,8 s em diante, e no álcool no ar (152 s), `sob_efeito`.
 
-**Decisão pendente (antiga):** o modelo final. Floresta sem peso, logística com corte, ou manter a floresta com peso (perfume 17/100).
+**Decisão pendente (antiga, superada):** o modelo final. A configuração no ar é a floresta sem peso com limiar.
 
 **Próximo passo sugerido para a equipe:** o modelo hoje confunde vapor de álcool no ar com hálito. Para corrigir:
 - colocar perfume e álcool no ar também no treino (mais coleta de `perfume`/`alcohol70_*`, ou um split que deixe um arquivo de perfume no treino);
