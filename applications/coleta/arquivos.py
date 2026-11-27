@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import os
 from datetime import date
 from pathlib import Path
 from typing import List
@@ -45,6 +46,7 @@ class CsvSessao:
             self._arquivo.write(leitura.cabecalho_csv)
         self._arquivo.write(leitura.como_linha_csv() + "\n")
         self._arquivo.flush()
+        os.fsync(self._arquivo.fileno())
         self._leituras += 1
 
     def fechar(self) -> str:

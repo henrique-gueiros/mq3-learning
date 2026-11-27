@@ -67,7 +67,8 @@ class Coleta:
             ),
             retido=True,
         )
-        print(f"Rodada aberta: {caminho.name}")
+        print(f"Rodada aberta: {caminho.resolve()}")
+        print("Cada leitura entra nesse CSV na hora. Abra o arquivo para acompanhar.")
 
     def receber(self, evento: Union[Leitura, ArquivoNovo, EventoPlaca]) -> None:
         if isinstance(evento, EventoPlaca):
@@ -161,6 +162,11 @@ class Coleta:
         self._broker_ok = ok
 
 
+def sinais_de_encerramento() -> List[int]:
+    """Sinais que pedem para fechar a rodada. O Windows não tem SIGHUP."""
+    return [getattr(signal, nome) for nome in ("SIGTERM", "SIGHUP") if hasattr(signal, nome)]
+
+
 def _encerrar_por_sinal(_sinal, _quadro) -> None:
     raise KeyboardInterrupt
 
@@ -199,7 +205,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     comandos: "queue.Queue[str]" = queue.Queue()
     threading.Thread(target=_ler_teclado, args=(comandos,), daemon=True).start()
 
-    for sinal in (signal.SIGTERM, signal.SIGHUP):
+    for sinal in sinais_de_encerramento():
         signal.signal(sinal, _encerrar_por_sinal)
 
     coleta = Coleta(args, publicador)

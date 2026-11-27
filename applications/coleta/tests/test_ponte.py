@@ -1,9 +1,10 @@
 import argparse
 import csv
+import signal
 
 import pytest
 
-from coleta.ponte import Coleta
+from coleta.ponte import Coleta, sinais_de_encerramento
 from coleta.publicador import Publicador
 from coleta.serial_proto import ArquivoNovo
 from coleta.tests.ajuda import leitura
@@ -19,6 +20,15 @@ def coleta(tmp_path):
     coleta = Coleta(args, publicador)
     coleta.abrir_rodada()
     return coleta
+
+
+def test_sinais_de_encerramento_so_inclui_os_que_existem():
+    sinais = sinais_de_encerramento()
+    assert signal.SIGTERM in sinais
+    if hasattr(signal, "SIGHUP"):
+        assert signal.SIGHUP in sinais
+    else:
+        assert sinais == [signal.SIGTERM]
 
 
 def test_broker_fora_do_ar_mantem_csv_e_attempts(capsys, coleta, tmp_path):

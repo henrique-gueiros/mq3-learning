@@ -18,6 +18,15 @@ def test_nome_sessao_pula_existentes(tmp_path):
     assert nome_sessao(tmp_path, DIA, "p01", "perfume").name == "2026-11-05_p01_perfume_2.csv"
 
 
+def test_cada_leitura_aparece_no_csv_antes_de_fechar(tmp_path):
+    caminho = tmp_path / "s.csv"
+    sessao = CsvSessao(caminho)
+    sessao.escrever(ler_linha(LINHA))
+    texto = caminho.read_text(encoding="utf-8")
+    assert texto == CABECALHO_CSV + "40,2940,1232,0.4,451,525,36.3,49.4,0\n"
+    sessao.fechar()
+
+
 def test_csv_sessao_formato_e_hash(tmp_path):
     sessao = CsvSessao(tmp_path / "s.csv")
     sessao.escrever(ler_linha(LINHA))
